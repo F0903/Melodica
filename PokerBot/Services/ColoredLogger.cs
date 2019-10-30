@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace PokerBot.Core
+namespace PokerBot.Services
 {
     public class ColoredLogger : IAsyncLogger
     {

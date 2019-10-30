@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using PokerBot.Core;
 using PokerBot.Filehandlers.XML;
 using PokerBot.IoC;
+using PokerBot.Services;
 
 namespace PokerBot
 {
@@ -10,7 +11,7 @@ namespace PokerBot
     {
         private static readonly IAsyncBot bot = new SocketBot(Settings.Token, new Discord.WebSocket.DiscordSocketClient(new Discord.WebSocket.DiscordSocketConfig()
         {
-            LogLevel = Settings.LogSeverity,
+            LogLevel = Settings.LogSeverity,           
         }), Kernel.Get<IAsyncLogger>(), Kernel.Get<IAsyncCommandHandler>());
 
         static async Task Main()

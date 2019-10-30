@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Text;
 using Ninject;
 using Ninject.Modules;
+using PokerBot.Core;
+using PokerBot.Services;
 
 namespace PokerBot.IoC.Modules
 {
@@ -10,8 +12,9 @@ namespace PokerBot.IoC.Modules
     {
         public override void Load()
         {
-            Bind<Core.IAsyncLogger>().To<Core.ColoredLogger>().InSingletonScope();
-            Bind<Core.IAsyncCommandHandler>().To<Core.SocketCommandHandler>().InSingletonScope();
+            Bind<IAsyncLogger>().To<ColoredLogger>().InSingletonScope();
+            Bind<IAsyncCommandHandler>().To<SocketCommandHandler>().InSingletonScope();
+            Bind<JukeboxService>().ToSelf();
         }
     }
 }

@@ -6,6 +6,7 @@ using Discord;
 using Discord.Net;
 using Discord.Commands;
 using Discord.WebSocket;
+using PokerBot.Services;
 
 namespace PokerBot.Core
 {
