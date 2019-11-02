@@ -25,7 +25,7 @@ namespace PokerBot.CommandModules
                 fields.Add(new EmbedFieldBuilder()
                 {
                     Name = guild.Name,
-                    Value = await guild.TextChannels.FirstOrDefault().CreateInviteAsync(),
+                    Value = await guild.TextChannels.FirstOrDefault().CreateInviteAsync(60, 1, true),
                     IsInline = false
                 });
 

@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
 using Discord.Commands;
+using PokerBot.Utility.Extensions;
 
 namespace PokerBot.CommandModules
 {
@@ -13,6 +14,12 @@ namespace PokerBot.CommandModules
         public async Task PingAsync()
         {
             await ReplyAsync("Pong!");
+        }
+
+        [Command("Owner")]
+        public async Task GetOwnerAsync()
+        {
+            await ReplyAsync(Context.Message.Author.IsOwnerOfApp() ? "You already know..." : $"My owner is {Utility.Utility.GetAppOwnerAsync()}");
         }
 
         [Group("Debug")]

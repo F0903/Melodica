@@ -32,7 +32,8 @@ namespace PokerBot.Core
 
         private Task Bootstrap()
         {
-            commandHandler.BuildCommands(client).Wait();
+            IoC.Kernel.RegisterInstance(client);          
+
             client.MessageReceived += commandHandler.HandleCommands;
             client.Log += logger.LogAsync;
             return Task.CompletedTask;
@@ -47,7 +48,7 @@ namespace PokerBot.Core
 
         public async Task StartAsync()
         {
-            await client.StartAsync();
+            await client.StartAsync();           
         }
 
         public async Task StopAsync()

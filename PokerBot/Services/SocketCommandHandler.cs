@@ -6,14 +6,18 @@ using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
 using PokerBot.Core;
+using PokerBot.Utility.Extensions;
 
 namespace PokerBot.Services
 {
     public class SocketCommandHandler : IAsyncCommandHandler
     {
-        public SocketCommandHandler(IAsyncLogger logger)
+        public SocketCommandHandler(DiscordSocketClient client, IAsyncLogger logger)
         {
             this.logger = logger;
+            this.client = client;
+
+            BuildCommands().Wait();
         }
 
         public bool BuiltCommands { get; private set; } = false;
@@ -24,16 +28,14 @@ namespace PokerBot.Services
 
         private CommandService cmdService;
 
-        public async Task BuildCommands(IDiscordClient client)
+        public async Task BuildCommands()
         {
             cmdService = new CommandService(new CommandServiceConfig()
             {
                 LogLevel = Settings.LogSeverity,
                 DefaultRunMode = RunMode.Async,
                 CaseSensitiveCommands = false
-            });
-
-            this.client = (DiscordSocketClient)client;
+            });          
 
             cmdService.CommandExecuted += CommandExecuted;
 
@@ -73,8 +75,8 @@ namespace PokerBot.Services
             if (msg.Author.IsBot)
                 return;
 
-            if (message.Channel is IDMChannel && Settings.RedirectBotDMToOwner)           
-                await (await client.GetApplicationInfoAsync()).Owner.SendMessageAsync($"**{message.Author}:** {message.Content}");           
+            if (message.Channel is IDMChannel && Settings.RedirectBotDMToOwner && !msg.Author.IsOwnerOfApp())           
+                await (Utility.Utility.GetAppOwnerAsync().Result.SendMessageAsync($"**{message.Author}:** {message.Content}"));           
 
             var context = new SocketCommandContext(client, msg);
 

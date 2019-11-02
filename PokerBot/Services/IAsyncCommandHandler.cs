@@ -7,7 +7,6 @@ namespace PokerBot.Services
 {
     public interface IAsyncCommandHandler
     {
-        public Task BuildCommands(Discord.IDiscordClient client);
         public Task HandleCommands(Discord.IMessage message);
     }
 }

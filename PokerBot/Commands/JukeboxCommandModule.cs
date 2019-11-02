@@ -42,7 +42,7 @@ namespace PokerBot.Commands
             await jukebox.PauseAsync();
 
         [Command("Play"), Summary("Plays the specified song.")]
-        public async Task PlayAsync(string song)
+        public async Task PlayAsync([Remainder] string song)
         {
             if (!jukebox.IsInChannel())
                 await JoinAsync();
