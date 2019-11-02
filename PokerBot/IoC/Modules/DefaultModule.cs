@@ -14,7 +14,7 @@ namespace PokerBot.IoC.Modules
         {
             Bind<IAsyncLogger>().To<ColoredLogger>().InSingletonScope();
             Bind<IAsyncCommandHandler>().To<SocketCommandHandler>().InSingletonScope();
-            Bind<JukeboxService>().ToSelf();
+            Bind<IAsyncJukeboxService>().To<StandardJukeboxService>();
         }
     }
 }
