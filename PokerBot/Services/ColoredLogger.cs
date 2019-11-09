@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 
 namespace PokerBot.Services
 {
-    public class ColoredLogger : IAsyncLogger
+    public class ColoredLogger : IAsyncLoggingService
     {
         public Task LogAsync(Discord.LogMessage msg)
         {

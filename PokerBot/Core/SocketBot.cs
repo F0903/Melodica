@@ -12,12 +12,12 @@ namespace PokerBot.Core
 {
     public class SocketBot : IAsyncBot
     {
-        public SocketBot(string token, DiscordSocketClient client, IAsyncLogger logger, IAsyncCommandHandler commandHandler)
+        public SocketBot(string token, DiscordSocketClient client, IAsyncLoggingService logger, IAsyncCommandHandlerService commandHandler)
         {
             this.token = token;
             this.client = client;
             this.logger = logger;
-            this.commandHandler = commandHandler;
+            this.commandHandler = commandHandler;           
 
             Bootstrap().Wait();
         }
@@ -26,15 +26,16 @@ namespace PokerBot.Core
 
         private readonly DiscordSocketClient client;
 
-        private readonly IAsyncCommandHandler commandHandler;
+        private readonly IAsyncCommandHandlerService commandHandler;
 
-        private readonly IAsyncLogger logger;       
+        private readonly IAsyncLoggingService logger;       
 
         private Task Bootstrap()
         {
-            IoC.Kernel.RegisterInstance(client);          
+            IoC.Kernel.RegisterInstance(client);
 
-            client.MessageReceived += commandHandler.HandleCommands;
+            commandHandler.BuildCommandsAsync(client);
+            client.MessageReceived += commandHandler.HandleCommandsAsync;
             client.Log += logger.LogAsync;
             return Task.CompletedTask;
         }

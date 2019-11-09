@@ -12,9 +12,15 @@ namespace PokerBot.IoC.Modules
     {
         public override void Load()
         {
-            Bind<IAsyncLogger>().To<ColoredLogger>().InSingletonScope();
-            Bind<IAsyncCommandHandler>().To<SocketCommandHandler>().InSingletonScope();
-            Bind<IAsyncJukeboxService>().To<StandardJukeboxService>();
+            Bind<IAsyncLoggingService>().To<ColoredLogger>().InSingletonScope();
+
+            Bind<IAsyncCommandHandlerService>().To<SocketCommandHandler>().InSingletonScope();
+
+            Bind<IAsyncJukeboxService>().To<StandardJukebox>();
+
+            Bind<IAsyncDownloadService>().To<AsyncYoutubeDownloader>();
+
+            Bind<IAsyncCachingService>().To<AsyncFileCaching>();
         }
     }
 }

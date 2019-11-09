@@ -8,18 +8,38 @@ using System.Threading.Tasks;
 using System.Diagnostics;
 using System.Threading;
 using System.IO;
+using PokerBot.Utility.Extensions;
 
 namespace PokerBot.Services
 {
-    public class StandardJukeboxService : IAsyncJukeboxService
+    public class StandardJukebox : IAsyncJukeboxService
     {
-        private static IVoiceChannel currentVoice;
-        private static IAudioClient voiceClient;
+        public StandardJukebox(AsyncYoutubeDownloader downloaderService, IAsyncCachingService cacheService)
+        {
+            downloader = downloaderService;
+            cache = cacheService;
 
-        private static AudioOutStream discordOut;
+            cache.ClearCache();
+        }
 
-        private static bool paused = false;
-        private static bool playing = false;
+        public const int QueueLimit = 100;
+
+        private readonly IAsyncCachingService cache;
+
+        private readonly AsyncYoutubeDownloader downloader;
+
+        private static readonly Queue<string> queue = new Queue<string>(QueueLimit);
+
+        private static volatile IVoiceChannel currentVoice;
+        private static volatile IAudioClient voiceClient;
+
+        private static volatile AudioOutStream discordOut;
+
+        private static volatile bool paused = false;
+        private static volatile bool playing = false;
+        private static volatile bool looping = false;
+
+        private static string currentSong;
 
         private Task<Process> CreatePlayerAsync(string file)
         {
@@ -41,23 +61,27 @@ namespace PokerBot.Services
             });
         }
 
+        private async Task<string> GetMediaAsync(string query)
+        {
+            var result = await downloader.DownloadAsync(query);
+            return await cache.CacheAsync(result);
+        }
+
+        public Task<string> GetCurrentSongAsync() => Task.FromResult(currentSong);
+
+        public Task<Queue<string>> GetQueueAsync() => Task.FromResult(queue);
+
         public bool IsInChannel() => voiceClient != null;
 
-        public Task PauseAsync()
+        public Task SetLoopingAsync(bool val)
         {
-            paused = true;
+            looping = val;
             return Task.CompletedTask;
         }
 
-        public Task ResumeAsync()
+        public Task SetPauseAsync(bool val)
         {
-            paused = false;
-            return Task.CompletedTask;
-        }
-
-        public Task TogglePlaybackAsync()
-        {
-            paused = !paused;
+            paused = val;
             return Task.CompletedTask;
         }
 
@@ -79,6 +103,15 @@ namespace PokerBot.Services
             voiceClient.Dispose();
             currentVoice = null;
             voiceClient = null;
+            queue.Clear();
+        }
+
+        public async Task QueueAsync(string songName)
+        {
+            if (queue.Count >= QueueLimit)
+                throw new Exception($"Queue has reached the max limit of {QueueLimit}");
+
+            queue.Enqueue(await GetMediaAsync(songName));
         }
 
         public async Task PlayAsync(string songName)
@@ -87,14 +120,16 @@ namespace PokerBot.Services
                 throw new Exception("Not in a voice channel.");
 
             if (playing)
-                throw new Exception("Already playing.");
+                await StopAsync();
 
-            using var ffmpeg = await CreatePlayerAsync($"mediacache/{songName}.mp3");
+            using var ffmpeg = await CreatePlayerAsync(await GetMediaAsync(songName));
             ffmpeg.Start();
 
             using var output = ffmpeg.StandardOutput.BaseStream;
-            discordOut ??= voiceClient.CreatePCMStream(AudioApplication.Music, 125 * 1024, 10, 0);
+            discordOut ??= voiceClient.CreatePCMStream(AudioApplication.Music, 128 * 1024, 1, 0);
+
             playing = true;
+            currentSong = songName;
 
             byte[] buffer = new byte[1024];
 
@@ -102,20 +137,34 @@ namespace PokerBot.Services
             while ((count = await output.ReadAsync(buffer, 0, buffer.Length)) > 0)
             {
                 if (!playing)
-                    break;
+                    return;
 
                 while (paused) { }
 
                 await discordOut.WriteAsync(buffer, 0, count);
             }
+
+            if (looping)
+            {
+                await PlayAsync(songName);
+                return;
+            }
+
+            if (queue.Count > 0 && voiceClient != null)
+            {
+                await PlayAsync(queue.Dequeue());
+                return;
+            }
+
             await output.FlushAsync();
             await discordOut.FlushAsync();
-        }       
+            playing = false;
+        }
 
-        public Task StopAsync()
+        public async Task StopAsync()
         {
             playing = false;
-            return Task.CompletedTask;
+            await discordOut.FlushAsync();
         }
     }
 }

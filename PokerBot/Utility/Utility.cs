@@ -10,6 +10,7 @@ namespace PokerBot.Utility
     public class Utility
     {
         public static Task<IUser> GetAppOwnerAsync() =>
-            Task.FromResult(IoC.Kernel.Get<DiscordSocketClient>().GetApplicationInfoAsync().Result.Owner);           
+            Task.FromResult(IoC.Kernel.Get<DiscordSocketClient>().GetApplicationInfoAsync().Result.Owner);
+        
     }
 }

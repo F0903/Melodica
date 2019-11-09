@@ -14,12 +14,20 @@ namespace PokerBot.Commands
     [Group("Jukebox"), Alias("Audio", "Player")]
     public class JukeboxCommandModule : ModuleBase<SocketCommandContext>
     {
-        public JukeboxCommandModule(StandardJukeboxService jukebox)
+        public JukeboxCommandModule(StandardJukebox jukebox)
         {
             this.jukebox = jukebox;
         }
 
-        private readonly StandardJukeboxService jukebox;
+        private readonly StandardJukebox jukebox;
+
+        [Command("Loop"), Summary("Se")]
+        public async Task SetLoopingAsync(bool val) =>
+            await jukebox.SetLoopingAsync(val);
+
+        [Command("Song"), Summary("Gets the currently playing song.")]
+        public async Task GetSongAsync() =>
+            await ReplyAsync(await jukebox.GetCurrentSongAsync() ?? "No song playing.");
 
         [Command("Join"), Summary("Joins the specified voice channel, or the channel the calling user is in.")]
         public async Task JoinAsync(string channelName = null) =>
@@ -29,17 +37,38 @@ namespace PokerBot.Commands
         public async Task LeaveAsync() =>
             await jukebox.LeaveChannelAsync();
 
-        [Command("Toggle"), Summary("Toggles playback.")]
-        public async Task ToggleAsync() =>
-            await jukebox.TogglePlaybackAsync();
-
         [Command("Resume"), Summary("Resumes playback.")]
         public async Task ResumeAsync() =>
-            await jukebox.ResumeAsync();
+            await jukebox.SetPauseAsync(false);
 
         [Command("Pause"), Summary("Pauses playback.")]
         public async Task PauseAsync() =>
-            await jukebox.PauseAsync();
+            await jukebox.SetPauseAsync(true);
+
+        [Command("Queue"), Summary("Queues a song.")]
+        public async Task QueueAsync([Remainder] string song = null)
+        {
+            if (song == null)
+            {
+                var queue = (await jukebox.GetQueueAsync()).ToArray();
+
+                var fields = new List<EmbedFieldBuilder>();
+                foreach (var item in queue)
+                    fields.Add(new EmbedFieldBuilder() { IsInline = false, Name = item });
+
+                EmbedBuilder eb = new EmbedBuilder()
+                {
+                    Title = "Current Queue",
+                    Fields = fields,
+                    Color = Color.Blue,
+                    Timestamp = DateTimeOffset.Now
+                };
+                await ReplyAsync(null, false, eb.Build());
+                return;
+            }
+
+            await jukebox.QueueAsync(song);
+        }
 
         [Command("Play"), Summary("Plays the specified song.")]
         public async Task PlayAsync([Remainder] string song)

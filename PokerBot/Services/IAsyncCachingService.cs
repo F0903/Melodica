@@ -5,8 +5,9 @@ using System.Threading.Tasks;
 
 namespace PokerBot.Services
 {
-    public interface IAsyncLogger
+    public interface IAsyncCachingService
     {
-        public Task LogAsync(Discord.LogMessage msg);
+        public bool ClearCache();
+        public Task<string> CacheAsync(DownloadResult result);
     }
 }

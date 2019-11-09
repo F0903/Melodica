@@ -5,8 +5,8 @@ using System.Threading.Tasks;
 
 namespace PokerBot.Services
 {
-    public interface IAsyncCommandHandler
+    public interface IAsyncLoggingService
     {
-        public Task HandleCommands(Discord.IMessage message);
+        public Task LogAsync(Discord.LogMessage msg);
     }
 }

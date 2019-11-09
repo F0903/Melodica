@@ -12,7 +12,7 @@ namespace PokerBot
         private static readonly IAsyncBot bot = new SocketBot(Settings.Token, new Discord.WebSocket.DiscordSocketClient(new Discord.WebSocket.DiscordSocketConfig()
         {
             LogLevel = Settings.LogSeverity,           
-        }), Kernel.Get<IAsyncLogger>(), Kernel.Get<IAsyncCommandHandler>());
+        }), Kernel.Get<IAsyncLoggingService>(), Kernel.Get<IAsyncCommandHandlerService>());
 
         static async Task Main()
         {

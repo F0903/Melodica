@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using Ninject;
 
@@ -18,8 +19,10 @@ namespace PokerBot.IoC
 
         public static T Get<T>() => kernel.Get<T>();
 
-        public static void RegisterInstance<T>(T instance) =>
-            kernel.Bind<T>().ToConstant(instance);
+        public static void RegisterInstance<T>(T instance)
+        {
+            kernel.Bind<T>().ToConstant(instance).InSingletonScope();
+        }
 
     }
 }

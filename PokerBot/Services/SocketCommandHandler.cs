@@ -10,26 +10,25 @@ using PokerBot.Utility.Extensions;
 
 namespace PokerBot.Services
 {
-    public class SocketCommandHandler : IAsyncCommandHandler
+    public class SocketCommandHandler : IAsyncCommandHandlerService
     {
-        public SocketCommandHandler(DiscordSocketClient client, IAsyncLogger logger)
+        public SocketCommandHandler(IAsyncLoggingService logger)
         {
             this.logger = logger;
-            this.client = client;
-
-            BuildCommands().Wait();
         }
 
         public bool BuiltCommands { get; private set; } = false;
 
-        private readonly IAsyncLogger logger;
+        private readonly IAsyncLoggingService logger;
 
         private DiscordSocketClient client;
 
         private CommandService cmdService;
 
-        public async Task BuildCommands()
+        public async Task BuildCommandsAsync(IDiscordClient client)
         {
+            this.client = (DiscordSocketClient)client;
+
             cmdService = new CommandService(new CommandServiceConfig()
             {
                 LogLevel = Settings.LogSeverity,
@@ -64,7 +63,7 @@ namespace PokerBot.Services
             await logger.LogAsync(msg);
         }
 
-        public async Task HandleCommands(IMessage message)
+        public async Task HandleCommandsAsync(IMessage message)
         {
             if (!BuiltCommands)
                 throw new Exception("You need to call the BuildCommands function before handling them.");
