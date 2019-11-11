@@ -21,7 +21,7 @@ namespace PokerBot.Commands
 
         private readonly StandardJukebox jukebox;
 
-        [Command("Loop"), Summary("Se")]
+        [Command("Loop"), Summary("Loops the current song.")]
         public async Task SetLoopingAsync(bool val) =>
             await jukebox.SetLoopingAsync(val);
 
@@ -51,6 +51,12 @@ namespace PokerBot.Commands
             if (song == null)
             {
                 var queue = (await jukebox.GetQueueAsync()).ToArray();
+
+                if(queue.Length == 0)
+                {
+                    await ReplyAsync("No songs queued.");
+                    return;
+                }
 
                 var fields = new List<EmbedFieldBuilder>();
                 foreach (var item in queue)

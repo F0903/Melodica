@@ -13,6 +13,6 @@ namespace PokerBot.Utility.Extensions
             user.Id == IoC.Kernel.Get<DiscordSocketClient>().GetApplicationInfoAsync().Result.Owner.Id;
 
         public static string RemoveSpecialCharacters(this string str)=>    
-             Regex.Replace(str, "[^a-zA-Z0-9_.]+", "", RegexOptions.Compiled);       
+             Regex.Replace(str, "[^a-zA-Z0-9_.]+", "", RegexOptions.None);       
     }
 }

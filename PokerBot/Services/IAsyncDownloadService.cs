@@ -8,6 +8,6 @@ namespace PokerBot.Services
 {
     public interface IAsyncDownloadService
     {
-        public Task<DownloadResult> DownloadAsync(string query);
+        public Task<(Stream stream, string name)> DownloadAsync(string query);
     }
 }

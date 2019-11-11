@@ -28,7 +28,7 @@ namespace PokerBot.Services
 
         private readonly AsyncYoutubeDownloader downloader;
 
-        private static readonly Queue<string> queue = new Queue<string>(QueueLimit);
+        private readonly Queue<string> queue = new Queue<string>(QueueLimit);
 
         private static volatile IVoiceChannel currentVoice;
         private static volatile IAudioClient voiceClient;
@@ -41,30 +41,29 @@ namespace PokerBot.Services
 
         private static string currentSong;
 
-        private Task<Process> CreatePlayerAsync(string file)
+        private Task<Process> CreatePlayerAsync()
         {
-            if (!File.Exists(file))
-                throw new FileNotFoundException("The mp3 file was not found.", $"{Path.GetFileName(file)}");
-
-            return Task.FromResult(new Process()
+            var player = new Process()
             {
                 StartInfo = new ProcessStartInfo()
                 {
                     FileName = "ffmpeg.exe",
-                    Arguments = $"-i \"{file}\" -filter:a loudnorm -ac 2 -f s16le -ar 48000 -loglevel panic -hide_banner pipe:1",
+                    Arguments = $"-loglevel debug -hide_banner -f webm -i pipe:0 -af loudnorm=I=-16:TP=-1.5:LRA=11 -ac 2 -f s16le -ar 48000 -y pipe:1", //
                     UseShellExecute = false,
-                    RedirectStandardError = true,
+                    RedirectStandardError = false,
                     RedirectStandardOutput = true,
+                    RedirectStandardInput = true,
                     CreateNoWindow = false,
-                },
-                EnableRaisingEvents = true
-            });
+                }
+            };
+
+            return Task.FromResult(player);
         }
 
-        private async Task<string> GetMediaAsync(string query)
+        private async Task<string> DownloadSongAsync(string query)
         {
-            var result = await downloader.DownloadAsync(query);
-            return await cache.CacheAsync(result);
+            var (stream, name) = await downloader.DownloadAsync(query);
+            return await cache.CacheAsync((stream, name));
         }
 
         public Task<string> GetCurrentSongAsync() => Task.FromResult(currentSong);
@@ -111,7 +110,7 @@ namespace PokerBot.Services
             if (queue.Count >= QueueLimit)
                 throw new Exception($"Queue has reached the max limit of {QueueLimit}");
 
-            queue.Enqueue(await GetMediaAsync(songName));
+            queue.Enqueue(await DownloadSongAsync(songName));
         }
 
         public async Task PlayAsync(string songName)
@@ -122,27 +121,38 @@ namespace PokerBot.Services
             if (playing)
                 await StopAsync();
 
-            using var ffmpeg = await CreatePlayerAsync(await GetMediaAsync(songName));
+            string songToPlay = await DownloadSongAsync(songName);
+
+            using var ffmpeg = await CreatePlayerAsync();
             ffmpeg.Start();
 
+            using var input = ffmpeg.StandardInput.BaseStream;
             using var output = ffmpeg.StandardOutput.BaseStream;
-            discordOut ??= voiceClient.CreatePCMStream(AudioApplication.Music, 128 * 1024, 1, 0);
+
+            await input.WriteAsync(await cache.GetCacheAsync(songToPlay));
+            await input.DisposeAsync();
+            
+            discordOut ??= voiceClient.CreatePCMStream(AudioApplication.Music, 128 * 1024, 1000, 0);
 
             playing = true;
-            currentSong = songName;
+            currentSong = songToPlay;
 
-            byte[] buffer = new byte[1024];
-
-            int count;
-            while ((count = await output.ReadAsync(buffer, 0, buffer.Length)) > 0)
+            byte[] buffer = new byte[4 * 1024];
+            int outputRead;
+            while ((outputRead = await output.ReadAsync(buffer, 0, buffer.Length)) > 0)
             {
                 if (!playing)
+                {
+                    ffmpeg.Close();
                     return;
+                }
 
                 while (paused) { }
 
-                await discordOut.WriteAsync(buffer, 0, count);
+                await discordOut.WriteAsync(buffer, 0, outputRead);
             }
+
+            ffmpeg.Close();
 
             if (looping)
             {
@@ -156,14 +166,14 @@ namespace PokerBot.Services
                 return;
             }
 
-            await output.FlushAsync();
-            await discordOut.FlushAsync();
-            playing = false;
+            await StopAsync();
         }
 
         public async Task StopAsync()
         {
+            currentSong = null;
             playing = false;
+            looping = false;
             await discordOut.FlushAsync();
         }
     }

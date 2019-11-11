@@ -20,7 +20,7 @@ namespace PokerBot.IoC.Modules
 
             Bind<IAsyncDownloadService>().To<AsyncYoutubeDownloader>();
 
-            Bind<IAsyncCachingService>().To<AsyncFileCaching>();
+            Bind<IAsyncCachingService>().To<AsyncRamCache>();
         }
     }
 }
