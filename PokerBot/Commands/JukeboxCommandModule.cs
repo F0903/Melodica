@@ -82,13 +82,14 @@ namespace PokerBot.Commands
             if (!jukebox.IsInChannel())
                 await JoinAsync();
 
-            await jukebox.PlayAsync(song);
+            await jukebox.PlayAsync(song, async song => await ReplyAsync($"**Now playing:** {song}"));
         }
 
         [Command("Stop"), Summary("Stops playback.")]
         public async Task StopAsync()
         {
             await jukebox.StopAsync();
+            await ReplyAsync("Stopped playback.");
         }
     }
 }

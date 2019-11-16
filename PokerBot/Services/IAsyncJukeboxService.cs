@@ -8,7 +8,7 @@ namespace PokerBot.Services
 {
     public interface IAsyncJukeboxService
     {
-        public Task PlayAsync(string songName);
+        public Task PlayAsync(string songName, Func<string, Task> playbackStartCallbackAsync = null);
         public Task StopAsync();
         public Task JoinChannelAsync(IVoiceChannel channel);
         public Task LeaveChannelAsync();

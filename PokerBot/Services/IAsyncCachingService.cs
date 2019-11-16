@@ -8,6 +8,7 @@ namespace PokerBot.Services
 {
     public interface IAsyncCachingService
     {
+
         public void ClearCache();
 
         public bool ExistsInCache(string name);

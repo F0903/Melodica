@@ -13,6 +13,9 @@ namespace PokerBot.Services
     {
         private readonly YoutubeClient yt = new YoutubeClient(new System.Net.Http.HttpClient());
 
+        public Task<string> GetVideoTitleAsync(string query) =>
+            Task.FromResult(yt.SearchVideosAsync(query, 1).Result[0].Title);
+
         public async Task<(Stream stream, string name)> DownloadAsync(string query)
         {
             var vid = (await yt.SearchVideosAsync(query, 1))[0];
@@ -24,6 +27,6 @@ namespace PokerBot.Services
 
             var stream = await yt.GetMediaStreamAsync(audioStreams[0]);
             return (stream, vid.Title);
-        }
+        }        
     }
 }

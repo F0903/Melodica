@@ -9,7 +9,7 @@ namespace PokerBot.Services
     public class AsyncRamCache : IAsyncCachingService
     {
         private readonly Dictionary<string, byte[]> cache = new Dictionary<string, byte[]>();
-
+        
         public void ClearCache() =>
             cache.Clear();
 

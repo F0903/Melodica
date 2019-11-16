@@ -14,6 +14,8 @@ namespace PokerBot.Core
 
         public static Discord.LogSeverity LogSeverity { get => (Discord.LogSeverity)XmlParser.ReadContentAsync<int>("LogSeverity").Result; }
 
+        public static int MaxFileCacheInGB { get => XmlParser.ReadContentAsync<int>("MaxFileCacheInGB").Result; }
+
         public static bool RedirectBotDMToOwner { get => XmlParser.ReadContentAsync<bool>("RedirectBotDMToOwner").Result; }
     }
 }
