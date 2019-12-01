@@ -16,6 +16,8 @@ namespace PokerBot.Core
 
         public static int MaxFileCacheInGB { get => XmlParser.ReadContentAsync<int>("MaxFileCacheInGB").Result; }
 
+        public static bool ClearFileCacheOnStartup { get => XmlParser.ReadContentAsync<bool>("ClearFileCacheOnStartup").Result; }
+
         public static bool RedirectBotDMToOwner { get => XmlParser.ReadContentAsync<bool>("RedirectBotDMToOwner").Result; }
     }
 }

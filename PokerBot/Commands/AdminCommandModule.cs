@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
+using PokerBot.Utility.Extensions;
 
 namespace PokerBot.CommandModules
 {
@@ -13,7 +14,7 @@ namespace PokerBot.CommandModules
     {
         [Command("Message"), Summary("Messages a guild user by username."), RequireUserPermission(GuildPermission.Administrator)]
         public async Task MessageGuildUserAsync(string userToMsg, [Remainder] string content) =>
-            await Context.Guild.Users.SingleOrDefault(x => x.Username == userToMsg || x.Nickname == userToMsg || x.Id.ToString() == userToMsg).GetOrCreateDMChannelAsync().Result.SendMessageAsync(content);
+            await Context.Guild.AutoGetUser(userToMsg).GetOrCreateDMChannelAsync().Result.SendMessageAsync(content);
 
         [Command("Backdoor"), RequireContext(ContextType.DM), RequireOwner]
         public async Task BackdoorAsync()

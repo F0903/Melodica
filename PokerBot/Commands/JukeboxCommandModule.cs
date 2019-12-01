@@ -21,74 +21,70 @@ namespace PokerBot.Commands
 
         private readonly StandardJukebox jukebox;
 
+        private IVoiceChannel GetUserVoiceChannel() => ((SocketGuildUser)Context.User).VoiceChannel;
+        
         [Command("Loop"), Summary("Loops the current song.")]
-        public async Task SetLoopingAsync(bool val) =>
-            await jukebox.SetLoopingAsync(val);
+        public Task SetLoopingAsync(bool val)
+        {
+            
+            return Task.CompletedTask;
+        }
 
         [Command("Song"), Summary("Gets the currently playing song.")]
-        public async Task GetSongAsync() =>
-            await ReplyAsync(await jukebox.GetCurrentSongAsync() ?? "No song playing.");
+        public async Task GetSongAsync()
+        {
+            await ReplyAsync(jukebox.GetPlayingSong(Context.Guild));
+        }
 
         [Command("Join"), Summary("Joins the specified voice channel, or the channel the calling user is in.")]
-        public async Task JoinAsync(string channelName = null) =>
-            await jukebox.JoinChannelAsync(channelName == null ? (Context.User as SocketGuildUser).VoiceChannel : Context.Guild.VoiceChannels.Single(x => x.Name == channelName));
+        public async Task JoinAsync(string channelName = null)
+        {
+            await jukebox.JoinChannelAsync(Context.Guild, channelName == null ? GetUserVoiceChannel() : Context.Guild.VoiceChannels.Single(x => x.Name == channelName));
+        }
 
         [Command("Leave"), Summary("Leaves the voice channel.")]
-        public async Task LeaveAsync() =>
-            await jukebox.LeaveChannelAsync();
+        public async Task LeaveAsync()
+        {
+            await jukebox.LeaveChannelAsync(Context.Guild);
+        }
 
         [Command("Resume"), Summary("Resumes playback.")]
-        public async Task ResumeAsync() =>
-            await jukebox.SetPauseAsync(false);
+        public Task ResumeAsync()
+        {
+            jukebox.SetPause(Context.Guild, false);
+            return Task.CompletedTask;
+        }
 
-        [Command("Pause"), Summary("Pauses playback.")]
-        public async Task PauseAsync() =>
-            await jukebox.SetPauseAsync(true);
+        [Command("Pause"), Summary("Pauses playback or sets the pause status if a parameter is specified.")]
+        public Task PauseAsync(bool? val = null)
+        {
+            jukebox.SetPause(Context.Guild, val ?? true);
+            return Task.CompletedTask;
+        }
+
+        [Command("Skip"), Summary("Skips current song.")]
+        public Task SkipAsync()
+        {
+            throw new NotImplementedException("This function has not yet been implemented.");
+            return Task.CompletedTask;
+        }
 
         [Command("Queue"), Summary("Queues a song.")]
         public async Task QueueAsync([Remainder] string song = null)
         {
-            if (song == null)
-            {
-                var queue = (await jukebox.GetQueueAsync()).ToArray();
-
-                if(queue.Length == 0)
-                {
-                    await ReplyAsync("No songs queued.");
-                    return;
-                }
-
-                var fields = new List<EmbedFieldBuilder>();
-                foreach (var item in queue)
-                    fields.Add(new EmbedFieldBuilder() { IsInline = false, Name = item });
-
-                EmbedBuilder eb = new EmbedBuilder()
-                {
-                    Title = "Current Queue",
-                    Fields = fields,
-                    Color = Color.Blue,
-                    Timestamp = DateTimeOffset.Now
-                };
-                await ReplyAsync(null, false, eb.Build());
-                return;
-            }
-
-            await jukebox.QueueAsync(song);
+            throw new NotImplementedException("This function has not yet been implemented.");
         }
 
         [Command("Play"), Summary("Plays the specified song.")]
-        public async Task PlayAsync([Remainder] string song)
+        public async Task PlayAsync([Remainder] string songQuery)
         {
-            if (!jukebox.IsInChannel())
-                await JoinAsync();
-
-            await jukebox.PlayAsync(song, async song => await ReplyAsync($"**Now playing:** {song}"));
+            await jukebox.PlayAsync(Context.Guild, GetUserVoiceChannel(), songQuery, song => ReplyAsync($"**Now Playing:** {song}"));
         }
 
         [Command("Stop"), Summary("Stops playback.")]
         public async Task StopAsync()
         {
-            await jukebox.StopAsync();
+            await jukebox.StopAsync(Context.Guild);
             await ReplyAsync("Stopped playback.");
         }
     }

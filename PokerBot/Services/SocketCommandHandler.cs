@@ -57,7 +57,7 @@ namespace PokerBot.Services
                         $"Command Execution - {info.Value.Module} - {info.Value.Name}",
                         $"Error: {result.ErrorReason} Exception type: {(result.Error.HasValue ? result.Error.Value.ToString() : "not specified")}");
 
-                await context.Channel.SendMessageAsync($"**Error:** {result.ErrorReason}{(Settings.LogSeverity == LogSeverity.Debug ? $"\n**Exception type:** {result.Error}" : string.Empty)}");
+                await context.Channel.SendMessageAsync($"**Error:** {result.ErrorReason}{(Settings.LogSeverity == LogSeverity.Debug ? $"\n**Type:** {result.Error.Value}" : string.Empty)}");
             }
 
             await logger.LogAsync(msg);

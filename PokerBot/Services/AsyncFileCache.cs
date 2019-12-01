@@ -9,15 +9,22 @@ using PokerBot.Utility.Extensions;
 
 namespace PokerBot.Services
 {
-    public class AsyncFileCache : IAsyncCachingService
+    public class AsyncFileCache : IAsyncCache<Stream>
     {
         public AsyncFileCache()
         {
             if (!Directory.Exists(CacheLocation))
+            {
+                Directory.CreateDirectory(CacheLocation);
                 return;
+            }
 
+            bool clear = Core.Settings.ClearFileCacheOnStartup;
             foreach (string file in Directory.EnumerateFiles(CacheLocation))
             {
+                if (clear)
+                    File.Delete(file);                
+
                 var info = new FileInfo(file);
                 if (!cache.TryAdd(info.Name, info.FullName))
                     throw new Exception("Could not add pre-existing file to cache.");
@@ -28,7 +35,7 @@ namespace PokerBot.Services
 
         public static int MaxCache { get; private set; } = 25;
 
-        private readonly ConcurrentDictionary<string, string> cache = new ConcurrentDictionary<string, string>(5, MaxCache);
+        private readonly ConcurrentDictionary<string, string> cache = new ConcurrentDictionary<string, string>(Environment.ProcessorCount * 2, MaxCache);
 
         private Task CheckCacheSizeAsync()
         {
@@ -53,22 +60,22 @@ namespace PokerBot.Services
         public Task<string> GetValueAsync(string key) =>
             Task.FromResult(cache.GetValueOrDefault(key.RemoveSpecialCharacters()));
 
-        public async Task<string> CacheAsync((Stream stream, string name) result)
+        public async Task<string> CacheAsync(Stream val, string cacheName)
         {
             await CheckCacheSizeAsync();
 
-            result.name = result.name.RemoveSpecialCharacters();
+            cacheName = cacheName.RemoveSpecialCharacters();
 
-            if (!Directory.Exists(CacheLocation))
-                Directory.CreateDirectory(CacheLocation);
-            var path = Path.Combine(CacheLocation, result.name);
+            var path = Path.Combine(CacheLocation, cacheName);
 
             using var file = File.OpenWrite(path);
 
-            await result.stream.CopyToAsync(file);
-            if (cache.TryAdd(result.name, path))
-                return path;
-            return null;
+            await val.CopyToAsync(file);
+            file.Close();
+
+            cache.TryAdd(cacheName, path);
+
+            return path;
         }
 
         public Task<byte[]> GetCacheAsync(string name)
