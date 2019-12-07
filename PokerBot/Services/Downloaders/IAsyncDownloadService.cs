@@ -4,10 +4,10 @@ using System.IO;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace PokerBot.Services
+namespace PokerBot.Services.Downloaders
 {
     public interface IAsyncDownloadService
     {
-        public Task<(Stream stream, string name)> DownloadAsync(string query);
+        public Task<(Stream stream, string name, string format)> DownloadAsync(string query);
     }
 }

@@ -4,10 +4,12 @@ using PokerBot.Core;
 using PokerBot.Filehandlers.XML;
 using PokerBot.IoC;
 using PokerBot.Services;
+using PokerBot.Services.CommandHandlers;
+using PokerBot.Services.Loggers;
 
 namespace PokerBot
 {
-    public class Program
+    public static class Program
     {
         private static readonly IAsyncBot bot = new SocketBot(Settings.Token, new Discord.WebSocket.DiscordSocketClient(new Discord.WebSocket.DiscordSocketConfig()
         {

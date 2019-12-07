@@ -1,6 +1,8 @@
 ﻿using Discord;
 using Discord.Audio;
 using PokerBot.Entities;
+using PokerBot.Services.Cache;
+using PokerBot.Services.Downloaders;
 using System;
 using System.Collections.Concurrent;
 using System.Diagnostics;
@@ -8,7 +10,7 @@ using System.Threading.Tasks;
 
 namespace PokerBot.Services.Jukebox
 {
-    public class Jukebox
+    public static class Jukebox
     {
         public const int DefaultBitrate = 128 * 1024;
         public const int DefaultBufferSize = 4 * 1024;
@@ -35,12 +37,12 @@ namespace PokerBot.Services.Jukebox
 
         public static async Task QueueAsync(IGuild guild, string songName, Action<string> queueCallback = null)
         {
-            (var path, var song) = await yt.DownloadToCache(songCache, songName);
+            (var path, var song, var format) = await yt.DownloadToCache(songCache, songName);
             queueCallback?.Invoke(song);
-            jukeboxes[guild].Queue(song, path);
+            jukeboxes[guild].Queue(song, path, format);
         }
 
-        public static Task<(string songName, string songPath)[]> GetQueueAsync(IGuild guild) =>
+        public static Task<(string songName, string songPath, string songFormat)[]> GetQueueAsync(IGuild guild) =>
             Task.FromResult(jukeboxes[guild].GetQueue());
 
         private static async Task<JukeboxPlayer> JoinChannelInternal(IGuild guild, IAudioChannel channel)
@@ -59,10 +61,10 @@ namespace PokerBot.Services.Jukebox
             if (!jukeboxes.TryGetEntry(guild, out var jukebox))
                 jukebox = await JoinChannelInternal(guild, channel);
 
-            var (path, song) = await yt.DownloadToCache(songCache, searchQuery);
+            var (path, song, format) = await yt.DownloadToCache(songCache, searchQuery);
 
             playCallback?.Invoke(song);
-            await jukebox.PlayAsync(path, song);
+            await jukebox.PlayAsync(path, song, format);
         }
 
         public static Task StopAsync(IGuild guild)

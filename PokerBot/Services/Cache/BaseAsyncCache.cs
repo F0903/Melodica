@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace PokerBot.Services
+namespace PokerBot.Services.Cache
 {
     public interface IAsyncCache<T>
     {
@@ -11,7 +11,7 @@ namespace PokerBot.Services
 
         public bool ExistsInCache(string key);
 
-        public Task<string> CacheAsync(T val, string cacheName, bool checkCacheSize);
+        public Task<(string path, string format)> CacheAsync(T val, string cacheName, string format, bool checkCacheSize = true);
 
         public Task<byte[]> GetCacheAsync(string name);
     }

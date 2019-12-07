@@ -19,7 +19,7 @@ namespace PokerBot.Commands
 
         private async Task PostQueueListAsync()
         {
-            (string song, string path)[] queue = null;
+            (string song, string path, string format)[] queue = null;
             try { queue = await Jukebox.GetQueueAsync(Context.Guild); }
             catch { }
             if (queue != null && queue.Length == 0)

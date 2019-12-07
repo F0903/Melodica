@@ -8,16 +8,16 @@ using System.Text;
 #nullable enable
 namespace PokerBot.Entities
 {
-    public class AudioProcessor
+    public sealed class AudioProcessor : IDisposable
     {
-        public AudioProcessor(string? path, int bitrate, int bufferSize)
+        public AudioProcessor(string? path, int bitrate, int bufferSize, string? format = null)
         {
             playerProcess = new Process()
             {
                 StartInfo = new ProcessStartInfo()
                 {
                     FileName = "ffmpeg.exe",
-                    Arguments = $"-hide_banner -loglevel debug -vn -i {path ?? "pipe:0"} -f s16le -bufsize {bitrate} -filter:a dynaudnorm=b=1:c=1:n=0:r=0.2 -b:a {bufferSize} -ac 2 -ar 48000 -y pipe:1", //
+                    Arguments = $"-hide_banner -loglevel debug -vn {(format != null ? $"-f {format}" : string.Empty)} -i {path ?? "pipe:0"} -f s16le -bufsize {bufferSize} -b:a {bitrate} -ac 2 -ar 48000 -y pipe:1", // -filter:a dynaudnorm=b=1:c=1:n=0:r=0.2
                     UseShellExecute = false,
                     RedirectStandardError = false,
                     RedirectStandardOutput = true,
@@ -36,7 +36,13 @@ namespace PokerBot.Entities
         public Stream GetOutput() => playerProcess.StandardOutput.BaseStream;
         public Stream GetInput() => playerProcess.StandardInput.BaseStream;
 
-        public void Stop() => playerProcess.Close();
+        public void Stop() => Dispose();
 
+        public void Dispose()
+        {
+            playerProcess.Kill();
+            playerProcess.Dispose();
+            GC.SuppressFinalize(this);
+        }
     }
 }

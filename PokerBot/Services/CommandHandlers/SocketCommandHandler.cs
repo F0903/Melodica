@@ -6,9 +6,10 @@ using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
 using PokerBot.Core;
+using PokerBot.Services.Loggers;
 using PokerBot.Utility.Extensions;
 
-namespace PokerBot.Services
+namespace PokerBot.Services.CommandHandlers
 {
     public class SocketCommandHandler : IAsyncCommandHandlerService
     {

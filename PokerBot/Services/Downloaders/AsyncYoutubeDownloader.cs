@@ -7,8 +7,9 @@ using System.Threading.Tasks;
 using YoutubeExplode;
 using YoutubeExplode.Models.MediaStreams;
 using PokerBot.Utility.Extensions;
+using PokerBot.Services.Cache;
 
-namespace PokerBot.Services
+namespace PokerBot.Services.Downloaders
 {
     public class AsyncYoutubeDownloader : IAsyncDownloadService
     {
@@ -17,7 +18,7 @@ namespace PokerBot.Services
         public Task<string> GetVideoTitleAsync(string query) =>
             Task.FromResult(yt.SearchVideosAsync(query, 1).Result[0].Title);
 
-        public async Task<(Stream stream, string name)> DownloadAsync(string query)
+        public async Task<(Stream stream, string name, string format)> DownloadAsync(string query)
         {
             var vid = query.IsUrl() ? (await yt.GetVideoAsync(YoutubeClient.ParseVideoId(query))) : (await yt.SearchVideosAsync(query, 1))[0];
 
@@ -28,10 +29,10 @@ namespace PokerBot.Services
                 throw new Exception("No streams of media were found.");
 
             var stream = await yt.GetMediaStreamAsync(audioStreams[0]);
-            return (stream, vid.Title);
+            return (stream, vid.Title, audioStreams[0].Container.ToString().ToLower());
         }
 
-        public async Task<(string path, string name)> DownloadToCache<T>(T cache, string searchQuery) where T : IAsyncCache<Stream>, new() // Switch to caching interface if there's more cache options
+        public async Task<(string path, string name, string format)> DownloadToCache<T>(T cache, string searchQuery, bool checkCacheSize = true) where T : IAsyncCache<Stream>, new() // Switch to caching interface if there's more cache options
         {
             if (cache != null)
             {
@@ -40,17 +41,20 @@ namespace PokerBot.Services
                 {
                     if(cache is AsyncFileCache fc)
                     {
-                        return (await fc.GetValueAsync(title), title);
+                        var val = await fc.GetValueAsync(title);
+                        return (val.path, title, val.format);
                     }
 
-                    return (null, title);
+                    return (null, title, null);
                 }
             }
 
             cache = new T();
-            var (stream, name) = await DownloadAsync(searchQuery);
+            var (stream, name, format) = await DownloadAsync(searchQuery);
 
-            return (await (cache as AsyncFileCache).CacheAsync(stream, name, false), name);
+            var result = await (cache as AsyncFileCache).CacheAsync(stream, name, format, checkCacheSize);
+
+            return (result.path, name, result.format);
         }
     }
 }

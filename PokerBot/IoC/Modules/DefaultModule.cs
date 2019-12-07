@@ -5,6 +5,10 @@ using Ninject;
 using Ninject.Modules;
 using PokerBot.Core;
 using PokerBot.Services;
+using PokerBot.Services.Cache;
+using PokerBot.Services.CommandHandlers;
+using PokerBot.Services.Downloaders;
+using PokerBot.Services.Loggers;
 
 namespace PokerBot.IoC.Modules
 {

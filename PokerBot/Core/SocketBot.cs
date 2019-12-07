@@ -7,6 +7,8 @@ using Discord.Net;
 using Discord.Commands;
 using Discord.WebSocket;
 using PokerBot.Services;
+using PokerBot.Services.Loggers;
+using PokerBot.Services.CommandHandlers;
 
 namespace PokerBot.Core
 {

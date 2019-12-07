@@ -29,8 +29,8 @@ namespace PokerBot.Services.Jukebox
 
         public bool Looping { get; set; } = false;
 
-        private readonly ConcurrentQueue<(string songName, string songPath)> songQueue =
-            new ConcurrentQueue<(string songName, string songPath)>();
+        private readonly ConcurrentQueue<(string songName, string songPath, string songFormat)> songQueue =
+            new ConcurrentQueue<(string songName, string songPath, string songFormat)>();
 
         private IAudioChannel channel;
 
@@ -83,16 +83,16 @@ namespace PokerBot.Services.Jukebox
 
         public void Skip() => skip = true;
 
-        public (string songName, string songPath)[] GetQueue() => songQueue.ToArray();
+        public (string songName, string songPath, string songFormat)[] GetQueue() => songQueue.ToArray();
 
-        public void Queue(string songName, string songPath)
+        public void Queue(string songName, string songPath, string songFormat)
         {
             if (!File.Exists(songPath))
                 throw new Exception("Specified song path to queue is empty.");
-            songQueue.Enqueue((songName, songPath));
+            songQueue.Enqueue((songName, songPath, songFormat));
         }
 
-        public (string songName, string songPath) DequeueNext()
+        public (string songName, string songPath, string songFormat) DequeueNext()
         {
             songQueue.TryDequeue(out var res);
             return res;
@@ -114,12 +114,12 @@ namespace PokerBot.Services.Jukebox
             await channel.DisconnectAsync();
         }
 
-        public async Task PlayAsync(string songPath, string songName, int bitrate = Jukebox.DefaultBitrate, int bufferSize = Jukebox.DefaultBufferSize)
+        public async Task PlayAsync(string songPath, string songName, string songFormat, int bitrate = Jukebox.DefaultBitrate, int bufferSize = Jukebox.DefaultBufferSize)
         {
-            audio?.Stop();
+            audio?.Dispose();
             audio = null;
-            using var playerOut = (audio = new AudioProcessor(songPath, bitrate, bufferSize)).GetOutput();
-            discordOut ??= (audioClient ??= await channel.ConnectAsync()).CreatePCMStream(AudioApplication.Music, Bitrate, 1000, 0);
+            using var playerOut = (audio = new AudioProcessor(songPath, bitrate, bufferSize, songFormat)).GetOutput();
+            discordOut ??= (audioClient ??= await channel.ConnectAsync()).CreatePCMStream(AudioApplication.Music, Bitrate, 100, 0);
 
             CurrentSong = songName;
 
@@ -129,25 +129,25 @@ namespace PokerBot.Services.Jukebox
 
             if (!skip && Looping)
             {
-                await PlayAsync(songPath, songName).ConfigureAwait(false);
+                await PlayAsync(songPath, songName, songFormat).ConfigureAwait(false);
                 return;
             }
 
             if (!songQueue.IsEmpty)
             {
                 var next = DequeueNext();
-                await PlayAsync(next.songPath, next.songName).ConfigureAwait(false);
+                await PlayAsync(next.songPath, next.songName, next.songFormat).ConfigureAwait(false);
                 return;
             }
             CurrentSong = null;
-            audio.Stop();
+            audio.Dispose();
             audio = null;
         }
 
         public void Dispose()
         {
             SetStopped(true);
-            audio?.Stop();
+            audio?.Dispose();
             audio = null;
             channel?.DisconnectAsync();
             channel = null;
