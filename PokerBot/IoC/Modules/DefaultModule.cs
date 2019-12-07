@@ -16,8 +16,6 @@ namespace PokerBot.IoC.Modules
 
             Bind<IAsyncCommandHandlerService>().To<SocketCommandHandler>().InSingletonScope();
 
-            Bind<BaseJukebox>().To<StandardJukebox>();
-
             Bind<IAsyncDownloadService>().To<AsyncYoutubeDownloader>();
 
             Bind<AsyncFileCache>().ToSelf().InSingletonScope();

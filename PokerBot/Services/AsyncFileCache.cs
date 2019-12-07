@@ -23,7 +23,7 @@ namespace PokerBot.Services
             foreach (string file in Directory.EnumerateFiles(CacheLocation))
             {
                 if (clear)
-                    File.Delete(file);                
+                    File.Delete(file);
 
                 var info = new FileInfo(file);
                 if (!cache.TryAdd(info.Name, info.FullName))
@@ -60,13 +60,17 @@ namespace PokerBot.Services
         public Task<string> GetValueAsync(string key) =>
             Task.FromResult(cache.GetValueOrDefault(key.RemoveSpecialCharacters()));
 
-        public async Task<string> CacheAsync(Stream val, string cacheName)
+        public async Task<string> CacheAsync(Stream val, string cacheName, bool checkCacheSize = true)
         {
-            await CheckCacheSizeAsync();
+            if (checkCacheSize)
+                await CheckCacheSizeAsync();
 
             cacheName = cacheName.RemoveSpecialCharacters();
 
             var path = Path.Combine(CacheLocation, cacheName);
+
+            if (File.Exists(path))
+                return path;
 
             using var file = File.OpenWrite(path);
 

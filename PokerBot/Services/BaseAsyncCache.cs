@@ -11,7 +11,7 @@ namespace PokerBot.Services
 
         public bool ExistsInCache(string key);
 
-        public Task<string> CacheAsync(T val, string cacheName);
+        public Task<string> CacheAsync(T val, string cacheName, bool checkCacheSize);
 
         public Task<byte[]> GetCacheAsync(string name);
     }
