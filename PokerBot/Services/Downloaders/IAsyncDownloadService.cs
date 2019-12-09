@@ -1,4 +1,6 @@
-﻿using System;
+﻿using PokerBot.Models;
+using PokerBot.Services.Cache;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
@@ -8,6 +10,6 @@ namespace PokerBot.Services.Downloaders
 {
     public interface IAsyncDownloadService
     {
-        public Task<(Stream stream, string name, string format)> DownloadAsync(string query);
+        public Task<DownloadResult> DownloadAsync<T>(T cache, string searchQuery, bool checkCacheSize = true) where T : IAsyncCache<Stream>, new();
     }
 }

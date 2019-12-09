@@ -6,7 +6,7 @@ using System.IO;
 using System.Text;
 
 #nullable enable
-namespace PokerBot.Entities
+namespace PokerBot.Models
 {
     public sealed class AudioProcessor : IDisposable
     {
@@ -20,8 +20,8 @@ namespace PokerBot.Entities
                     Arguments = $"-hide_banner -loglevel debug -vn {(format != null ? $"-f {format}" : string.Empty)} -i {path ?? "pipe:0"} -f s16le -bufsize {bufferSize} -b:a {bitrate} -ac 2 -ar 48000 -y pipe:1", // -filter:a dynaudnorm=b=1:c=1:n=0:r=0.2
                     UseShellExecute = false,
                     RedirectStandardError = false,
-                    RedirectStandardOutput = true,
-                    RedirectStandardInput = path == null ? true : false,
+                    RedirectStandardInput = (inputAvailable = (path == null ? true : false)),
+                    RedirectStandardOutput = (outputAvailable = true),
                     CreateNoWindow = Core.Settings.LogSeverity == LogSeverity.Debug ? false : true,
                 }
             };
@@ -31,18 +31,23 @@ namespace PokerBot.Entities
 
         private readonly Process playerProcess;
 
+        private readonly bool inputAvailable;
+        private readonly bool outputAvailable;
+
         public Process GetBaseProcess() => playerProcess;
 
-        public Stream GetOutput() => playerProcess.StandardOutput.BaseStream;
-        public Stream GetInput() => playerProcess.StandardInput.BaseStream;
+        public Stream? GetInput() => inputAvailable ? playerProcess.StandardInput.BaseStream : null;
+        public Stream? GetOutput() => outputAvailable ? playerProcess.StandardOutput.BaseStream : null;
 
         public void Stop() => Dispose();
 
         public void Dispose()
         {
-            playerProcess.Kill();
-            playerProcess.Dispose();
-            GC.SuppressFinalize(this);
+            if (inputAvailable)
+                playerProcess.StandardInput.Dispose();
+            if (outputAvailable)
+                playerProcess.StandardOutput.Dispose();
+            playerProcess.Close();
         }
     }
 }

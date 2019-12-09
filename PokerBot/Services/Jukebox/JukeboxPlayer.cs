@@ -1,6 +1,6 @@
 ﻿using Discord;
 using Discord.Audio;
-using PokerBot.Entities;
+using PokerBot.Models;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -19,9 +19,9 @@ namespace PokerBot.Services.Jukebox
             this.channel = channel;
         }
 
-        public int Bitrate { get; private set; } 
+        public int Bitrate { get; private set; }
 
-        public int BufferSize { get; private set; } 
+        public int BufferSize { get; private set; }
 
         public string CurrentSong { get; private set; }
 
@@ -56,6 +56,7 @@ namespace PokerBot.Services.Jukebox
                 {
                     if (stopped || skip)
                         break;
+                    await Task.Delay(1000);
                 }
 
                 if (skip)
@@ -85,11 +86,26 @@ namespace PokerBot.Services.Jukebox
 
         public (string songName, string songPath, string songFormat)[] GetQueue() => songQueue.ToArray();
 
-        public void Queue(string songName, string songPath, string songFormat)
+        public void Queue(DownloadResult res, Action<(string song, bool queued)> callback)
         {
-            if (!File.Exists(songPath))
+            var result = res.GetResult();
+            if (res.isPlaylist)
+            {
+                foreach (var (name, path, format) in result)
+                {
+                    if (!File.Exists(path))
+                        throw new Exception("Specified song path to queue is empty.");
+                    songQueue.Enqueue((name, path, format));
+                    callback?.Invoke((name, true));
+                }
+                return;
+            }
+
+            var video = result[0];
+            if (!File.Exists(video.path))
                 throw new Exception("Specified song path to queue is empty.");
-            songQueue.Enqueue((songName, songPath, songFormat));
+            songQueue.Enqueue((video.name, video.path, video.format));
+            callback?.Invoke((video.name, true));
         }
 
         public (string songName, string songPath, string songFormat) DequeueNext()
@@ -114,34 +130,42 @@ namespace PokerBot.Services.Jukebox
             await channel.DisconnectAsync();
         }
 
-        public async Task PlayAsync(string songPath, string songName, string songFormat, int bitrate = Jukebox.DefaultBitrate, int bufferSize = Jukebox.DefaultBufferSize)
+        public async Task PlayAsync(DownloadResult res, Action<(string song, bool queued)> callback, int bitrate = Jukebox.DefaultBitrate, int bufferSize = Jukebox.DefaultBufferSize)
         {
-            audio?.Dispose();
-            audio = null;
-            using var playerOut = (audio = new AudioProcessor(songPath, bitrate, bufferSize, songFormat)).GetOutput();
+            var result = res.GetResult();
+
+            if (playing || result.Length > 1)
+                Queue(res, callback);
+
+            if (playing)
+                return;
+
+            var vid = result[0];
+
+            using var playerOut = (audio = new AudioProcessor(vid.path, bitrate, bufferSize, vid.format)).GetOutput();
             discordOut ??= (audioClient ??= await channel.ConnectAsync()).CreatePCMStream(AudioApplication.Music, Bitrate, 100, 0);
 
-            CurrentSong = songName;
+            CurrentSong = vid.name;
 
+            callback?.Invoke((vid.name, false));
             playing = true;
             await WriteToChannelAsync(playerOut);
             playing = false;
 
             if (!skip && Looping)
             {
-                await PlayAsync(songPath, songName, songFormat).ConfigureAwait(false);
+                await PlayAsync(new DownloadResult(vid.name, vid.path, vid.format), callback).ConfigureAwait(false);
                 return;
             }
 
             if (!songQueue.IsEmpty)
             {
                 var next = DequeueNext();
-                await PlayAsync(next.songPath, next.songName, next.songFormat).ConfigureAwait(false);
+                await PlayAsync(new DownloadResult(next.songName, next.songPath, next.songFormat), callback).ConfigureAwait(false);
                 return;
             }
             CurrentSong = null;
             audio.Dispose();
-            audio = null;
         }
 
         public void Dispose()

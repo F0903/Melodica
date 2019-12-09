@@ -12,34 +12,10 @@ using System.Threading.Tasks;
 
 namespace PokerBot.Commands
 {
-    [Group("Jukebox"), Alias("Audio", "Player")]
+    //[Group("Jukebox"), Alias("J")]
     public class JukeboxCommandModule : ModuleBase<SocketCommandContext>
     {
         private IVoiceChannel GetUserVoiceChannel() => ((SocketGuildUser)Context.User).VoiceChannel;
-
-        private async Task PostQueueListAsync()
-        {
-            (string song, string path, string format)[] queue = null;
-            try { queue = await Jukebox.GetQueueAsync(Context.Guild); }
-            catch { }
-            if (queue != null && queue.Length == 0)
-                queue = null;
-
-            if(queue == null)
-            {
-                await ReplyAsync("No songs queued.");
-                return;
-            }
-
-            EmbedBuilder eb = new EmbedBuilder
-            {
-                Color = Color.DarkGrey
-            };
-
-            queue.ForEach((i, x) => eb.AddField(i == 1 ? "**Next:**" : i.ToString(), $"**{x.song}**", false));
-
-            await Context.Channel.SendMessageAsync(null, false, eb.Build());
-        }
 
         [Command("Loop"), Summary("Loops the current song.")]
         public async Task SetLoopingAsync(bool val)
@@ -51,7 +27,7 @@ namespace PokerBot.Commands
         [Command("Song"), Summary("Gets the currently playing song.")]
         public async Task GetSongAsync()
         {
-            await ReplyAsync($"**Currently playing** Jukebox.GetPlayingSong(Context.Guild)");
+            await ReplyAsync($"**Currently playing** {Jukebox.GetPlayingSong(Context.Guild)}");
         }
 
         [Command("Join"), Summary("Joins the specified voice channel, or the channel the calling user is in.")]
@@ -87,27 +63,41 @@ namespace PokerBot.Commands
             return Task.CompletedTask;
         }
 
-        [Command("Queue"), Summary("Queues a song.")]
-        public async Task QueueAsync([Remainder] string song = null)
+        [Command("Queue"), Summary("Shows current queue.")]
+        public async Task QueueAsync()
         {
-            if (song == null)
+            (string song, string path, string format)[] queue = null;
+            try { queue = await Jukebox.GetQueueAsync(Context.Guild); }
+            catch { }
+            if (queue != null && queue.Length == 0)
+                queue = null;
+
+            if (queue == null)
             {
-                await PostQueueListAsync();
+                await ReplyAsync("No songs queued.");
                 return;
             }
-            await Jukebox.QueueAsync(Context.Guild, song, async x => await ReplyAsync($"**Queued:** {x}"));          
+
+            EmbedBuilder eb = new EmbedBuilder
+            {
+                Color = Color.DarkGrey
+            };
+
+            queue.ForEach((i, x) => eb.AddField(i == 1 ? "**Next:**" : i.ToString(), $"**{x.song}**", false));
+
+            await Context.Channel.SendMessageAsync(null, false, eb.Build());
         }
 
-        [Command("Play"), Summary("Plays the specified song.")]
+        [Command("Play"), Alias("P"), Summary("Plays the specified song.")]
         public async Task PlayAsync([Remainder] string songQuery)
         {
             var loop = songQuery.EndsWith(" !loop");
             if (loop)
                 songQuery = songQuery.Replace(" !loop", null);
 
-            await Jukebox.PlayAsync(Context.Guild, GetUserVoiceChannel(), songQuery, async song =>
+            await Jukebox.PlayAsync(Context.Guild, GetUserVoiceChannel(), songQuery, async (context) =>
             {
-                await ReplyAsync($"**Now Playing:** {song}");
+                await ReplyAsync($"{(context.putInQueue ? "**Queued**" : "**Now Playing**")} {context.song}");
                 if (loop)
                     Jukebox.SetLooping(Context.Guild, true);
             });
