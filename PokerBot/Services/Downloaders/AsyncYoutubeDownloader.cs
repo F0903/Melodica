@@ -25,15 +25,20 @@ namespace PokerBot.Services.Downloaders
 
         private async Task<(Stream stream, string name, string format)> InternalDownloadAsync(string query, int attempt = 0)
         {
-            var vid = query.IsUrl() ? (await yt.GetVideoAsync(YoutubeClient.ParseVideoId(query))) : (await yt.SearchVideosAsync(query, 1))[attempt];
+            bool isQueryUrl = query.IsUrl();
+            var vid = isQueryUrl ? (await yt.GetVideoAsync(YoutubeClient.ParseVideoId(query))) : (await yt.SearchVideosAsync(query, 1))[attempt];
 
             var info = await yt.GetVideoMediaStreamInfosAsync(vid.Id);
 
             var audioStreams = info.Audio.OrderByDescending(x => x.Bitrate).ToArray();
             if (audioStreams.Length == 0)
             {
+                if (isQueryUrl)
+                    throw new Exception("This video does not have have available media streams.");
+
                 if (attempt > MaxDownloadAttempts)
-                    throw new Exception($"No media streams of this video could be found. Attempts: {attempt}/{MaxDownloadAttempts}");
+                    throw new Exception($"No videos with available media streams could be found. Attempts: {attempt}/{MaxDownloadAttempts}");
+
                 return await InternalDownloadAsync(query, ++attempt).ConfigureAwait(false);
             }
 
