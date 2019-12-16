@@ -121,20 +121,25 @@ namespace PokerBot.Services.Jukebox
 
         public async Task PlayAsync(MediaCollection col, Action<(string song, bool queued)> callback = null, int bitrate = Jukebox.DefaultBitrate, int bufferSize = Jukebox.DefaultBufferSize)
         {
+            PlayableMedia song = col[0];
+
             if (col.IsPlaylist)
             {
-                for (int i = 1; i < col.Length; i++)
+                for (int i = 0; i < col.Length; i++)
+                {
+                    if (i == col.PlaylistIndex - 1)
+                        continue;
                     Queue(col[i]);
+                }
+                song = col[col.PlaylistIndex - 1];
                 callback?.Invoke((col.PlaylistName, true));
             }
 
             if (playing)
             {
-                Queue(col[0], callback);
+                Queue(song, callback);
                 return;
             }
-
-            var song = col[0];
 
             using var playerOut = (audio = new AudioProcessor(song.Path, bitrate, bufferSize / 2, song.Format)).GetOutput();
             discordOut ??= (audioClient ??= await channel.ConnectAsync()).CreatePCMStream(AudioApplication.Music, Bitrate, 100, 0);

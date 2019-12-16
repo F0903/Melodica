@@ -20,11 +20,12 @@ namespace PokerBot.Models
             playlist = new[] { media };
         }
 
-        public MediaCollection(PlayableMedia[] videos, string playlistName)
+        public MediaCollection(PlayableMedia[] videos, string playlistName, int playlistIndex = 0)
         {
             IsPlaylist = true;
             this.playlist = videos;
             PlaylistName = playlistName;
+            PlaylistIndex = playlistIndex;
         }
 
         public PlayableMedia this[int index]
@@ -45,6 +46,8 @@ namespace PokerBot.Models
         public bool IsPlaylist { get; private set; }
 
         public string PlaylistName { get; private set; }
+
+        public int PlaylistIndex { get; private set; }
 
         public PlayableMedia[] GetMedia() => playlist;
 

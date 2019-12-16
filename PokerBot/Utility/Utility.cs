@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
@@ -11,7 +12,30 @@ namespace PokerBot.Utility
     {
         public static Task<IUser> GetAppOwnerAsync() =>
             Task.FromResult(IoC.Kernel.Get<DiscordSocketClient>().GetApplicationInfoAsync().Result.Owner);
-        
+     
+        public static Task<T> GetURLArgumentValueAsync<T>(string url, string argName)
+        {
+            if (!url.Contains($"&{argName}"))
+                throw new Exception("URL does not contain such argument.");
+
+            for (int x = url.IndexOf(argName); x < url.Length; x++)
+            {
+                if (url[x] != '=')
+                    continue;
+                x++;
+
+                int diff = 1;
+                for (int i = x; i < url.Length; i++)
+                {
+                    if (url[x] == '&')
+                        diff = i - x;
+                }
+                
+                var sub = url.Substring(x, diff);
+                return Task.FromResult((T)Convert.ChangeType(sub, typeof(T)));
+            }
+            throw new Exception("Could not find argument.");
+        }
     }
 
     public static class InstanceTester

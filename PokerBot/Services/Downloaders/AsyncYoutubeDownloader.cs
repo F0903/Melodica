@@ -70,7 +70,7 @@ namespace PokerBot.Services.Downloaders
                 foreach (var vid in pl.Videos)
                     med.Add((await DownloadAsync(cache, vid.Id, false))[0]);
 
-                return new MediaCollection(med.ToArray(), pl.Title);
+                return new MediaCollection(med.ToArray(), pl.Title, await Utility.Utility.GetURLArgumentValueAsync<int>(searchQuery, "index"));
             }
 
             var title = await GetVideoTitleAsync(searchQuery);
