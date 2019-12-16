@@ -66,7 +66,7 @@ namespace PokerBot.Commands
         [Command("Queue"), Summary("Shows current queue.")]
         public async Task QueueAsync()
         {
-            (string song, string path, string format)[] queue = null;
+            Models.PlayableMedia[] queue = null;
             try { queue = await Jukebox.GetQueueAsync(Context.Guild); }
             catch { }
             if (queue != null && queue.Length == 0)
@@ -83,7 +83,7 @@ namespace PokerBot.Commands
                 Color = Color.DarkGrey
             };
 
-            queue.ForEach((i, x) => eb.AddField(i == 1 ? "**Next:**" : i.ToString(), $"**{x.song}**", false));
+            queue.ForEach((i, x) => eb.AddField(i == 1 ? "Next:" : i.ToString(), i == 1 ? $"**{x.Name}**" : x.Name, false));
 
             await Context.Channel.SendMessageAsync(null, false, eb.Build());
         }
@@ -91,6 +91,12 @@ namespace PokerBot.Commands
         [Command("Play"), Alias("P"), Summary("Plays the specified song.")]
         public async Task PlayAsync([Remainder] string songQuery)
         {
+            if(GetUserVoiceChannel() == null)
+            {
+                await ReplyAsync("You need to be in a voice channel, or specify one as a command parameter.");
+                return;
+            }
+
             var loop = songQuery.EndsWith(" !loop");
             if (loop)
                 songQuery = songQuery.Replace(" !loop", null);

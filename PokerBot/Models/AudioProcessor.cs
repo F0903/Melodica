@@ -47,7 +47,10 @@ namespace PokerBot.Models
                 playerProcess.StandardInput.Dispose();
             if (outputAvailable)
                 playerProcess.StandardOutput.Dispose();
-            playerProcess.Close();
+
+            playerProcess.Kill();
+            if (!playerProcess.HasExited)
+                playerProcess.WaitForExit();
         }
     }
 }

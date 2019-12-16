@@ -22,7 +22,7 @@ namespace PokerBot.IoC.Modules
 
             Bind<IAsyncDownloadService>().To<AsyncYoutubeDownloader>();
 
-            Bind<AsyncFileCache>().ToSelf().InSingletonScope();
+            Bind<AsyncMediaFileCache>().ToSelf().InSingletonScope();
         }
     }
 }

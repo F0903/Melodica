@@ -10,6 +10,6 @@ namespace PokerBot.Services.Downloaders
 {
     public interface IAsyncDownloadService
     {
-        public Task<DownloadResult> DownloadAsync<T>(T cache, string searchQuery, bool checkCacheSize = true) where T : IAsyncCache<Stream>, new();
+        public Task<MediaCollection> DownloadAsync(IAsyncMediaCache cache, string searchQuery, bool checkCacheSize = true);
     }
 }

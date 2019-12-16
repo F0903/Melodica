@@ -13,9 +13,9 @@ namespace PokerBot.Services.Jukebox
     public static class Jukebox
     {
         public const int DefaultBitrate = 128 * 1024;
-        public const int DefaultBufferSize = 4 * 1024;
+        public const int DefaultBufferSize = 1 * 1024;
 
-        private static readonly AsyncFileCache songCache = new AsyncFileCache();
+        private static readonly AsyncMediaFileCache songCache = new AsyncMediaFileCache();
 
         private static readonly AsyncYoutubeDownloader yt = new AsyncYoutubeDownloader();
 
@@ -35,7 +35,7 @@ namespace PokerBot.Services.Jukebox
 
         public static void Skip(IGuild guild) => jukeboxes[guild].Skip();
 
-        public static Task<(string songName, string songPath, string songFormat)[]> GetQueueAsync(IGuild guild) =>
+        public static Task<PlayableMedia[]> GetQueueAsync(IGuild guild) =>
             Task.FromResult(jukeboxes[guild].GetQueue());
 
         private static async Task<JukeboxPlayer> JoinChannelInternal(IGuild guild, IAudioChannel channel)
@@ -56,7 +56,7 @@ namespace PokerBot.Services.Jukebox
 
             var res = await yt.DownloadAsync(songCache, searchQuery);
 
-            await jukebox.PlayAsync(res, playCallback).ConfigureAwait(false);
+            await jukebox.PlayAsync(res, playCallback).ConfigureAwait(false);            
         }
 
         public static Task StopAsync(IGuild guild)

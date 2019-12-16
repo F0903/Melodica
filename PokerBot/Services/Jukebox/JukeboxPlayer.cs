@@ -6,6 +6,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace PokerBot.Services.Jukebox
@@ -29,14 +30,12 @@ namespace PokerBot.Services.Jukebox
 
         public bool Looping { get; set; } = false;
 
-        private readonly ConcurrentQueue<(string songName, string songPath, string songFormat)> songQueue =
-            new ConcurrentQueue<(string songName, string songPath, string songFormat)>();
+        private readonly ConcurrentQueue<PlayableMedia> songQueue =
+            new ConcurrentQueue<PlayableMedia>();
 
         private IAudioChannel channel;
 
         private IAudioClient audioClient;
-
-        private bool stopped = false;
 
         private bool skip = false;
 
@@ -46,31 +45,30 @@ namespace PokerBot.Services.Jukebox
 
         private AudioProcessor audio;
 
+        private CancellationTokenSource playCancel;
+
         private async Task WriteToChannelAsync(Stream input)
         {
+            playCancel = new CancellationTokenSource();
             byte[] buffer = new byte[BufferSize];
             int bytesRead;
-            while ((bytesRead = await input.ReadAsync(buffer, 0, buffer.Length).ConfigureAwait(false)) != 0)
+            try
             {
-                while (Paused)
+                while ((bytesRead = await input.ReadAsync(buffer, 0, buffer.Length, playCancel.Token).ConfigureAwait(false)) != 0)
                 {
-                    if (stopped || skip)
+                    while (Paused)
+                    {
+                        if (skip)
+                            break;
+                        await Task.Delay(1000);
+                    }
+
+                    if (skip)
                         break;
-                    await Task.Delay(1000);
+                    await discordOut.WriteAsync(buffer, 0, bytesRead, playCancel.Token).ConfigureAwait(false);
                 }
-
-                if (skip)
-                    break;
-
-                if (stopped)
-                {
-                    await discordOut.FlushAsync();
-                    songQueue.Clear();
-                    return;
-                }
-
-                await discordOut.WriteAsync(buffer, 0, bytesRead).ConfigureAwait(false);
             }
+            catch (OperationCanceledException) { } // Catch exception when stopping playback
             skip = false;
         }
 
@@ -80,35 +78,26 @@ namespace PokerBot.Services.Jukebox
 
         public bool IsInChannel() => GetChannelName() != null;
 
-        public bool SetStopped(bool val) => stopped = val;
-
         public void Skip() => skip = true;
 
-        public (string songName, string songPath, string songFormat)[] GetQueue() => songQueue.ToArray();
+        public PlayableMedia[] GetQueue() => songQueue.ToArray();
 
-        public void Queue(DownloadResult res, Action<(string song, bool queued)> callback)
+        public void Stop()
         {
-            var result = res.GetResult();
-            if (res.isPlaylist)
-            {
-                foreach (var (name, path, format) in result)
-                {
-                    if (!File.Exists(path))
-                        throw new Exception("Specified song path to queue is empty.");
-                    songQueue.Enqueue((name, path, format));
-                    callback?.Invoke((name, true));
-                }
-                return;
-            }
-
-            var video = result[0];
-            if (!File.Exists(video.path))
-                throw new Exception("Specified song path to queue is empty.");
-            songQueue.Enqueue((video.name, video.path, video.format));
-            callback?.Invoke((video.name, true));
+            playCancel?.Cancel(false);
+            playCancel?.Dispose();
+            songQueue.Clear();
         }
 
-        public (string songName, string songPath, string songFormat) DequeueNext()
+        public void Queue(PlayableMedia media, Action<(string song, bool queued)> callback = null)
+        {
+            if (!File.Exists(media.Path))
+                throw new Exception("Specified song path to queue is empty.");
+            songQueue.Enqueue(media);
+            callback?.Invoke((media.Name, true));
+        }
+
+        public PlayableMedia DequeueNext()
         {
             songQueue.TryDequeue(out var res);
             return res;
@@ -130,47 +119,57 @@ namespace PokerBot.Services.Jukebox
             await channel.DisconnectAsync();
         }
 
-        public async Task PlayAsync(DownloadResult res, Action<(string song, bool queued)> callback, int bitrate = Jukebox.DefaultBitrate, int bufferSize = Jukebox.DefaultBufferSize)
+        public async Task PlayAsync(MediaCollection col, Action<(string song, bool queued)> callback = null, int bitrate = Jukebox.DefaultBitrate, int bufferSize = Jukebox.DefaultBufferSize)
         {
-            var result = res.GetResult();
-
-            if (playing || result.Length > 1)
-                Queue(res, callback);
+            if (col.IsPlaylist)
+            {
+                for (int i = 1; i < col.Length; i++)
+                    Queue(col[i]);
+                callback?.Invoke((col.PlaylistName, true));
+            }
 
             if (playing)
+            {
+                Queue(col[0], callback);
                 return;
+            }
 
-            var vid = result[0];
+            var song = col[0];
 
-            using var playerOut = (audio = new AudioProcessor(vid.path, bitrate, bufferSize, vid.format)).GetOutput();
+            using var playerOut = (audio = new AudioProcessor(song.Path, bitrate, bufferSize / 2, song.Format)).GetOutput();
             discordOut ??= (audioClient ??= await channel.ConnectAsync()).CreatePCMStream(AudioApplication.Music, Bitrate, 100, 0);
 
-            CurrentSong = vid.name;
+            CurrentSong = song.Name;
 
-            callback?.Invoke((vid.name, false));
+            callback?.Invoke((song.Name, false));
+
             playing = true;
             await WriteToChannelAsync(playerOut);
             playing = false;
 
+            CurrentSong = null;
+            audio.Dispose();
+
+            if (playCancel.IsCancellationRequested)
+                return;
+
             if (!skip && Looping)
             {
-                await PlayAsync(new DownloadResult(vid.name, vid.path, vid.format), callback).ConfigureAwait(false);
+                await PlayAsync(new MediaCollection(song), callback).ConfigureAwait(false);
                 return;
             }
 
             if (!songQueue.IsEmpty)
             {
                 var next = DequeueNext();
-                await PlayAsync(new DownloadResult(next.songName, next.songPath, next.songFormat), callback).ConfigureAwait(false);
+                await PlayAsync(new MediaCollection(next), callback).ConfigureAwait(false);
                 return;
             }
-            CurrentSong = null;
-            audio.Dispose();
         }
 
         public void Dispose()
         {
-            SetStopped(true);
+            Stop();
             audio?.Dispose();
             audio = null;
             channel?.DisconnectAsync();

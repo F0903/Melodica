@@ -25,7 +25,7 @@ namespace PokerBot.Services.Jukebox
         public bool TryGetEntry(Key key, out Val val)
         {
             lock (cache)
-                return cache.ContainsKey(key) ? (val = this[key]) != null : (val = default) != default;
+                return cache.ContainsKey(key) ? (val = this[key]) != null : (val = default) != null;
         }
 
         public Val GetEntry(Key key)

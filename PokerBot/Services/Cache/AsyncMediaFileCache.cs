@@ -6,12 +6,13 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Collections.Concurrent;
 using PokerBot.Utility.Extensions;
+using PokerBot.Models;
 
 namespace PokerBot.Services.Cache
 {
-    public class AsyncFileCache : IAsyncCache<Stream>
+    public class AsyncMediaFileCache : IAsyncMediaCache
     {
-        public AsyncFileCache()
+        public AsyncMediaFileCache()
         {
             if (!Directory.Exists(CacheLocation))
             {
@@ -26,7 +27,7 @@ namespace PokerBot.Services.Cache
                     File.Delete(file);
 
                 var info = new FileInfo(file);
-                if (!cache.TryAdd(info.Name, (info.FullName, info.Extension)))
+                if (!cache.TryAdd(info.Name, new PlayableMedia(info.Name, info.FullName, info.Extension)))
                     throw new Exception("Could not add pre-existing file to cache.");
             }
         }
@@ -35,8 +36,8 @@ namespace PokerBot.Services.Cache
 
         public static int MaxCache { get; private set; } = 25;
 
-        private readonly ConcurrentDictionary<string, (string path, string format)> cache = 
-            new ConcurrentDictionary<string, (string path, string format)>(Environment.ProcessorCount * 2, MaxCache);
+        private readonly ConcurrentDictionary<string, PlayableMedia> cache = 
+            new ConcurrentDictionary<string, PlayableMedia>(Environment.ProcessorCount * 2, MaxCache);
 
         private Task CheckCacheSizeAsync()
         {
@@ -58,12 +59,12 @@ namespace PokerBot.Services.Cache
 
         public bool ExistsInCache(string key) => cache.ContainsKey(key.RemoveSpecialCharacters());
 
-        public Task<(string path, string format)> GetValueAsync(string key) =>
+        public Task<PlayableMedia> GetValueAsync(string key) =>
             Task.FromResult(cache.GetValueOrDefault(key.RemoveSpecialCharacters()));
 
-        public async Task<(string path, string format)> CacheAsync(Stream val, string cacheName, string format, bool checkCacheSize = true)
+        public async Task<PlayableMedia> CacheAsync(PlayableMedia media, bool checkCacheSize = true)
         {
-            cacheName = cacheName.RemoveSpecialCharacters();
+            var cacheName = media.Name.RemoveSpecialCharacters();
 
             if (ExistsInCache(cacheName))
                 return cache[cacheName];
@@ -71,16 +72,17 @@ namespace PokerBot.Services.Cache
             if (checkCacheSize)
                 await CheckCacheSizeAsync();
            
-            var path = Path.ChangeExtension(Path.Combine(CacheLocation, cacheName), format);          
+            var path = Path.ChangeExtension(Path.Combine(CacheLocation, cacheName), media.Format);          
 
             using var file = File.OpenWrite(path);
 
-            await val.CopyToAsync(file);
+            await media.Stream.CopyToAsync(file);
             file.Close();
 
-            var output = (path, format);
+            var output = new PlayableMedia(media.Name, path, media.Format);
 
-            cache.TryAdd(cacheName, output);
+            if (!cache.TryAdd(cacheName, output))
+                throw new Exception("Unable to add media to cache.");
 
             return output;
         }
