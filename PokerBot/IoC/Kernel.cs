@@ -24,5 +24,8 @@ namespace PokerBot.IoC
             kernel.Bind<T>().ToConstant(instance).InSingletonScope();
         }
 
+        public static Ninject.Syntax.IBindingToSyntax<T> Bind<T>() => kernel.Bind<T>();
+
+        public static Ninject.Syntax.IBindingToSyntax<object> Bind(params Type[] types) => kernel.Bind(types);
     }
 }

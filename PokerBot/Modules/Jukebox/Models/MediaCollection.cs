@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text;
 
-namespace PokerBot.Models
+namespace PokerBot.Modules.Jukebox.Models
 {
     public class MediaCollection : IEnumerable<PlayableMedia>
     {

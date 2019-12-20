@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using PokerBot.Core;
 using PokerBot.Filehandlers.XML;
 using PokerBot.IoC;
+using PokerBot;
 using PokerBot.Services;
 using PokerBot.Services.CommandHandlers;
 using PokerBot.Services.Loggers;
@@ -11,14 +12,14 @@ namespace PokerBot
 {
     public static class Program
     {
-        private static readonly IAsyncBot bot = new SocketBot(Settings.Token, new Discord.WebSocket.DiscordSocketClient(new Discord.WebSocket.DiscordSocketConfig()
+        public static readonly IAsyncBot CurrentBot = new SocketBot(PokerBot.Settings.Token, new Discord.WebSocket.DiscordSocketClient(new Discord.WebSocket.DiscordSocketConfig()
         {
-            LogLevel = Settings.LogSeverity,           
-        }), Kernel.Get<IAsyncLoggingService>(), Kernel.Get<IAsyncCommandHandlerService>());
+            LogLevel = PokerBot.Settings.LogSeverity,           
+        }), Kernel.Get<IAsyncLoggingService>(), Kernel.Get<SocketCommandHandler>());
 
         static async Task Main()
         {
-            await bot.ConnectAsync(true);
+            await CurrentBot.ConnectAsync(true);
 
             AppDomain.CurrentDomain.ProcessExit += CurrentDomain_ProcessExit;
 
@@ -27,7 +28,7 @@ namespace PokerBot
 
         private static void CurrentDomain_ProcessExit(object sender, EventArgs e)
         {
-            bot.StopAsync();
+            CurrentBot.StopAsync();
         }
     }
 }

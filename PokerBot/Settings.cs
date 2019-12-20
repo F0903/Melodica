@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace PokerBot.Core
+namespace PokerBot
 {
     public static class Settings
     {

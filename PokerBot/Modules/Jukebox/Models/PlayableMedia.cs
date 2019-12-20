@@ -3,8 +3,9 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text;
 
-namespace PokerBot.Models
+namespace PokerBot.Modules.Jukebox.Models
 {
+#nullable enable
     public class PlayableMedia
     {
         public PlayableMedia(string name, string path, string format)

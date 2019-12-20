@@ -7,13 +7,14 @@ using System.Threading.Tasks;
 using YoutubeExplode;
 using YoutubeExplode.Models.MediaStreams;
 using PokerBot.Utility.Extensions;
-using PokerBot.Services.Cache;
+using PokerBot.Modules.Jukebox.Services.Cache;
+using PokerBot.Modules.Jukebox.Models;
 using YoutubeExplode.Models;
 using System.Collections;
-using PokerBot.Models;
+using System.Runtime.InteropServices;
 
-namespace PokerBot.Services.Downloaders
-{
+namespace PokerBot.Modules.Jukebox.Services.Downloaders
+{   
     public class AsyncYoutubeDownloader : IAsyncDownloadService
     {
         private readonly YoutubeClient yt = new YoutubeClient(new System.Net.Http.HttpClient());
@@ -70,7 +71,7 @@ namespace PokerBot.Services.Downloaders
                 foreach (var vid in pl.Videos)
                     med.Add((await DownloadAsync(cache, vid.Id, false))[0]);
 
-                return new MediaCollection(med.ToArray(), pl.Title, await Utility.Utility.GetURLArgumentValueAsync<int>(searchQuery, "index"));
+                return new MediaCollection(med.ToArray(), pl.Title, await PokerBot.Utility.Utility.GetURLArgumentValueAsync<int>(searchQuery, "index"));
             }
 
             var title = await GetVideoTitleAsync(searchQuery);

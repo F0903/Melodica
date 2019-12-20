@@ -1,6 +1,8 @@
 ﻿using System;
+using System.Linq;
 using System.Collections.Generic;
 using System.Text;
+using System.Reflection;
 using System.Threading.Tasks;
 using Discord;
 using Discord.Net;
@@ -9,17 +11,18 @@ using Discord.WebSocket;
 using PokerBot.Services;
 using PokerBot.Services.Loggers;
 using PokerBot.Services.CommandHandlers;
+using PokerBot.Modules;
 
 namespace PokerBot.Core
 {
     public class SocketBot : IAsyncBot
     {
-        public SocketBot(string token, DiscordSocketClient client, IAsyncLoggingService logger, IAsyncCommandHandlerService commandHandler)
+        public SocketBot(string token, DiscordSocketClient client, IAsyncLoggingService logger, SocketCommandHandler commandHandler)
         {
             this.token = token;
             this.client = client;
             this.logger = logger;
-            this.commandHandler = commandHandler;           
+            this.commandHandler = commandHandler;
 
             Bootstrap().Wait();
         }
@@ -28,20 +31,24 @@ namespace PokerBot.Core
 
         private readonly DiscordSocketClient client;
 
-        private readonly IAsyncCommandHandlerService commandHandler;
+        private readonly SocketCommandHandler commandHandler;
 
-        private readonly IAsyncLoggingService logger;       
+        private readonly IAsyncLoggingService logger;
 
-        private Task Bootstrap()
+        private async Task Bootstrap()
         {
-            IoC.Kernel.RegisterInstance(client);
+            PokerBot.IoC.Kernel.RegisterInstance(client);
 
-            commandHandler.BuildCommandsAsync(client);
+            // DO NOT
+            //await ModuleLoader.LoadModulesAsync(commandHandler, logger);
+
+            await commandHandler.BuildCommandsAsync(client);
             client.MessageReceived += commandHandler.HandleCommandsAsync;
             client.Log += logger.LogAsync;
-            return Task.CompletedTask;
         }
-         
+
+        public SocketCommandHandler GetCmdHandler() => commandHandler;
+
         public async Task ConnectAsync(bool startOnConnect = false)
         {
             await client.LoginAsync(TokenType.Bot, token);
@@ -51,7 +58,7 @@ namespace PokerBot.Core
 
         public async Task StartAsync()
         {
-            await client.StartAsync();           
+            await client.StartAsync();
         }
 
         public async Task StopAsync()

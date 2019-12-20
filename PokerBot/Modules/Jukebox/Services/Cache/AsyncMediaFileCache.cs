@@ -5,10 +5,10 @@ using System.IO;
 using System.Text;
 using System.Threading.Tasks;
 using System.Collections.Concurrent;
+using PokerBot.Modules.Jukebox.Models;
 using PokerBot.Utility.Extensions;
-using PokerBot.Models;
 
-namespace PokerBot.Services.Cache
+namespace PokerBot.Modules.Jukebox.Services.Cache
 {
     public class AsyncMediaFileCache : IAsyncMediaCache
     {
@@ -20,7 +20,7 @@ namespace PokerBot.Services.Cache
                 return;
             }
 
-            bool clear = Core.Settings.ClearFileCacheOnStartup;
+            bool clear = PokerBot.Settings.ClearFileCacheOnStartup;
             foreach (string file in Directory.EnumerateFiles(CacheLocation))
             {
                 if (clear)
@@ -45,7 +45,7 @@ namespace PokerBot.Services.Cache
             foreach (var file in Directory.EnumerateFiles(CacheLocation))
                 sum += new FileInfo(file).Length;
 
-            if (sum > Core.Settings.MaxFileCacheInMB * 1024 * 1024)
+            if (sum > PokerBot.Settings.MaxFileCacheInMB * 1024 * 1024)
                 ClearCache();
             return Task.CompletedTask;
         }

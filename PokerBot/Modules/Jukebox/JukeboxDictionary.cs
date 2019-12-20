@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace PokerBot.Services.Jukebox
+namespace PokerBot.Modules.Jukebox
 {
     public sealed class JukeboxDictionary<Key, Val>
     {

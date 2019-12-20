@@ -42,7 +42,7 @@ namespace PokerBot.CommandModules
         [Command("Owner")]
         public async Task GetOwnerAsync()
         {
-            await ReplyAsync(Context.Message.Author.IsOwnerOfApp() ? "You already know..." : $"My owner is {Utility.Utility.GetAppOwnerAsync()}");
+            await ReplyAsync(Context.Message.Author.IsOwnerOfApp() ? "You already know..." : $"My owner is {PokerBot.Utility.Utility.GetAppOwnerAsync()}");
         }
 
         [Group("Debug"), RequireOwner(ErrorMessage = "This command group can only be used by the app owner.")]
@@ -51,7 +51,7 @@ namespace PokerBot.CommandModules
             [Command("GetInstances"), Alias("Instances")]
             public Task GetNumberOfInstances(string objName)
             {
-                ReplyAsync($"{Utility.InstanceTester.GetNumberOfInstances(objName)} instances of {objName}");
+                ReplyAsync($"{PokerBot.Utility.InstanceTester.GetNumberOfInstances(objName)} instances of {objName}");
                 return Task.CompletedTask;
             }
 
@@ -61,7 +61,7 @@ namespace PokerBot.CommandModules
 
             [Command("GetTokenType"), Alias("Token")]
             public Task GetTokenTypeAsync() =>
-                ReplyAsync($"Context Client: {Context.Client.TokenType.ToString()}\nDI Client: {IoC.Kernel.Get<DiscordSocketClient>().TokenType.ToString()}");
+                ReplyAsync($"Context Client: {Context.Client.TokenType.ToString()}\nDI Client: {PokerBot.IoC.Kernel.Get<DiscordSocketClient>().TokenType.ToString()}");
         }
     }
 }

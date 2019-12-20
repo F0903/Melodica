@@ -1,12 +1,12 @@
-﻿using PokerBot.Models;
-using PokerBot.Services.Cache;
+﻿using PokerBot.Modules.Jukebox.Models;
+using PokerBot.Modules.Jukebox.Services.Cache;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace PokerBot.Services.Downloaders
+namespace PokerBot.Modules.Jukebox.Services.Downloaders
 {
     public interface IAsyncDownloadService
     {

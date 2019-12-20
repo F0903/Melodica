@@ -6,7 +6,7 @@ using System.IO;
 using System.Text;
 
 #nullable enable
-namespace PokerBot.Models
+namespace PokerBot.Modules.Jukebox.Models
 {
     public sealed class AudioProcessor : IDisposable
     {
@@ -22,7 +22,7 @@ namespace PokerBot.Models
                     RedirectStandardError = false,
                     RedirectStandardInput = (inputAvailable = (path == null ? true : false)),
                     RedirectStandardOutput = (outputAvailable = true),
-                    CreateNoWindow = Core.Settings.LogSeverity == LogSeverity.Debug ? false : true,
+                    CreateNoWindow = PokerBot.Settings.LogSeverity == LogSeverity.Debug ? false : true,
                 }
             };
 
