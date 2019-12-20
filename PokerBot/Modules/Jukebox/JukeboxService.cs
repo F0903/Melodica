@@ -11,9 +11,15 @@ using System.Threading;
 using System.Threading.Tasks;
 
 namespace PokerBot.Modules.Jukebox
-{ 
+{
     public class JukeboxService
     {
+        public JukeboxService(IAsyncMediaCache cache, IAsyncDownloadService downloader)
+        {
+            songCache = cache;
+            this.downloader = downloader;
+        }
+
         private sealed class JukeboxPlayer : IDisposable
         {
             public JukeboxPlayer(int bitrate = DefaultBitrate, int bufferSize = DefaultBufferSize, IAudioChannel channel = null)
@@ -33,8 +39,8 @@ namespace PokerBot.Modules.Jukebox
 
             public bool Looping { get; set; } = false;
 
-            private readonly ConcurrentQueue<PlayableMedia> songQueue =
-                new ConcurrentQueue<PlayableMedia>();
+            private readonly SongQueue<PlayableMedia> songQueue =
+                new SongQueue<PlayableMedia>();
 
             private IAudioChannel channel;
 
@@ -85,30 +91,23 @@ namespace PokerBot.Modules.Jukebox
 
             public PlayableMedia[] GetQueue() => songQueue.ToArray();
 
-            public void Stop()
+            public Task ClearQueueAsync() => songQueue.ClearAsync();
+
+            public Task<PlayableMedia> RemoveFromQueueAsync(int index) => songQueue.RemoveAtAsync(index);
+
+            public async Task StopAsync()
             {
                 playCancel?.Cancel(false);
                 playCancel?.Dispose();
-                songQueue.Clear();
-            }
+                await songQueue.ClearAsync();
+            }           
 
-            public void Queue(PlayableMedia media, Action<(string song, bool queued)> callback = null)
+            public async Task QueueAsync(PlayableMedia media, Action<(string song, bool queued)> callback = null)
             {
                 if (!File.Exists(media.Path))
                     throw new Exception("Specified song path to queue is empty.");
-                songQueue.Enqueue(media);
+                await songQueue.EnqueueAsync(media);
                 callback?.Invoke((media.Name, true));
-            }
-
-            public PlayableMedia DequeueNext()
-            {
-                songQueue.TryDequeue(out var res);
-                return res;
-            }
-
-            public void ClearQueue()
-            {
-                songQueue.Clear();
             }
 
             public async Task ConnectToChannelAsync(IAudioChannel channel)
@@ -132,7 +131,7 @@ namespace PokerBot.Modules.Jukebox
                     {
                         if (i == col.PlaylistIndex - 1)
                             continue;
-                        Queue(col[i]);
+                        await QueueAsync(col[i]);
                     }
                     song = col[col.PlaylistIndex - 1];
                     callback?.Invoke((col.PlaylistName, true));
@@ -140,7 +139,7 @@ namespace PokerBot.Modules.Jukebox
 
                 if (playing)
                 {
-                    Queue(song, callback);
+                    await QueueAsync(song, callback);
                     return;
                 }
 
@@ -169,15 +168,14 @@ namespace PokerBot.Modules.Jukebox
 
                 if (!songQueue.IsEmpty)
                 {
-                    var next = DequeueNext();
-                    await PlayAsync(new MediaCollection(next), callback).ConfigureAwait(false);
+                    await PlayAsync(new MediaCollection(await songQueue.DequeueAsync()), callback).ConfigureAwait(false);
                     return;
                 }
             }
 
             public void Dispose()
             {
-                Stop();
+                StopAsync().Wait();
                 audio?.Dispose();
                 audio = null;
                 channel?.DisconnectAsync();
@@ -190,9 +188,9 @@ namespace PokerBot.Modules.Jukebox
         public const int DefaultBitrate = 128 * 1024;
         public const int DefaultBufferSize = 1 * 1024;
 
-        private readonly AsyncMediaFileCache songCache = new AsyncMediaFileCache();
+        private readonly IAsyncMediaCache songCache;
 
-        private readonly AsyncYoutubeDownloader yt = new AsyncYoutubeDownloader();
+        private readonly IAsyncDownloadService downloader;
 
         private readonly JukeboxDictionary<IGuild, JukeboxPlayer> jukeboxes = new JukeboxDictionary<IGuild, JukeboxPlayer>();
 
@@ -208,7 +206,15 @@ namespace PokerBot.Modules.Jukebox
         public void SetLooping(IGuild guild, bool val) =>
             jukeboxes[guild].Looping = val;
 
+        public bool IsLooping(IGuild guild) =>
+            jukeboxes[guild].Looping;
+
         public void Skip(IGuild guild) => jukeboxes[guild].Skip();
+
+        public Task ClearQueueAsync(IGuild guild) => jukeboxes[guild].ClearQueueAsync();
+
+        public Task<PlayableMedia> RemoveFromQueueAsync(IGuild guild, int i) =>
+            jukeboxes[guild].RemoveFromQueueAsync(i);
 
         public Task<PlayableMedia[]> GetQueueAsync(IGuild guild) =>
             Task.FromResult(jukeboxes[guild].GetQueue());
@@ -229,20 +235,16 @@ namespace PokerBot.Modules.Jukebox
             if (!jukeboxes.TryGetEntry(guild, out var jukebox))
                 jukebox = await JoinChannelInternal(guild, channel);
 
-            var res = await yt.DownloadAsync(songCache, searchQuery);
+            var res = await downloader.DownloadAsync(songCache, searchQuery);
 
-            await jukebox.PlayAsync(res, playCallback).ConfigureAwait(false);            
+            await jukebox.PlayAsync(res, playCallback).ConfigureAwait(false);
         }
 
         public Task StopAsync(IGuild guild)
         {
             if (!jukeboxes.TryGetEntry(guild, out var jukebox))
                 throw new Exception("Could not get value out of cache.");
-
-            jukebox.Dispose();
-
-            jukeboxes.RemoveEntry(guild);
-            return Task.CompletedTask;
+            return jukebox.StopAsync();
         }
     }
 }

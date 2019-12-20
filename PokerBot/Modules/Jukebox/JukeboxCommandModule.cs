@@ -30,9 +30,10 @@ namespace PokerBot.Modules.Jukebox
         }
 
         [Command("Loop"), Summary("Loops the current song.")]
-        public async Task SetLoopingAsync(bool val)
+        public async Task SetLoopingAsync(bool? val = null)
         {
-            jukebox.SetLooping(Context.Guild, val);
+            val ??= !jukebox.IsLooping(Context.Guild);
+            jukebox.SetLooping(Context.Guild, val.Value);
             await ReplyAsync($"Loop set to {val}");
         }
 
@@ -73,6 +74,20 @@ namespace PokerBot.Modules.Jukebox
         {
             jukebox.Skip(Context.Guild);
             return Task.CompletedTask;
+        }
+
+        [Command("Clear"), Summary("Clears queue.")]
+        public async Task ClearQueue()
+        {
+            await jukebox.ClearQueueAsync(Context.Guild);
+            await ReplyAsync("Cleared queue.");
+        }
+
+        [Command("Remove"), Summary("Removes song from queue by index.")]
+        public async Task RemoveSongFromQueue(int index)
+        {
+            var removed = await jukebox.RemoveFromQueueAsync(Context.Guild, index - 1);
+            await ReplyAsync($"Removed {removed.Name} from queue.");
         }
 
         [Command("Queue"), Summary("Shows current queue.")]
