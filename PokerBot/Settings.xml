@@ -7,7 +7,7 @@
   <Prefix>p!</Prefix>
   <LogSeverity>5</LogSeverity> <!-- Critical = 0, Error = 1, Warning = 2, Info = 3, Verbose = 4, Debug = 5 -->
   <MaxFileCacheInMB>500</MaxFileCacheInMB>
-  <ClearFileCacheOnStartup>false</ClearFileCacheOnStartup> <!-- Default: false -->
+  <ClearFileCacheOnStartup>true</ClearFileCacheOnStartup> <!-- Default: false -->
   
   <RedirectBotDMToOwner>true</RedirectBotDMToOwner>
 </Settings>

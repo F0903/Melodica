@@ -4,6 +4,7 @@ using PokerBot.Modules.Jukebox.Models;
 using PokerBot.Modules.Jukebox.Services.Cache;
 using PokerBot.Modules.Jukebox.Services.Downloaders;
 using System;
+using System.Linq;
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.IO;
@@ -14,9 +15,8 @@ namespace PokerBot.Modules.Jukebox
 {
     public class JukeboxService
     {
-        public JukeboxService(IAsyncMediaCache cache, IAsyncDownloadService downloader)
+        public JukeboxService(IAsyncDownloadService downloader)
         {
-            songCache = cache;
             this.downloader = downloader;
         }
 
@@ -100,14 +100,27 @@ namespace PokerBot.Modules.Jukebox
                 playCancel?.Cancel(false);
                 playCancel?.Dispose();
                 await songQueue.ClearAsync();
-            }           
+            }
 
             public async Task QueueAsync(PlayableMedia media, Action<(string song, bool queued)> callback = null)
             {
                 if (!File.Exists(media.Path))
                     throw new Exception("Specified song path to queue is empty.");
+
                 await songQueue.EnqueueAsync(media);
-                callback?.Invoke((media.Name, true));
+                callback?.Invoke((media.Title, true));
+            }
+
+            public async Task QueueAsync(MediaCollection playlist, params int[] exludeElements)
+            {
+                PlayableMedia[] toQueue = null;
+                foreach (var i in exludeElements)
+                {
+                    var temp = playlist.ToList();
+                    temp.RemoveAt(i);
+                    toQueue = temp.ToArray();
+                }
+                await songQueue.EnqueueAsync(toQueue);
             }
 
             public async Task ConnectToChannelAsync(IAudioChannel channel)
@@ -123,17 +136,12 @@ namespace PokerBot.Modules.Jukebox
 
             public async Task PlayAsync(MediaCollection col, Action<(string song, bool queued)> callback = null, int bitrate = JukeboxService.DefaultBitrate, int bufferSize = JukeboxService.DefaultBufferSize)
             {
-                PlayableMedia song = col[0];
+                PlayableMedia song = col[col.PlaylistIndex - 1];
 
                 if (col.IsPlaylist)
                 {
-                    for (int i = 0; i < col.Length; i++)
-                    {
-                        if (i == col.PlaylistIndex - 1)
-                            continue;
-                        await QueueAsync(col[i]);
-                    }
-                    song = col[col.PlaylistIndex - 1];
+                    await QueueAsync(col, col.PlaylistIndex - 1);
+
                     callback?.Invoke((col.PlaylistName, true));
                 }
 
@@ -146,9 +154,9 @@ namespace PokerBot.Modules.Jukebox
                 using var playerOut = (audio = new AudioProcessor(song.Path, bitrate, bufferSize / 2, song.Format)).GetOutput();
                 discordOut ??= (audioClient ??= await channel.ConnectAsync()).CreatePCMStream(AudioApplication.Music, Bitrate, 100, 0);
 
-                CurrentSong = song.Name;
+                CurrentSong = song.Title;
 
-                callback?.Invoke((song.Name, false));
+                callback?.Invoke((song.Title, false));
 
                 playing = true;
                 await WriteToChannelAsync(playerOut);
@@ -188,9 +196,9 @@ namespace PokerBot.Modules.Jukebox
         public const int DefaultBitrate = 128 * 1024;
         public const int DefaultBufferSize = 1 * 1024;
 
-        private readonly IAsyncMediaCache songCache;
-
         private readonly IAsyncDownloadService downloader;
+
+        private static IAsyncMediaCache songCache;
 
         private readonly JukeboxDictionary<IGuild, JukeboxPlayer> jukeboxes = new JukeboxDictionary<IGuild, JukeboxPlayer>();
 
@@ -230,12 +238,15 @@ namespace PokerBot.Modules.Jukebox
         public async Task JoinChannelAsync(IGuild guild, IAudioChannel channel) =>
             await JoinChannelInternal(guild, channel);
 
-        public async Task PlayAsync(IGuild guild, IAudioChannel channel, string searchQuery, Action<(string song, bool putInQueue)> playCallback = null)
+        public async Task PlayAsync(IGuild guild, IAudioChannel channel, string searchQuery, Action<(string song, bool putInQueue)> playCallback = null, Action<string> feedback = null)
         {
             if (!jukeboxes.TryGetEntry(guild, out var jukebox))
                 jukebox = await JoinChannelInternal(guild, channel);
 
-            var res = await downloader.DownloadAsync(songCache, searchQuery);
+            songCache ??= new AsyncMediaFileCache(guild);
+
+            var res = await downloader.DownloadAsync(songCache, searchQuery, true, () => feedback.Invoke($"Duration is over {AsyncYoutubeDownloader.LargeSizeDurationMinuteThreshold} minutes. This might take a while."),
+                                                                                   (x) => feedback.Invoke($"Video {x} was unavailable. Skipping..."));
 
             await jukebox.PlayAsync(res, playCallback).ConfigureAwait(false);
         }

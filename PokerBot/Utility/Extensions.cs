@@ -10,6 +10,11 @@ namespace PokerBot.Utility.Extensions
 {
     public static class Extensions
     {
+        public static char[] CustomIllegalChars { get; set; } =
+        {
+            '.'
+        };
+
         public static void ForEach<T>(this T[] array, Action<int, T> action)
         {
             for (int i = 0; i < array.Length; i++)
@@ -27,8 +32,8 @@ namespace PokerBot.Utility.Extensions
         public static bool IsOwnerOfApp(this IUser user) =>
             user.Id == IoC.Kernel.Get<DiscordSocketClient>().GetApplicationInfoAsync().Result.Owner.Id;
 
-        public static string RemoveSpecialCharacters(this string str) =>
-             Regex.Replace(str, "[^a-zA-Z0-9_.]+", "", RegexOptions.Compiled);
+        public static string ReplaceIllegalCharacters(this string str, string replacement = "_") =>
+             System.IO.Path.GetInvalidFileNameChars().Union(CustomIllegalChars).Aggregate(str, (current, c) => current.Replace(c.ToString(), replacement));
 
         public static bool IsUrl(this string str) =>
              Uri.TryCreate(str, UriKind.Absolute, out var uri)

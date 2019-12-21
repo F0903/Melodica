@@ -19,6 +19,13 @@ namespace PokerBot.Modules.Jukebox.Models
                 return list.ToArray();
         }
 
+        public Task EnqueueAsync(T[] items)
+        {
+            lock (locker)
+                list.AddRange(items);
+            return Task.CompletedTask;
+        }
+
         public Task EnqueueAsync(T item)
         {
             lock (locker)

@@ -10,6 +10,6 @@ namespace PokerBot.Modules.Jukebox.Services.Downloaders
 {
     public interface IAsyncDownloadService
     {
-        public Task<MediaCollection> DownloadAsync(IAsyncMediaCache cache, string searchQuery, bool checkCacheSize = true);
+        public Task<MediaCollection> DownloadAsync(IAsyncMediaCache cache, string searchQuery, bool checkCacheSize = true, Action largeSizeWarningCallback = null, Action<string> videoUnavailableCallback = null);
     }
 }

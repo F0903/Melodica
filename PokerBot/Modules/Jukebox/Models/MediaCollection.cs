@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
@@ -8,10 +9,10 @@ namespace PokerBot.Modules.Jukebox.Models
 {
     public class MediaCollection : IEnumerable<PlayableMedia>
     {
-        public MediaCollection(string name, string path, string format)
+        public MediaCollection(string name, string path, string format, int lengthInSec)
         {
             IsPlaylist = false;
-            playlist = new[] { new PlayableMedia(name, path, format) };
+            playlist = new[] { new PlayableMedia(name, path, format, lengthInSec) };
         }
 
         public MediaCollection(PlayableMedia media)
@@ -20,8 +21,11 @@ namespace PokerBot.Modules.Jukebox.Models
             playlist = new[] { media };
         }
 
-        public MediaCollection(PlayableMedia[] videos, string playlistName, int playlistIndex = 0)
+        public MediaCollection(PlayableMedia[] videos, string playlistName, int playlistIndex = 1)
         {
+            if (playlistIndex <= 0)
+                throw new IndexOutOfRangeException("Index of playlist cannot be under 1");
+
             IsPlaylist = true;
             this.playlist = videos;
             PlaylistName = playlistName;
@@ -43,11 +47,13 @@ namespace PokerBot.Modules.Jukebox.Models
 
         public int Length { get => playlist.Length; }
 
+        public int TotalDuration { get => playlist.Sum(x => x.SecondDuration); }
+
         public bool IsPlaylist { get; private set; }
 
         public string PlaylistName { get; private set; }
 
-        public int PlaylistIndex { get; private set; }
+        public int PlaylistIndex { get; private set; } = 1;
 
         public PlayableMedia[] GetMedia() => playlist;
 

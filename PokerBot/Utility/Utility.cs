@@ -13,10 +13,14 @@ namespace PokerBot.Utility
         public static Task<IUser> GetAppOwnerAsync() =>
             Task.FromResult(IoC.Kernel.Get<DiscordSocketClient>().GetApplicationInfoAsync().Result.Owner);
      
-        public static Task<T> GetURLArgumentValueAsync<T>(string url, string argName)
+        public static Task<T> GetURLArgumentValueAsync<T>(string url, string argName, bool throwOnNull = true)
         {
             if (!url.Contains($"&{argName}"))
+            {
+                if (!throwOnNull)
+                    return Task.FromResult(default (T));
                 throw new Exception("URL does not contain such argument.");
+            }
 
             for (int x = url.IndexOf(argName); x < url.Length; x++)
             {
@@ -34,7 +38,7 @@ namespace PokerBot.Utility
                 var sub = url.Substring(x, diff);
                 return Task.FromResult((T)Convert.ChangeType(sub, typeof(T)));
             }
-            throw new Exception("Could not find argument.");
+            return Task.FromResult(default(T));
         }
     }
 

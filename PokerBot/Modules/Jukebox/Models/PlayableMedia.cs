@@ -8,26 +8,30 @@ namespace PokerBot.Modules.Jukebox.Models
 #nullable enable
     public class PlayableMedia
     {
-        public PlayableMedia(string name, string path, string format)
+        public PlayableMedia(string name, string path, string format, int lengthInSec)
         {
-            this.Name = name;
+            this.Title = name;
             this.Path = path;
             this.Format = format;
+            SecondDuration = lengthInSec;
         }
 
-        public PlayableMedia(Stream stream, string name, string format)
+        public PlayableMedia(Stream stream, string name, string format, int lengthInSec)
         {
             Stream = stream;
-            Name = name;
+            Title = name;
             Format = format;
+            SecondDuration = lengthInSec;
         }
 
-        public Stream? Stream { get; private set; } = null;
+        public Stream? Stream { get; } = null;
 
-        public string? Path { get; private set; } = null;
+        public string? Path { get; } = null;
 
-        public string Name { get; private set; }
+        public string Title { get;}
 
-        public string Format { get; private set; }
+        public string Format { get; }
+
+        public int SecondDuration { get; }
     }
 }

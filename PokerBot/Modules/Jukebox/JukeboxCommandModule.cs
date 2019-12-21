@@ -23,7 +23,7 @@ namespace PokerBot.Modules.Jukebox
 
         private IVoiceChannel GetUserVoiceChannel() => ((SocketGuildUser)Context.User).VoiceChannel;
 
-        [Command("jWorking")]
+        [Command("jOk")]
         public async Task IsWorking()
         {
             await ReplyAsync("Jukebox status OK");
@@ -87,7 +87,7 @@ namespace PokerBot.Modules.Jukebox
         public async Task RemoveSongFromQueue(int index)
         {
             var removed = await jukebox.RemoveFromQueueAsync(Context.Guild, index - 1);
-            await ReplyAsync($"Removed {removed.Name} from queue.");
+            await ReplyAsync($"Removed {removed.Title} from queue.");
         }
 
         [Command("Queue"), Summary("Shows current queue.")]
@@ -110,7 +110,12 @@ namespace PokerBot.Modules.Jukebox
                 Color = Color.DarkGrey
             };
 
-            queue.ForEach((i, x) => eb.AddField(i == 1 ? "Next:" : i.ToString(), i == 1 ? $"**{x.Name}**" : x.Name, false));
+            int max = 21;
+            for (int i = 1; i <= max; i++)
+            {
+                var x = queue[i];
+                eb.AddField(i == 1 ? "Next:" : i == max ? "And more..." : i.ToString(), i == 1 ? $"**{x.Title}**" : i == max ? "wow, that's a lot of songs :)" : x.Title, false);
+            }
 
             await Context.Channel.SendMessageAsync(null, false, eb.Build());
         }
@@ -133,7 +138,8 @@ namespace PokerBot.Modules.Jukebox
                 await ReplyAsync($"{(context.putInQueue ? "**Queued**" : "**Now Playing**")} {context.song}");
                 if (loop)
                     jukebox.SetLooping(Context.Guild, true);
-            });
+            }, 
+            async (x) => await ReplyAsync(x));
         }
 
         [Command("Stop"), Summary("Stops playback.")]
