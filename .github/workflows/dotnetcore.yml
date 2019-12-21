@@ -1,4 +1,4 @@
-name: NetCore
+name: .NET Core
 
 on: [push, pull_request]
 
