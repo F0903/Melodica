@@ -30,8 +30,7 @@ namespace CasinoBot.Core
         {
             CasinoBot.IoC.Kernel.RegisterInstance(client);
 
-            // DO NOT
-            //await ModuleLoader.LoadModulesAsync(commandHandler, logger);
+            await client.SetActivityAsync(new Game($"{Settings.Prefix}play", ActivityType.Listening));
 
             await commandHandler.BuildCommandsAsync(client);
             client.MessageReceived += commandHandler.HandleCommandsAsync;

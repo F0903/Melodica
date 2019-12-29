@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using YoutubeExplode;
 using YoutubeExplode.Exceptions;
 using YoutubeExplode.Models.MediaStreams;
+using System.Threading;
 
 namespace CasinoBot.Modules.Jukebox.Services.Downloaders
 {
@@ -19,7 +20,7 @@ namespace CasinoBot.Modules.Jukebox.Services.Downloaders
 
         public const int MaxDownloadAttempts = 10;
 
-        public const int LargeSizeDurationMinuteThreshold = 20;
+        public const int LargeSizeDurationMinuteThreshold = 20;      
 
         public Task<string> GetVideoTitleAsync(string query) =>
             Task.FromResult(yt.SearchVideosAsync(query, 1).Result[0].Title);
@@ -84,7 +85,7 @@ namespace CasinoBot.Modules.Jukebox.Services.Downloaders
             return result;
         }
 
-        public async Task<MediaCollection> DownloadToCacheAsync(IAsyncMediaCache cache, string guildName, string searchQuery, bool checkCacheSize = true, Action largeSizeWarningCallback = null, Action<string> videoUnavailableCallback = null)
+        public async Task<MediaCollection> DownloadToCacheAsync(IAsyncMediaCache cache, QueueMode mode, string guildName, string searchQuery, bool checkCacheSize = true, Action largeSizeWarningCallback = null, Action<string> videoUnavailableCallback = null)
         {
             if (YoutubeClient.TryParsePlaylistId(searchQuery, out var playlistId))
             {
@@ -95,22 +96,41 @@ namespace CasinoBot.Modules.Jukebox.Services.Downloaders
                     largeSizeWarningCallback?.Invoke();
 
                 PlayableMedia[] med = new PlayableMedia[videos.Count];
-                Parallel.For(0, videos.Count, i =>
+                switch (mode)
                 {
-                    var result = InternalDownloadAsync(videos[i].Id, true, null, videoUnavailableCallback).Result;
-                    if (result == null)
-                        return;
-                    var cachedResult = CacheAsync(cache, result, result.Title, false, true).Result;
-                    if (cachedResult == null)
-                        return;
-                    med[i] = cachedResult;
-                });
+                    case QueueMode.Consistent:
+                        for (int i = 0; i < videos.Count; i++)
+                        {
+                            var result = await InternalDownloadAsync(videos[i].Id, true, null, videoUnavailableCallback);
+                            if (result == null)
+                                continue;
+                            var cachedResult = await CacheAsync(cache, result, result.Title, false, true);
+                            if (cachedResult == null)
+                                continue;
+                            med[i] = cachedResult;
+                        }
+                        break;
+
+                    case QueueMode.Fast:                 
+                        Parallel.For(0, videos.Count, new ParallelOptions() { MaxDegreeOfParallelism = -1 }, i =>
+                        {
+                            var result = InternalDownloadAsync(videos[i].Id, true, null, videoUnavailableCallback).Result;
+                            if (result == null)
+                                return;
+                            var cachedResult = CacheAsync(cache, result, result.Title, false, true).Result;
+                            if (cachedResult == null)
+                                return;
+                            med[i] = cachedResult;
+                        });
+                        break;
+                }
+
                 var filterList = med.ToList();
                 filterList.RemoveAll(x => x == null);
 
                 //TODO: This could all probably be done more efficient.
                 med = filterList.ToArray();
-                
+
                 return new MediaCollection(med, pl.Title, (await Utility.Utility.GetURLArgumentValueAsync<int?>(searchQuery, "index", false)) ?? 1);
             }
 

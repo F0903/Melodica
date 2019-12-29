@@ -55,18 +55,6 @@ namespace CasinoBot.Modules.Jukebox
             await ReplyAsync($"**Currently playing** {(await jukebox.GetJukeboxAsync(Context.Guild)).CurrentSong}");
         }
 
-        [Command("Join"), Summary("Joins the specified voice channel, or the channel the calling user is in.")]
-        public async Task JoinAsync(string channelName = null)
-        {
-            await (await jukebox.GetJukeboxAsync(Context.Guild)).ConnectToChannelAsync(channelName == null ? GetUserVoiceChannel() : Context.Guild.VoiceChannels.Single(x => x.Name == channelName));
-        }
-
-        [Command("Leave"), Summary("Leaves the voice channel.")]
-        public async Task LeaveAsync()
-        {
-            await (await jukebox.GetJukeboxAsync(Context.Guild)).LeaveChannelAsync();
-        }
-
         [Command("Resume"), Summary("Resumes playback.")]
         public async Task ResumeAsync()
         {
@@ -150,10 +138,7 @@ namespace CasinoBot.Modules.Jukebox
             if (loop)
                 songQuery = songQuery.Replace(" !loop", null);
 
-            if (juke.Playing)
-                await juke.StopAsync();
-
-            await juke.PlayAsync(new Models.Requests.QueryDownloadRequest(IoC.Kernel.Get<IAsyncDownloadService>(), songQuery), GetUserVoiceChannel(), async context => await ReplyAsync($"**Switched Playback** {context.song}"));
+            await juke.PlayAsync(new Models.Requests.QueryDownloadRequest(IoC.Kernel.Get<IAsyncDownloadService>(), songQuery), GetUserVoiceChannel(), true, async context => await ReplyAsync($"**Switched Playback** {context.song}"));
         }
 
         [Command("Play"), Alias("P"), Summary("Plays the specified song.")]
@@ -171,7 +156,7 @@ namespace CasinoBot.Modules.Jukebox
 
             var juke = await jukebox.GetJukeboxAsync(Context.Guild);
 
-            await juke.PlayAsync(new Models.Requests.QueryDownloadRequest(IoC.Kernel.Get<IAsyncDownloadService>(), songQuery), GetUserVoiceChannel(), async (context) =>
+            await juke.PlayAsync(new Models.Requests.QueryDownloadRequest(IoC.Kernel.Get<IAsyncDownloadService>(), songQuery), GetUserVoiceChannel(), false, async (context) =>
             {
                 await ReplyAsync($"{(context.queued ? "**Queued**" : "**Now Playing**")} {context.song}");
                 juke.Looping = loop;
@@ -184,6 +169,8 @@ namespace CasinoBot.Modules.Jukebox
         public async Task StopAsync()
         {
             await (await jukebox.GetJukeboxAsync(Context.Guild)).StopAsync();
+            await (await jukebox.GetJukeboxAsync(Context.Guild)).LeaveChannelAsync();
+
             await ReplyAsync("Stopped playback.");
         }
     }

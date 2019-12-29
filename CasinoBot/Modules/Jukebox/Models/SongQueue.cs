@@ -18,6 +18,18 @@ namespace CasinoBot.Modules.Jukebox.Models
                 return list.ToArray();
         }
 
+        public Task UnsafeEnqueueAsync(T item)
+        {
+            list.Add(item);
+            return Task.CompletedTask;
+        }
+
+        public Task UnsafeEnqueueAsync(T[] items)
+        {
+            list.AddRange(items);
+            return Task.CompletedTask;
+        }
+
         public Task EnqueueAsync(T[] items)
         {
             lock (locker)
