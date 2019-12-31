@@ -17,7 +17,6 @@ namespace CasinoBot
         private static async Task Main()
         {
             await CurrentBot.ConnectAsync(true);
-
             AppDomain.CurrentDomain.ProcessExit += CurrentDomain_ProcessExit;
 
             await Task.Delay(-1);

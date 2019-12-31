@@ -16,12 +16,12 @@ namespace CasinoBot.Modules.Jukebox.Models
                 StartInfo = new ProcessStartInfo()
                 {
                     FileName = "ffmpeg.exe",
-                    Arguments = $"-hide_banner -loglevel debug -vn {(format != null ? $"-f {format}" : string.Empty)} -i {$"\"{path}\"" ?? "pipe:0"} -f s16le -bufsize {bufferSize} -b:a {bitrate} -ac 2 -ar 48000 -y pipe:1", // -filter:a dynaudnorm=b=1:c=1:n=0:r=0.2
+                    Arguments = $"-hide_banner -loglevel fatal -vn {(format != null ? $"-f {format}" : string.Empty)} -i {$"\"{path}\"" ?? "pipe:0"} -f s16le -bufsize {bufferSize} -b:a {bitrate} -ac 2 -ar 48000 -y pipe:1", // -filter:a dynaudnorm=b=1:c=1:n=0:r=0.2
                     UseShellExecute = false,
                     RedirectStandardError = false,
                     RedirectStandardInput = (inputAvailable = (path == null ? true : false)),
                     RedirectStandardOutput = (outputAvailable = true),
-                    CreateNoWindow = CasinoBot.Settings.LogSeverity == LogSeverity.Debug ? false : true,
+                    CreateNoWindow = true,
                 }
             };
 

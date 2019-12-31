@@ -1,4 +1,5 @@
 ﻿using CasinoBot.Modules.Jukebox;
+using CasinoBot.Modules.Jukebox.Models.Requests;
 using CasinoBot.Modules.Jukebox.Services.Cache;
 using CasinoBot.Modules.Jukebox.Services.Downloaders;
 using Discord;
@@ -138,11 +139,11 @@ namespace CasinoBot.Modules.Jukebox
             if (loop)
                 songQuery = songQuery.Replace(" !loop", null);
 
-            await juke.PlayAsync(new Models.Requests.QueryDownloadRequest(IoC.Kernel.Get<IAsyncDownloadService>(), songQuery), GetUserVoiceChannel(), true, async context => await ReplyAsync($"**Switched Playback** {context.song}"));
+            await juke.PlayAsync(new Models.Requests.QueryDownloadRequest(IoC.Kernel.Get<IAsyncDownloadService>(), songQuery), GetUserVoiceChannel(), true, async context => await ReplyAsync($"{(context.switched ? "**Switched To**" : "**Now Playing**")} {context.song}"));
         }
 
         [Command("Play"), Alias("P"), Summary("Plays the specified song.")]
-        public async Task PlayAsync([Remainder] string songQuery)
+        public async Task PlayAsync([Remainder] string songQuery = null)
         {
             if (GetUserVoiceChannel() == null)
             {
@@ -150,13 +151,27 @@ namespace CasinoBot.Modules.Jukebox
                 return;
             }
 
+            var attach = Context.Message.Attachments.FirstOrDefault();
+
+            if(songQuery == null && attach == null)
+            {
+                await ReplyAsync("You need to specify a url, search query or upload a file.");
+                return;
+            }
+            
             var loop = songQuery.EndsWith(" !loop");
             if (loop)
                 songQuery = songQuery.Replace(" !loop", null);
 
             var juke = await jukebox.GetJukeboxAsync(Context.Guild);
+            
+            IRequest request = attach switch
+            {
+                null => new QueryDownloadRequest(IoC.Kernel.Get<IAsyncDownloadService>(), songQuery),
+                _ => new UploadedMediaRequest(attach.Url, attach.Filename)
+            };
 
-            await juke.PlayAsync(new Models.Requests.QueryDownloadRequest(IoC.Kernel.Get<IAsyncDownloadService>(), songQuery), GetUserVoiceChannel(), false, async (context) =>
+            await juke.PlayAsync(request, GetUserVoiceChannel(), false, async (context) =>
             {
                 await ReplyAsync($"{(context.queued ? "**Queued**" : "**Now Playing**")} {context.song}");
                 juke.Looping = loop;

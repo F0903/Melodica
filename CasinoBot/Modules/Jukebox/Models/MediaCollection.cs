@@ -12,7 +12,7 @@ namespace CasinoBot.Modules.Jukebox.Models
             IsPlaylist = false;
             playlist = new[] { new PlayableMedia(name, path, format, lengthInSec) };
         }
-
+        
         public MediaCollection(PlayableMedia media)
         {
             IsPlaylist = false;

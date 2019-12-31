@@ -64,8 +64,8 @@ namespace CasinoBot.Modules.Jukebox
         private async Task WriteToChannelAsync(Stream input)
         {
             if (audioClient == null ||
-               audioClient.ConnectionState == ConnectionState.Disconnected ||
-               audioClient.ConnectionState == ConnectionState.Disconnecting)
+                audioClient.ConnectionState == ConnectionState.Disconnected ||
+                audioClient.ConnectionState == ConnectionState.Disconnecting)
             {
                 audioClient = await channel.ConnectAsync();
             }
@@ -90,7 +90,7 @@ namespace CasinoBot.Modules.Jukebox
                 }
             }
             catch (OperationCanceledException) { } // Catch exception when stopping playback
-            skip = false; 
+            skip = false;
         }
         public string GetChannelName() => channel.Name;
 
@@ -104,20 +104,24 @@ namespace CasinoBot.Modules.Jukebox
 
         public Task<PlayableMedia> RemoveFromQueueAsync(int index) => songQueue.RemoveAtAsync(index);
 
-        public async Task StopAsync()
+        private void InternalStop()
         {
             playCancel?.Cancel(false);
             playCancel?.Dispose();
-            await songQueue.ClearAsync();
         }
 
-        public async Task QueueAsync(PlayableMedia media, Action<(string song, bool queued)> callback = null)
+        public Task StopAsync()
+        {
+            InternalStop();
+            return songQueue.ClearAsync();
+        }
+
+        public async Task QueueAsync(PlayableMedia media)
         {
             if (!File.Exists(media.Path))
                 throw new Exception("Specified song path to queue is empty.");
 
             await songQueue.EnqueueAsync(media);
-            callback?.Invoke((media.Title, true));
         }
 
         private async Task QueueAsync(MediaCollection playlist, int startIndex = 0)
@@ -139,9 +143,9 @@ namespace CasinoBot.Modules.Jukebox
             await channel.DisconnectAsync();
         }
 
-        //TODO: probably overload func instead of the request thing
-        public async Task PlayAsync(IRequest request, IAudioChannel channel, bool switchingPlayback = false, Action<(string song, bool queued)> playingCallback = null, Action largeSizeCallback = null, Action<string> unavailableCallback = null, int bitrate = DefaultBitrate, int bufferSize = DefaultBufferSize)
-        {          
+        //TODO: improve request thing
+        public async Task PlayAsync(IRequest request, IAudioChannel channel, bool switchingPlayback = false, Action<(string song, bool switched, bool queued)> playingCallback = null, Action largeSizeCallback = null, Action<string> unavailableCallback = null, int bitrate = DefaultBitrate, int bufferSize = DefaultBufferSize)
+        {
             MediaCollection col = null;
             if (request.IsDownloadRequest)
                 col = await request.GetDownloader().DownloadToCacheAsync(cache, Playing ? QueueMode.Consistent : QueueMode.Fast, connectedGuild.Name, (string)request.GetRequest(), true, largeSizeCallback, unavailableCallback);
@@ -153,21 +157,22 @@ namespace CasinoBot.Modules.Jukebox
             {
                 await Task.Run(() => QueueAsync(col, col.PlaylistIndex - 1));
 
-                playingCallback?.Invoke((col.PlaylistName, true));
-                if (Playing)
+                playingCallback?.Invoke((col.PlaylistName, false, true));
+                if (Playing && !switchingPlayback)
                     return;
             }
 
             if (switchingPlayback)
-            {
-                playCancel.Cancel();
-                playCancel.Dispose();
-                await discordOut.FlushAsync();
+            {   
+                if (playCancel != null)
+                    InternalStop();
+                discordOut?.Flush();
             }
 
             if (Playing && !switchingPlayback)
             {
-                await QueueAsync(song, playingCallback).ConfigureAwait(false);
+                await QueueAsync(song).ConfigureAwait(false);
+                playingCallback?.Invoke((song.Title, false, true));
                 return;
             }
 
@@ -177,10 +182,13 @@ namespace CasinoBot.Modules.Jukebox
 
             CurrentSong = song.Title;
 
-            playingCallback?.Invoke((song.Title, false));
-
+            playingCallback?.Invoke((song.Title, switchingPlayback && Playing, false));
+            
             Playing = true;
+            switchingPlayback = false;
             await WriteToChannelAsync(playerOut);
+            if (switchingPlayback)
+                return;
             Playing = false;
 
             CurrentSong = null;
