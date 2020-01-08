@@ -25,7 +25,7 @@ namespace CasinoBot.CommandModules
                 fields.Add(new EmbedFieldBuilder()
                 {
                     Name = guild.Name,
-                    Value = await guild.TextChannels.FirstOrDefault().CreateInviteAsync(60, 1, true),
+                    Value = await guild.TextChannels.First().CreateInviteAsync(240, 1, true),
                     IsInline = false
                 });
 

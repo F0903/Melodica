@@ -1,13 +1,15 @@
 ﻿using Discord.Commands;
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 
-namespace CasinoBot.Commands
+namespace CasinoBot.CommandModules
 {
-    [Group("Bot")]
+    [Group("Bot"), RequireOwner]
     public class BotCommandModule : ModuleBase<SocketCommandContext>
     {
-        [Command("Shutdown"), RequireOwner]
+        [Command("Shutdown")]
         public Task ShutdownAsync()
         {
             Environment.Exit(0);

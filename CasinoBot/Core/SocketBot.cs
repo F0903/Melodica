@@ -29,9 +29,7 @@ namespace CasinoBot.Core
         private async Task Bootstrap()
         {
             CasinoBot.IoC.Kernel.RegisterInstance(client);
-
-            await client.SetActivityAsync(new Game($"{Settings.Prefix}play", ActivityType.Listening));
-
+      
             await commandHandler.BuildCommandsAsync(client);
             client.MessageReceived += commandHandler.HandleCommandsAsync;
             client.Log += logger.LogAsync;
@@ -39,9 +37,15 @@ namespace CasinoBot.Core
 
         public SocketCommandHandler GetCmdHandler() => commandHandler;
 
+        public async Task SetActivityAsync(string name, ActivityType type)
+        {
+            await client.SetActivityAsync(new Game(name, type));
+        }
+
         public async Task ConnectAsync(bool startOnConnect = false)
         {
             await client.LoginAsync(TokenType.Bot, token);
+            await client.GetApplicationInfoAsync().Result.UpdateAsync();
             if (startOnConnect)
                 await client.StartAsync();
         }
