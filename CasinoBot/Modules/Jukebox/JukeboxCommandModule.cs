@@ -96,9 +96,6 @@ namespace CasinoBot.Modules.Jukebox
             Models.PlayableMedia[] queue = null;
             try { queue = juke.GetQueue(); } catch { }
             if (queue != null && queue.Length == 0)
-                queue = null;
-
-            if (queue == null)
             {
                 await ReplyAsync("No songs queued.");
                 return;
@@ -113,7 +110,7 @@ namespace CasinoBot.Modules.Jukebox
 
             for (int i = 1; i <= 10; i++)
             {
-                if (i >= queue.Length)
+                if (i > queue.Length)
                     break;
                 var x = queue[i - 1];
                 eb.AddField(i == 1 ? "Next:" : i == 10 ? "And more" : i.ToString(), i == 1 ? $"**{x.Title}**" : i == 10 ? $"Plus {queue.Length - (i - 1)} other songs!" : x.Title, false);

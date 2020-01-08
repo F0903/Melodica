@@ -55,38 +55,33 @@ namespace CasinoBot.Modules.Jukebox
 
         private bool skip = false;
 
+        private bool stop = false;
+
         private AudioOutStream discordOut;
 
         private AudioProcessor audio;
 
-        private CancellationTokenSource playCancel;
-
         private async Task WriteToChannelAsync(Stream input)
         {
-            if (audioClient == null ||
-                audioClient.ConnectionState == ConnectionState.Disconnected ||
-                audioClient.ConnectionState == ConnectionState.Disconnecting)
-            {
-                audioClient = await channel.ConnectAsync();
-            }
+            if (audioClient == null)
+                throw new NullReferenceException("Audio Client was null.");
 
-            playCancel = new CancellationTokenSource();
             byte[] buffer = new byte[BufferSize];
             int bytesRead;
             try
             {
-                while ((bytesRead = await input.ReadAsync(buffer, 0, buffer.Length, playCancel.Token).ConfigureAwait(false)) != 0)
+                while ((bytesRead = await input.ReadAsync(buffer, 0, buffer.Length).ConfigureAwait(false)) != 0)
                 {
                     while (Paused)
                     {
-                        if (skip)
+                        if (skip || stop)
                             break;
                         await Task.Delay(1000);
                     }
 
-                    if (skip)
+                    if (skip || stop)
                         break;
-                    await discordOut.WriteAsync(buffer, 0, bytesRead, playCancel.Token).ConfigureAwait(false);
+                    await discordOut.WriteAsync(buffer, 0, bytesRead).ConfigureAwait(false);
                 }
             }
             catch (OperationCanceledException) { } // Catch exception when stopping playback
@@ -104,15 +99,9 @@ namespace CasinoBot.Modules.Jukebox
 
         public Task<PlayableMedia> RemoveFromQueueAsync(int index) => songQueue.RemoveAtAsync(index);
 
-        private void InternalStop()
-        {
-            playCancel?.Cancel(false);
-            playCancel?.Dispose();
-        }
-
         public Task StopAsync()
         {
-            InternalStop();
+            stop = true;
             return songQueue.ClearAsync();
         }
 
@@ -155,7 +144,7 @@ namespace CasinoBot.Modules.Jukebox
 
             if (col.IsPlaylist)
             {
-                await Task.Run(() => QueueAsync(col, col.PlaylistIndex - 1));
+                await QueueAsync(col, col.PlaylistIndex - 1);
 
                 playingCallback?.Invoke((col.PlaylistName, false, true));
                 if (Playing && !switchingPlayback)
@@ -163,9 +152,8 @@ namespace CasinoBot.Modules.Jukebox
             }
 
             if (switchingPlayback)
-            {   
-                if (playCancel != null)
-                    InternalStop();
+            {
+                await StopAsync();
                 discordOut?.Flush();
             }
 
@@ -178,15 +166,20 @@ namespace CasinoBot.Modules.Jukebox
 
             this.channel = channel;
             using var playerOut = (audio = new AudioProcessor(song.Path, bitrate, bufferSize / 2, song.Format)).GetOutput();
-            discordOut ??= (audioClient ??= await channel.ConnectAsync()).CreatePCMStream(AudioApplication.Music, Bitrate, 100, 0);
+
+            bool newClient = audioClient                 == null                         ||
+                             audioClient.ConnectionState == ConnectionState.Disconnected ||
+                             audioClient.ConnectionState == ConnectionState.Disconnecting;
+            audioClient = newClient ? await channel.ConnectAsync() : audioClient;
+            discordOut = newClient ? audioClient.CreatePCMStream(AudioApplication.Music, Bitrate, 100, 0) : discordOut;
 
             CurrentSong = song.Title;
 
             playingCallback?.Invoke((song.Title, switchingPlayback && Playing, false));
-            
+
             Playing = true;
             switchingPlayback = false;
-            await WriteToChannelAsync(playerOut);
+            await Task.Run(() => WriteToChannelAsync(playerOut));
             if (switchingPlayback)
                 return;
             Playing = false;
@@ -194,8 +187,11 @@ namespace CasinoBot.Modules.Jukebox
             CurrentSong = null;
             audio.Dispose();
 
-            if (playCancel.IsCancellationRequested)
+            if (stop)
+            {
+                stop = false;
                 return;
+            }
 
             if (!skip && Looping)
             {

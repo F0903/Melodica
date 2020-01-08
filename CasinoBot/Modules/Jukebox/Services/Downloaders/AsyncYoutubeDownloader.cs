@@ -3,11 +3,12 @@ using CasinoBot.Modules.Jukebox.Services.Cache;
 using CasinoBot.Utility.Extensions;
 using System;
 using System.Linq;
-using System.Collections.Generic;
-using System.Threading.Tasks;
 using YoutubeExplode;
+using YoutubeExplode.Models;
 using YoutubeExplode.Exceptions;
 using YoutubeExplode.Models.MediaStreams;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 using System.Threading;
 
 namespace CasinoBot.Modules.Jukebox.Services.Downloaders
@@ -20,7 +21,7 @@ namespace CasinoBot.Modules.Jukebox.Services.Downloaders
 
         public const int MaxDownloadAttempts = 10;
 
-        public const int LargeSizeDurationMinuteThreshold = 20;      
+        public const int LargeSizeDurationMinuteThreshold = 20;
 
         public Task<string> GetVideoTitleAsync(string query) =>
             Task.FromResult(yt.SearchVideosAsync(query, 1).Result[0].Title);
@@ -96,6 +97,7 @@ namespace CasinoBot.Modules.Jukebox.Services.Downloaders
                     largeSizeWarningCallback?.Invoke();
 
                 PlayableMedia[] med = new PlayableMedia[videos.Count];
+
                 switch (mode)
                 {
                     case QueueMode.Consistent:
@@ -111,10 +113,11 @@ namespace CasinoBot.Modules.Jukebox.Services.Downloaders
                         }
                         break;
 
-                    case QueueMode.Fast:                 
+                    case QueueMode.Fast:
                         Parallel.For(0, videos.Count, new ParallelOptions() { MaxDegreeOfParallelism = -1 }, i =>
                         {
-                            var result = InternalDownloadAsync(videos[i].Id, true, null, videoUnavailableCallback).Result;
+                            PlayableMedia result;
+                            result = InternalDownloadAsync(videos[i].Id, true, null, videoUnavailableCallback).Result;
                             if (result == null)
                                 return;
                             var cachedResult = CacheAsync(cache, result, result.Title, false, true).Result;

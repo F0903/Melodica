@@ -13,7 +13,7 @@
   <ItemGroup>
     <PackageReference Include="Discord.Net" Version="2.1.1" />
     <PackageReference Include="Ninject" Version="3.3.4" />
-    <PackageReference Include="YoutubeExplode" Version="4.7.11" />
+    <PackageReference Include="YoutubeExplode" Version="4.7.12" />
   </ItemGroup>
 
   <ItemGroup>
