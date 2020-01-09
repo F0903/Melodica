@@ -136,7 +136,8 @@ namespace CasinoBot.Modules.Jukebox
             if (loop)
                 songQuery = songQuery.Replace(" !loop", null);
 
-            await juke.PlayAsync(new Models.Requests.QueryDownloadRequest(IoC.Kernel.Get<IAsyncDownloadService>(), songQuery), GetUserVoiceChannel(), true, async context => await ReplyAsync($"{(context.switched ? "**Switched To**" : "**Now Playing**")} {context.song}"));
+            await juke.PlayAsync(new Models.Requests.QueryDownloadRequest(IoC.Kernel.Get<IAsyncDownloadService>(), songQuery), GetUserVoiceChannel(), true, async context => await ReplyAsync($"{"**Now Playing**"} {context.song}"), 
+                                                                                                                                                            async () => await ReplyAsync("Large media detected. This might take a while."));
         }
 
         [Command("Play"), Alias("P"), Summary("Plays the specified song.")]
@@ -173,7 +174,7 @@ namespace CasinoBot.Modules.Jukebox
                 await ReplyAsync($"{(context.queued ? "**Queued**" : "**Now Playing**")} {context.song}");
                 juke.Looping = loop;
             },
-            async () => await ReplyAsync("Large media detected. This might take a bit."),
+            async () => await ReplyAsync("Large media detected. This might take a while."),
             async (song) => await ReplyAsync($"{song} was unavailable. Skipping..."));
         }
 

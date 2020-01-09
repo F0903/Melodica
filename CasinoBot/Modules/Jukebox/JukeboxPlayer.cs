@@ -133,7 +133,7 @@ namespace CasinoBot.Modules.Jukebox
         }
 
         //TODO: improve request thing
-        public async Task PlayAsync(IRequest request, IAudioChannel channel, bool switchingPlayback = false, Action<(string song, bool switched, bool queued)> playingCallback = null, Action largeSizeCallback = null, Action<string> unavailableCallback = null, int bitrate = DefaultBitrate, int bufferSize = DefaultBufferSize)
+        public async Task PlayAsync(IRequest request, IAudioChannel channel, bool switchingPlayback = false, Action<(string song, bool queued)> playingCallback = null, Action largeSizeCallback = null, Action<string> unavailableCallback = null, int bitrate = DefaultBitrate, int bufferSize = DefaultBufferSize)
         {
             MediaCollection col = null;
             if (request.IsDownloadRequest)
@@ -146,7 +146,7 @@ namespace CasinoBot.Modules.Jukebox
             {
                 await QueueAsync(col, col.PlaylistIndex - 1);
 
-                playingCallback?.Invoke((col.PlaylistName, false, true));
+                playingCallback?.Invoke((col.PlaylistName, true));
                 if (Playing && !switchingPlayback)
                     return;
             }
@@ -160,7 +160,7 @@ namespace CasinoBot.Modules.Jukebox
             if (Playing && !switchingPlayback)
             {
                 await QueueAsync(song).ConfigureAwait(false);
-                playingCallback?.Invoke((song.Title, false, true));
+                playingCallback?.Invoke((song.Title, true));
                 return;
             }
 
@@ -175,11 +175,10 @@ namespace CasinoBot.Modules.Jukebox
 
             CurrentSong = song.Title;
 
-            playingCallback?.Invoke((song.Title, switchingPlayback && Playing, false));
-
+            playingCallback?.Invoke((song.Title, false));          
             Playing = true;
             switchingPlayback = false;
-            await Task.Run(() => WriteToChannelAsync(playerOut));
+            await WriteToChannelAsync(playerOut);
             if (switchingPlayback)
                 return;
             Playing = false;
