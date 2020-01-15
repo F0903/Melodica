@@ -19,16 +19,29 @@ namespace CasinoBot.Modules.Jukebox.Models
             playlist = new[] { media };
         }
 
-        public MediaCollection(PlayableMedia[] videos, string playlistName, int playlistIndex = 1)
+        public MediaCollection(List<PlayableMedia> playlist, string playlistName, int playlistIndex = 1)
         {
             if (playlistIndex <= 0)
                 throw new IndexOutOfRangeException("Index of playlist cannot be under 1");
 
             IsPlaylist = true;
-            this.playlist = videos;
+            this.playlist = playlist.ToArray();
             PlaylistName = playlistName;
             PlaylistIndex = playlistIndex;
         }
+
+        public MediaCollection(PlayableMedia[] playlist, string playlistName, int playlistIndex = 1)
+        {
+            if (playlistIndex <= 0)
+                throw new IndexOutOfRangeException("Index of playlist cannot be under 1");
+
+            IsPlaylist = true;
+            this.playlist = playlist;
+            PlaylistName = playlistName;
+            PlaylistIndex = playlistIndex;
+        }
+
+        public static implicit operator MediaCollection(PlayableMedia med) => new MediaCollection(med);
 
         public PlayableMedia this[int index]
         {

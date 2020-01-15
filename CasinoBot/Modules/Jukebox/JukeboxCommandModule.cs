@@ -5,6 +5,7 @@ using CasinoBot.Modules.Jukebox.Services.Downloaders;
 using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
+using System;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -21,6 +22,10 @@ namespace CasinoBot.Modules.Jukebox
         private readonly JukeboxService jukebox;
 
         private IVoiceChannel GetUserVoiceChannel() => ((SocketGuildUser)Context.User).VoiceChannel;
+
+        private async void LargeMediaCallback() => await ReplyAsync("Large media detected. This might take a while.");
+
+        private async void MediaUnavailableCallback(string vid) => await ReplyAsync($"{vid} was unavailable. Skipping...");
 
         [Command("jOk")]
         public async Task IsWorking()
@@ -136,8 +141,8 @@ namespace CasinoBot.Modules.Jukebox
             if (loop)
                 songQuery = songQuery.Replace(" !loop", null);
 
-            await juke.PlayAsync(new Models.Requests.QueryDownloadRequest(IoC.Kernel.Get<IAsyncDownloadService>(), songQuery), GetUserVoiceChannel(), true, async context => await ReplyAsync($"{"**Now Playing**"} {context.song}"), 
-                                                                                                                                                            async () => await ReplyAsync("Large media detected. This might take a while."));
+            await juke.PlayAsync(new DownloadMediaRequest<AsyncYoutubeDownloader>(songQuery, (await jukebox.GetJukeboxAsync(Context.Guild)).GetCache(), Context.Guild, (await jukebox.GetJukeboxAsync(Context.Guild)).Playing ? QueueMode.Consistent : QueueMode.Fast, LargeMediaCallback),
+                                 GetUserVoiceChannel(), true, async context => await ReplyAsync($"{"**Now Playing**"} {context.song}"));
         }
 
         [Command("Play"), Alias("P"), Summary("Plays the specified song.")]
@@ -151,31 +156,29 @@ namespace CasinoBot.Modules.Jukebox
 
             var attach = Context.Message.Attachments.FirstOrDefault();
 
-            if(songQuery == null && attach == null)
+            if (songQuery == null && attach == null)
             {
                 await ReplyAsync("You need to specify a url, search query or upload a file.");
                 return;
             }
-            
+
             var loop = songQuery.EndsWith(" !loop");
             if (loop)
                 songQuery = songQuery.Replace(" !loop", null);
 
             var juke = await jukebox.GetJukeboxAsync(Context.Guild);
-            
-            IRequest request = attach switch
+
+            MediaRequest request = Context.Message.Attachments.FirstOrDefault() switch
             {
-                null => new QueryDownloadRequest(IoC.Kernel.Get<IAsyncDownloadService>(), songQuery),
-                _ => new UploadedMediaRequest(attach.Url, attach.Filename)
+                null => new DownloadMediaRequest<AsyncYoutubeDownloader>(songQuery, (await jukebox.GetJukeboxAsync(Context.Guild)).GetCache(), Context.Guild, (await jukebox.GetJukeboxAsync(Context.Guild)).Playing ? QueueMode.Consistent : QueueMode.Fast, LargeMediaCallback, MediaUnavailableCallback),
+                _ => throw new NotImplementedException(),
             };
 
             await juke.PlayAsync(request, GetUserVoiceChannel(), false, async (context) =>
             {
                 await ReplyAsync($"{(context.queued ? "**Queued**" : "**Now Playing**")} {context.song}");
                 juke.Looping = loop;
-            },
-            async () => await ReplyAsync("Large media detected. This might take a while."),
-            async (song) => await ReplyAsync($"{song} was unavailable. Skipping..."));
+            });
         }
 
         [Command("Stop"), Summary("Stops playback.")]

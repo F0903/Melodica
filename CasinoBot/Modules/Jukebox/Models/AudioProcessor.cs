@@ -2,6 +2,7 @@
 using System;
 using System.Diagnostics;
 using System.IO;
+using System.Threading.Tasks;
 
 #nullable enable
 
@@ -11,17 +12,19 @@ namespace CasinoBot.Modules.Jukebox.Models
     {
         public AudioProcessor(string? path, int bitrate, int bufferSize, string? format = null)
         {
+            if (path != null && path == string.Empty)
+                throw new Exception("Song path is empty.");
             playerProcess = new Process()
             {
                 StartInfo = new ProcessStartInfo()
                 {
                     FileName = "ffmpeg.exe",
-                    Arguments = $"-hide_banner -loglevel fatal -vn {(format != null ? $"-f {format}" : string.Empty)} -i {$"\"{path}\"" ?? "pipe:0"} -f s16le -bufsize {bufferSize} -b:a {bitrate} -ac 2 -ar 48000 -y pipe:1", // -filter:a dynaudnorm=b=1:c=1:n=0:r=0.2
+                    Arguments = $"-hide_banner -loglevel debug -vn {(format != null ? $"-f {format}" : string.Empty)} -i {$"\"{path}\"" ?? "pipe:0"} -f s16le -bufsize {bufferSize} -b:a {bitrate} -ac 2 -ar 48000 -y pipe:1",
                     UseShellExecute = false,
                     RedirectStandardError = false,
                     RedirectStandardInput = (inputAvailable = (path == null ? true : false)),
                     RedirectStandardOutput = (outputAvailable = true),
-                    CreateNoWindow = true,
+                    CreateNoWindow = false,
                 }
             };
 
@@ -40,6 +43,8 @@ namespace CasinoBot.Modules.Jukebox.Models
         public Stream? GetOutput() => outputAvailable ? playerProcess.StandardOutput.BaseStream : null;
 
         public void Stop() => Dispose();
+
+        public Task DisposeAsync() => Task.Run(Dispose);
 
         public void Dispose()
         {

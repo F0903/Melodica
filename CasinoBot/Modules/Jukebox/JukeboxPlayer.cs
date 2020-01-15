@@ -14,15 +14,13 @@ using CasinoBot.Modules.Jukebox.Models.Requests;
 
 namespace CasinoBot.Modules.Jukebox
 {
-    public sealed class JukeboxPlayer : IDisposable
+    public sealed class JukeboxPlayer
     {
-        public JukeboxPlayer(IGuild guild, IAsyncMediaCache cache, int bitrate = DefaultBitrate, int bufferSize = DefaultBufferSize)
+        public JukeboxPlayer(MediaCache cache, int bitrate = DefaultBitrate, int bufferSize = DefaultBufferSize)
         {
+            this.cache = cache;
             Bitrate = bitrate;
             BufferSize = bufferSize;
-            this.connectedGuild = guild;
-            this.cache = cache;
-            cache.Init(guild.Name);
         }
 
         public const int DefaultBitrate = 128 * 1024;
@@ -45,13 +43,11 @@ namespace CasinoBot.Modules.Jukebox
         private readonly SongQueue<PlayableMedia> songQueue =
             new SongQueue<PlayableMedia>();
 
-        private readonly IGuild connectedGuild;
+        private readonly MediaCache cache;
 
         private IAudioChannel channel;
 
         private IAudioClient audioClient;
-
-        private readonly IAsyncMediaCache cache;
 
         private bool skip = false;
 
@@ -59,18 +55,18 @@ namespace CasinoBot.Modules.Jukebox
 
         private AudioOutStream discordOut;
 
-        private AudioProcessor audio;
-
-        private async Task WriteToChannelAsync(Stream input)
+        private async Task WriteToChannelAsync(AudioProcessor audio)
         {
             if (audioClient == null)
                 throw new NullReferenceException("Audio Client was null.");
+
+            var inS = audio.GetOutput();
 
             byte[] buffer = new byte[BufferSize];
             int bytesRead;
             try
             {
-                while ((bytesRead = await input.ReadAsync(buffer, 0, buffer.Length).ConfigureAwait(false)) != 0)
+                while ((bytesRead = await inS.ReadAsync(buffer, 0, buffer.Length).ConfigureAwait(false)) != 0)
                 {
                     while (Paused)
                     {
@@ -85,8 +81,17 @@ namespace CasinoBot.Modules.Jukebox
                 }
             }
             catch (OperationCanceledException) { } // Catch exception when stopping playback
+            finally
+            {
+                await inS.FlushAsync();
+                await audio.DisposeAsync();
+                await discordOut.FlushAsync();
+            }
             skip = false;
         }
+
+        public MediaCache GetCache() => cache;
+
         public string GetChannelName() => channel.Name;
 
         public bool IsInChannel() => GetChannelName() != null;
@@ -132,14 +137,9 @@ namespace CasinoBot.Modules.Jukebox
             await channel.DisconnectAsync();
         }
 
-        //TODO: improve request thing
-        public async Task PlayAsync(IRequest request, IAudioChannel channel, bool switchingPlayback = false, Action<(string song, bool queued)> playingCallback = null, Action largeSizeCallback = null, Action<string> unavailableCallback = null, int bitrate = DefaultBitrate, int bufferSize = DefaultBufferSize)
+        public async Task PlayAsync(MediaRequest request, IAudioChannel channel, bool switchingPlayback = false, Action<(string song, bool queued)> playingCallback = null, int bitrate = DefaultBitrate, int bufferSize = DefaultBufferSize)
         {
-            MediaCollection col = null;
-            if (request.IsDownloadRequest)
-                col = await request.GetDownloader().DownloadToCacheAsync(cache, Playing ? QueueMode.Consistent : QueueMode.Fast, connectedGuild.Name, (string)request.GetRequest(), true, largeSizeCallback, unavailableCallback);
-            else
-                col = (MediaCollection)request.GetRequest();
+            MediaCollection col = await request.GetMediaRequestAsync();
             PlayableMedia song = col[col.PlaylistIndex - 1]; // PlaylistIndex starts at 1, so decrease it.
 
             if (col.IsPlaylist)
@@ -154,7 +154,6 @@ namespace CasinoBot.Modules.Jukebox
             if (switchingPlayback)
             {
                 await StopAsync();
-                discordOut?.Flush();
             }
 
             if (Playing && !switchingPlayback)
@@ -164,8 +163,7 @@ namespace CasinoBot.Modules.Jukebox
                 return;
             }
 
-            this.channel = channel;
-            using var playerOut = (audio = new AudioProcessor(song.Path, bitrate, bufferSize / 2, song.Format)).GetOutput();
+            this.channel = channel;;
 
             bool newClient = audioClient                 == null                         ||
                              audioClient.ConnectionState == ConnectionState.Disconnected ||
@@ -178,14 +176,13 @@ namespace CasinoBot.Modules.Jukebox
             playingCallback?.Invoke((song.Title, false));          
             Playing = true;
             switchingPlayback = false;
-            await WriteToChannelAsync(playerOut);
+            await WriteToChannelAsync(new AudioProcessor(song.Path, bitrate, bufferSize / 2, song.Format));
             if (switchingPlayback)
                 return;
             Playing = false;
 
             CurrentSong = null;
-            audio.Dispose();
-
+            
             if (stop)
             {
                 stop = false;
@@ -200,20 +197,9 @@ namespace CasinoBot.Modules.Jukebox
 
             if (!songQueue.IsEmpty)
             {
-                await PlayAsync(new ExistingMediaRequest(new MediaCollection(Shuffle ? await songQueue.DequeueRandomAsync() : await songQueue.DequeueAsync())), channel, false, playingCallback).ConfigureAwait(false);
+                await PlayAsync(new MediaRequest(new MediaCollection(Shuffle ? await songQueue.DequeueRandomAsync() : await songQueue.DequeueAsync())), channel, false, playingCallback).ConfigureAwait(false);
                 return;
             }
-        }
-
-        public void Dispose()
-        {
-            StopAsync().Wait();
-            audio?.Dispose();
-            audio = null;
-            channel?.DisconnectAsync();
-            channel = null;
-            audioClient?.Dispose();
-            audioClient = null;
         }
     }
 }

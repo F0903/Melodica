@@ -62,42 +62,25 @@ namespace CasinoBot.Modules.Jukebox.Services.Downloaders
             return new PlayableMedia(stream, vid.Title, audioStreams[0].Container.ToString().ToLower(), Convert.ToInt32(vid.Duration.TotalSeconds));
         }
 
-        private async Task<PlayableMedia> CacheAsync(IAsyncMediaCache cache, PlayableMedia toCache, string cacheName, bool checkCacheSize, bool ignoreIfContested = false, int attempt = 0)
+        private Task<MediaCollection> CacheAsync(MediaCollection col, MediaCache cache, bool pruneCache = true)
         {
-            if (cache.ExistsInCache(cacheName))
-            {
-                return cache switch
-                {
-                    AsyncMediaFileCache fc => await fc.GetValueAsync(cacheName),
-                    _ => throw new Exception("Unkown cache type. Please contact owner.")
-                };
-            }
+            return cache.CacheMediaAsync(col, pruneCache || !col.IsPlaylist);
+        }        
 
-            var result = await cache.CacheAsync(toCache, checkCacheSize);
-            if (result == null)
-            {
-                if (ignoreIfContested)
-                    return null;
-                if (attempt >= MaxCacheAttempts)
-                    throw new Exception($"Cache attempts exceeded. Could not cache {toCache.Title}");
-                await Task.Delay(1000);
-                await CacheAsync(cache, toCache, cacheName, checkCacheSize, false, ++attempt);
-            }
-            return result;
-        }
-
-        public async Task<MediaCollection> DownloadToCacheAsync(IAsyncMediaCache cache, QueueMode mode, string guildName, string searchQuery, bool checkCacheSize = true, Action largeSizeWarningCallback = null, Action<string> videoUnavailableCallback = null)
+        public async Task<MediaCollection> DownloadToCacheAsync(MediaCache cache, QueueMode mode, Discord.IGuild guild, string searchQuery, bool pruneCache = true, Action largeSizeWarningCallback = null, Action<string> videoUnavailableCallback = null)
         {
+            // Refactor this.
             if (YoutubeClient.TryParsePlaylistId(searchQuery, out var playlistId))
             {
                 var pl = await yt.GetPlaylistAsync(playlistId, 1);
                 var videos = pl.Videos;
 
+                var plIndex = await Utility.Utility.GetURLArgumentValueAsync<int>(searchQuery, "index");
+
                 if (videos.Sum(x => x.Duration.Minutes) > LargeSizeDurationMinuteThreshold)
                     largeSizeWarningCallback?.Invoke();
 
-                PlayableMedia[] med = new PlayableMedia[videos.Count];
-
+                PlayableMedia[] dlResult = new PlayableMedia[videos.Count];
                 switch (mode)
                 {
                     case QueueMode.Consistent:
@@ -106,40 +89,33 @@ namespace CasinoBot.Modules.Jukebox.Services.Downloaders
                             var result = await InternalDownloadAsync(videos[i].Id, true, null, videoUnavailableCallback);
                             if (result == null)
                                 continue;
-                            var cachedResult = await CacheAsync(cache, result, result.Title, false, true);
-                            if (cachedResult == null)
-                                continue;
-                            med[i] = cachedResult;
+                            dlResult[i] = result;
                         }
                         break;
 
                     case QueueMode.Fast:
                         Parallel.For(0, videos.Count, new ParallelOptions() { MaxDegreeOfParallelism = -1 }, i =>
                         {
-                            PlayableMedia result;
-                            result = InternalDownloadAsync(videos[i].Id, true, null, videoUnavailableCallback).Result;
+                            var result = InternalDownloadAsync(videos[i].Id, true, null, videoUnavailableCallback).Result;
                             if (result == null)
                                 return;
-                            var cachedResult = CacheAsync(cache, result, result.Title, false, true).Result;
-                            if (cachedResult == null)
-                                return;
-                            med[i] = cachedResult;
+                            dlResult[i] = result;
                         });
                         break;
                 }
-
-                var filterList = med.ToList();
-                filterList.RemoveAll(x => x == null);
+                await CacheAsync(new MediaCollection(dlResult, pl.Title, plIndex), cache, pruneCache);
 
                 //TODO: This could all probably be done more efficient.
-                med = filterList.ToArray();
+                var filterList = dlResult.ToList();
+                filterList.RemoveAll(x => x == null);
+                dlResult = filterList.ToArray();
 
-                return new MediaCollection(med, pl.Title, (await Utility.Utility.GetURLArgumentValueAsync<int?>(searchQuery, "index", false)) ?? 1);
+                return new MediaCollection(dlResult, pl.Title, (await Utility.Utility.GetURLArgumentValueAsync<int?>(searchQuery, "index", false)) ?? 1);
             }
 
             var media = await InternalDownloadAsync(searchQuery, false, largeSizeWarningCallback, videoUnavailableCallback);
 
-            return new MediaCollection(await CacheAsync(cache, media, media.Title, checkCacheSize));
-        }
+            return await CacheAsync(media, cache);
+        }       
     }
 }

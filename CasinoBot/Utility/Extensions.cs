@@ -1,6 +1,7 @@
 ﻿using Discord;
 using Discord.WebSocket;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 
 namespace CasinoBot.Utility.Extensions
@@ -12,12 +13,10 @@ namespace CasinoBot.Utility.Extensions
             '.'
         };
 
-        public static void ForEach<T>(this T[] array, Action<int, T> action)
+        public static IEnumerable<R> Convert<T, R>(this IEnumerable<T> col, Func<T, R> body)
         {
-            for (int i = 0; i < array.Length; i++)
-            {
-                action(i + 1, array[i]);
-            }
+            foreach (var elem in col)
+                yield return body(elem);
         }
 
         public static bool CheckForUser(this SocketGuild guild, string user) =>
