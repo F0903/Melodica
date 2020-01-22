@@ -30,7 +30,7 @@ namespace CasinoBot.Modules.Jukebox
 
         public int BufferSize { get; private set; }
 
-        public string CurrentSong { get; private set; }
+        public PlayableMedia CurrentSong { get; private set; }
 
         public bool Playing { get; private set; } = false;
 
@@ -40,8 +40,7 @@ namespace CasinoBot.Modules.Jukebox
 
         public bool Shuffle { get; set; } = false;
 
-        private readonly SongQueue<PlayableMedia> songQueue =
-            new SongQueue<PlayableMedia>();
+        private readonly SongQueue songQueue = new SongQueue();
 
         private readonly MediaCache cache;
 
@@ -55,6 +54,22 @@ namespace CasinoBot.Modules.Jukebox
 
         private AudioOutStream discordOut;
 
+        private Task writeTask;
+
+        public MediaCache GetCache() => cache;
+
+        public string GetChannelName() => channel.Name;
+
+        public bool IsInChannel() => GetChannelName() != null;
+
+        public void Skip() => skip = true;
+
+        public SongQueue GetQueue() => songQueue;
+
+        public Task ClearQueueAsync() => songQueue.ClearAsync();
+
+        public Task<PlayableMedia> RemoveFromQueueAsync(int index) => songQueue.RemoveAtAsync(index);
+
         private async Task WriteToChannelAsync(AudioProcessor audio)
         {
             if (audioClient == null)
@@ -66,7 +81,7 @@ namespace CasinoBot.Modules.Jukebox
             int bytesRead;
             try
             {
-                while ((bytesRead = await inS.ReadAsync(buffer, 0, buffer.Length).ConfigureAwait(false)) != 0)
+                while ((bytesRead = await inS.ReadAsync(buffer, 0, buffer.Length)) != 0) //.ConfigureAwait(false)) 
                 {
                     while (Paused)
                     {
@@ -77,42 +92,35 @@ namespace CasinoBot.Modules.Jukebox
 
                     if (skip || stop)
                         break;
-                    await discordOut.WriteAsync(buffer, 0, bytesRead).ConfigureAwait(false);
+                    await discordOut.WriteAsync(buffer, 0, bytesRead); //.ConfigureAwait(false);
                 }
             }
             catch (OperationCanceledException) { } // Catch exception when stopping playback
             finally
             {
-                await inS.FlushAsync();
                 await audio.DisposeAsync();
                 await discordOut.FlushAsync();
-            }
+            }           
             skip = false;
+        }      
+
+        private async Task DismissAsync()
+        {
+            await discordOut.DisposeAsync();
+            await audioClient.StopAsync();
+            await Task.Run(audioClient.Dispose);
         }
-
-        public MediaCache GetCache() => cache;
-
-        public string GetChannelName() => channel.Name;
-
-        public bool IsInChannel() => GetChannelName() != null;
-
-        public void Skip() => skip = true;
-
-        public PlayableMedia[] GetQueue() => songQueue.ToArray();
-
-        public Task ClearQueueAsync() => songQueue.ClearAsync();
-
-        public Task<PlayableMedia> RemoveFromQueueAsync(int index) => songQueue.RemoveAtAsync(index);
 
         public Task StopAsync()
         {
             stop = true;
+            writeTask.Wait();
             return songQueue.ClearAsync();
         }
 
         public async Task QueueAsync(PlayableMedia media)
         {
-            if (!File.Exists(media.Path))
+            if (!File.Exists(media.MediaPath))
                 throw new Exception("Specified song path to queue is empty.");
 
             await songQueue.EnqueueAsync(media);
@@ -137,7 +145,7 @@ namespace CasinoBot.Modules.Jukebox
             await channel.DisconnectAsync();
         }
 
-        public async Task PlayAsync(MediaRequest request, IAudioChannel channel, bool switchingPlayback = false, Action<(string song, bool queued)> playingCallback = null, int bitrate = DefaultBitrate, int bufferSize = DefaultBufferSize)
+        public async Task PlayAsync(MediaRequest request, IAudioChannel channel, bool switchingPlayback = false, Action<(IMediaInfo media, bool queued)> playingCallback = null, int bitrate = DefaultBitrate, int bufferSize = DefaultBufferSize)
         {
             MediaCollection col = await request.GetMediaRequestAsync();
             PlayableMedia song = col[col.PlaylistIndex - 1]; // PlaylistIndex starts at 1, so decrease it.
@@ -146,7 +154,7 @@ namespace CasinoBot.Modules.Jukebox
             {
                 await QueueAsync(col, col.PlaylistIndex - 1);
 
-                playingCallback?.Invoke((col.PlaylistName, true));
+                playingCallback?.Invoke((col, true));
                 if (Playing && !switchingPlayback)
                     return;
             }
@@ -158,31 +166,32 @@ namespace CasinoBot.Modules.Jukebox
 
             if (Playing && !switchingPlayback)
             {
-                await QueueAsync(song).ConfigureAwait(false);
-                playingCallback?.Invoke((song.Title, true));
+                await QueueAsync(song);
+                playingCallback?.Invoke((song, true));
                 return;
             }
 
-            this.channel = channel;;
+            this.channel = channel;
 
-            bool newClient = audioClient                 == null                         ||
+            bool newClient = audioClient == null ||
                              audioClient.ConnectionState == ConnectionState.Disconnected ||
                              audioClient.ConnectionState == ConnectionState.Disconnecting;
             audioClient = newClient ? await channel.ConnectAsync() : audioClient;
             discordOut = newClient ? audioClient.CreatePCMStream(AudioApplication.Music, Bitrate, 100, 0) : discordOut;
 
-            CurrentSong = song.Title;
+            CurrentSong = song;
 
-            playingCallback?.Invoke((song.Title, false));          
-            Playing = true;
+            playingCallback?.Invoke((song, false));
+
             switchingPlayback = false;
-            await WriteToChannelAsync(new AudioProcessor(song.Path, bitrate, bufferSize / 2, song.Format));
+            Playing = true;
+            await (writeTask = WriteToChannelAsync(new AudioProcessor(song.MediaPath, bitrate, bufferSize / 2, song.Meta.Format)));
             if (switchingPlayback)
                 return;
             Playing = false;
 
             CurrentSong = null;
-            
+
             if (stop)
             {
                 stop = false;
@@ -200,6 +209,7 @@ namespace CasinoBot.Modules.Jukebox
                 await PlayAsync(new MediaRequest(new MediaCollection(Shuffle ? await songQueue.DequeueRandomAsync() : await songQueue.DequeueAsync())), channel, false, playingCallback).ConfigureAwait(false);
                 return;
             }
+            await DismissAsync().ConfigureAwait(false);
         }
     }
 }

@@ -36,9 +36,11 @@ namespace CasinoBot.Modules.Jukebox.Models.Requests
 
         readonly Action<string> videoUnavailable;
 
-        public override Task<MediaCollection> GetMediaRequestAsync()
+        public override async Task<MediaCollection> GetMediaRequestAsync()
         {
-            return downloader.DownloadToCacheAsync(cache, mode, guild, query, true, largeSizeWarning, videoUnavailable);
+            var title = await downloader.GetMediaTitleAsync(query);
+            bool inCache = cache.Contains(title);
+            return inCache ? await cache.GetAsync(title) : await downloader.DownloadToCacheAsync(cache, mode, guild, query, true, largeSizeWarning, videoUnavailable);
         }
     }
 }

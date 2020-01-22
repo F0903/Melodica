@@ -15,9 +15,19 @@ namespace CasinoBot.Modules.Jukebox.Services.Cache
         public MediaCache(IGuild guild)
         {
             cacheLocation = Path.Combine(CacheRoot, $"{guild.Name}");
-            if (!Directory.Exists(cacheLocation))
+            bool exists = Directory.Exists(cacheLocation);
+            if (!exists)
                 Directory.CreateDirectory(cacheLocation);
+            else
+            {
+                foreach (Metadata meta in Directory.EnumerateFileSystemEntries(cacheLocation, $"*{CachedMedia.MetaFileExtension}", SearchOption.AllDirectories))
+                {
+                    cache.Add(new PlayableMedia(meta));
+                }
+            }
         }
+
+        public const int MaxClearAttempt = 5;
 
         public const int MaxFilesInCache = 25;
 
@@ -30,17 +40,21 @@ namespace CasinoBot.Modules.Jukebox.Services.Cache
         public Task<long> GetCacheSizeAsync() =>
            Task.FromResult(Directory.EnumerateFiles(cacheLocation).AsParallel().Convert(x => new FileInfo(x)).Sum(f => f.Length));
 
-        public bool ValExistsInCache(PlayableMedia med) => cache.Contains(med);
+        public bool Contains(PlayableMedia med) => cache.Contains(med);
 
-        public async Task<bool> PruneCacheAsync()
+        public bool Contains(string title) => cache.Any(x => x.Meta.Title == title);
+
+        public async Task<bool> PruneCacheAsync(bool forceClear = false)
         {
-            if (await GetCacheSizeAsync() < Settings.MaxFileCacheInMB * 1024 * 1024)
+            if (!forceClear && await GetCacheSizeAsync() < Settings.MaxFileCacheInMB * 1024 * 1024)
                 return false;
 
             cache.Clear();
             Parallel.ForEach(Directory.EnumerateFiles(cacheLocation).Convert(x => new FileInfo(x)), f => f.Delete());
             return true;
         }
+
+        public Task<PlayableMedia> GetAsync(string title) => Task.FromResult(cache.Single(x => x.Meta.Title == title));
 
         public async Task<MediaCollection> CacheMediaAsync(MediaCollection col, bool pruneCache = true)
         {
@@ -49,19 +63,13 @@ namespace CasinoBot.Modules.Jukebox.Services.Cache
 
             var pl = col.IsPlaylist;
 
-            var o = new List<PlayableMedia>(); 
+            var o = new List<PlayableMedia>();
             foreach (var med in col)
             {
-                if (ValExistsInCache(med))
-                {
-                    o.Add(cache.Single(x => x == med));
-                    continue;
-                }
-                var fPath = Path.Combine(cacheLocation, $"{med.Title.ReplaceIllegalCharacters()}.{med.Format}");
-                using var fs = File.Create(fPath);
-                await med.Stream.CopyToAsync(fs);
-                fs.Close();
-                o.Add(new PlayableMedia(med.Title, fPath, med.Format, med.SecondDuration));
+                if (Contains(med))
+                    throw new Exception("Value already exists in cache.");
+
+                o.Add(new CachedMedia(med, cacheLocation));
             }
             return pl ? new MediaCollection(o, col.PlaylistName, col.PlaylistIndex) : new MediaCollection(o.First());
         }

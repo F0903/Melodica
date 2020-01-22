@@ -2,7 +2,9 @@
 using Discord.WebSocket;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace CasinoBot.Utility.Extensions
 {
@@ -13,7 +15,29 @@ namespace CasinoBot.Utility.Extensions
             '.'
         };
 
-        public static IEnumerable<R> Convert<T, R>(this IEnumerable<T> col, Func<T, R> body)
+        public static byte[] ToBytes(this Stream stream)
+        {
+            byte[] buffer = new byte[16 * 1024];
+            using var mem = new MemoryStream();
+            int count = 0;
+            while ((count = stream.Read(buffer, 0, buffer.Length)) != 0) 
+            {
+                mem.Write(buffer, 0, count);
+            }
+            return mem.ToArray();
+        }
+
+        public static TimeSpan Sum<T>(this IEnumerable<T> input, Func<T, TimeSpan> selector)
+        {
+            TimeSpan sum = new TimeSpan();
+            Parallel.ForEach(input, x =>
+            {
+                sum.Add(selector(x));
+            });
+            return sum;
+        }
+
+        public static IEnumerable<To> Convert<From, To>(this IEnumerable<From> col, Func<From, To> body)
         {
             foreach (var elem in col)
                 yield return body(elem);

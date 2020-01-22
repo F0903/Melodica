@@ -10,6 +10,7 @@ using YoutubeExplode.Models.MediaStreams;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using System.Threading;
+using System.IO;
 
 namespace CasinoBot.Modules.Jukebox.Services.Downloaders
 {
@@ -23,7 +24,7 @@ namespace CasinoBot.Modules.Jukebox.Services.Downloaders
 
         public const int LargeSizeDurationMinuteThreshold = 20;
 
-        public Task<string> GetVideoTitleAsync(string query) =>
+        public Task<string> GetMediaTitleAsync(string query) =>
             Task.FromResult(yt.SearchVideosAsync(query, 1).Result[0].Title);
 
         private async Task<PlayableMedia> InternalDownloadAsync(string query, bool isPreFiltered, Action largeSizeWarningCallback, Action<string> videoUnavailableCallback, int attempt = 0)
@@ -57,9 +58,8 @@ namespace CasinoBot.Modules.Jukebox.Services.Downloaders
 
                 return await InternalDownloadAsync(query, false, largeSizeWarningCallback, videoUnavailableCallback, ++attempt).ConfigureAwait(false);
             }
-
             var stream = await yt.GetMediaStreamAsync(audioStreams[0]);
-            return new PlayableMedia(stream, vid.Title, audioStreams[0].Container.ToString().ToLower(), Convert.ToInt32(vid.Duration.TotalSeconds));
+            return new PlayableMedia(new Metadata(stream.ToBytes(), vid.Title.ReplaceIllegalCharacters(), audioStreams[0].Container.ToString().ToLower(), vid.Duration));
         }
 
         private Task<MediaCollection> CacheAsync(MediaCollection col, MediaCache cache, bool pruneCache = true)

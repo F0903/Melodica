@@ -2,17 +2,12 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using CasinoBot.Utility.Extensions;
 
 namespace CasinoBot.Modules.Jukebox.Models
 {
-    public class MediaCollection : IEnumerable<PlayableMedia>
-    {
-        public MediaCollection(string name, string path, string format, int lengthInSec)
-        {
-            IsPlaylist = false;
-            playlist = new[] { new PlayableMedia(name, path, format, lengthInSec) };
-        }
-        
+    public class MediaCollection : IEnumerable<PlayableMedia>, IMediaInfo
+    {       
         public MediaCollection(PlayableMedia media)
         {
             IsPlaylist = false;
@@ -54,11 +49,11 @@ namespace CasinoBot.Modules.Jukebox.Models
             }
         }
 
-        private readonly PlayableMedia[] playlist = null;
+        private readonly PlayableMedia[] playlist;
 
         public int Length { get => playlist.Length; }
 
-        public int TotalDuration { get => playlist.Sum(x => x.SecondDuration); }
+        public TimeSpan TotalDuration { get => playlist.Sum(x => x.Meta.Duration); }
 
         public bool IsPlaylist { get; private set; }
 
@@ -66,10 +61,11 @@ namespace CasinoBot.Modules.Jukebox.Models
 
         public int PlaylistIndex { get; private set; } = 1;
 
-        public PlayableMedia[] GetMedia() => playlist;
+        public string GetTitle() => PlaylistName;
+        public TimeSpan GetDuration() => TotalDuration;
 
         IEnumerator<PlayableMedia> IEnumerable<PlayableMedia>.GetEnumerator() => ((IEnumerable<PlayableMedia>)playlist).GetEnumerator();
 
-        IEnumerator IEnumerable.GetEnumerator() => ((IEnumerable<PlayableMedia>)playlist).GetEnumerator();
+        IEnumerator IEnumerable.GetEnumerator() => ((IEnumerable<PlayableMedia>)playlist).GetEnumerator();       
     }
 }

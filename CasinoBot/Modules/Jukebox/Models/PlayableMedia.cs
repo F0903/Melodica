@@ -1,35 +1,25 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
 
 namespace CasinoBot.Modules.Jukebox.Models
 {
-#nullable enable
-
-    public class PlayableMedia
+    public class PlayableMedia : IMediaInfo
     {
-        public PlayableMedia(string name, string path, string format, int lengthInSec)
+        public PlayableMedia(Metadata meta)
         {
-            this.Title = name;
-            this.Path = path;
-            this.Format = format;
-            SecondDuration = lengthInSec;
+            this.Meta = meta;
         }
 
-        public PlayableMedia(Stream stream, string name, string format, int lengthInSec)
+        public PlayableMedia(PlayableMedia toCopy)
         {
-            Stream = stream;
-            Title = name;
-            Format = format;
-            SecondDuration = lengthInSec;
+            Meta = toCopy.Meta;
         }
 
-        public Stream? Stream { get; } = null;
+        public Metadata Meta { get; protected set; }
 
-        public string? Path { get; } = null;
+        public string MediaPath { get => Meta.MediaPath; }
 
-        public string Title { get; }
-
-        public string Format { get; }
-
-        public int SecondDuration { get; }
+        public TimeSpan GetDuration() => Meta.Duration;
+        public string GetTitle() => Meta.Title;
     }
 }

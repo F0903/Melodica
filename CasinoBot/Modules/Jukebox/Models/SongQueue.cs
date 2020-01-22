@@ -1,53 +1,64 @@
 ﻿using System;
+using System.Linq;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using CasinoBot.Utility.Extensions;
 
 namespace CasinoBot.Modules.Jukebox.Models
 {
-    public class SongQueue<T>
+    public class SongQueue
     {
         private readonly object locker = new object();
 
-        private readonly List<T> list = new List<T>();
+        private readonly List<PlayableMedia> list = new List<PlayableMedia>();
 
         public bool IsEmpty { get => list.Count == 0; }
 
-        public T[] ToArray()
+        public int Length { get => list.Count; }
+
+        public PlayableMedia this[int i]
+        {
+            get => list[i]; 
+        }
+
+        public TimeSpan GetTotalDuration() => list.Sum(x => x.Meta.Duration);
+
+        public PlayableMedia[] ToArray()
         {
             lock (locker)
                 return list.ToArray();
         }
 
-        public Task UnsafeEnqueueAsync(T item)
+        public Task UnsafeEnqueueAsync(PlayableMedia item)
         {
             list.Add(item);
             return Task.CompletedTask;
         }
 
-        public Task UnsafeEnqueueAsync(T[] items)
+        public Task UnsafeEnqueueAsync(PlayableMedia[] items)
         {
             list.AddRange(items);
             return Task.CompletedTask;
         }
 
-        public Task EnqueueAsync(T[] items)
+        public Task EnqueueAsync(PlayableMedia[] items)
         {
             lock (locker)
                 list.AddRange(items);
             return Task.CompletedTask;
         }
 
-        public Task EnqueueAsync(T item)
+        public Task EnqueueAsync(PlayableMedia item)
         {
             lock (locker)
                 list.Add(item);
             return Task.CompletedTask;
         }
 
-        public Task<T> DequeueRandomAsync()
+        public Task<PlayableMedia> DequeueRandomAsync()
         {
             var rng = new Random();
-            T item;
+            PlayableMedia item;
             lock (locker)
             {
                 item = list[rng.Next(0, list.Count)];
@@ -56,9 +67,9 @@ namespace CasinoBot.Modules.Jukebox.Models
             return Task.FromResult(item);
         }
 
-        public Task<T> DequeueAsync()
+        public Task<PlayableMedia> DequeueAsync()
         {
-            T item;
+            PlayableMedia item;
             lock (locker)
             {
                 item = list[0];
@@ -73,9 +84,9 @@ namespace CasinoBot.Modules.Jukebox.Models
             return Task.CompletedTask;
         }
 
-        public Task<T> RemoveAtAsync(int index)
+        public Task<PlayableMedia> RemoveAtAsync(int index)
         {
-            T item;
+            PlayableMedia item;
             lock (locker)
             {
                 item = list[index];

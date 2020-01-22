@@ -27,10 +27,10 @@ namespace CasinoBot.Modules.Jukebox
 
         private async void MediaUnavailableCallback(string vid) => await ReplyAsync($"{vid} was unavailable. Skipping...");
 
-        [Command("jOk")]
-        public async Task IsWorking()
+        [Command("ClearCache"), Summary("Clears cache."), RequireOwner]
+        public async Task ClearCacheAsync()
         {
-            await ReplyAsync("Jukebox status OK");
+            await (await jukebox.GetJukeboxAsync(Context.Guild)).GetCache().PruneCacheAsync(true);
         }
 
         [Command("Shuffle"), Summary("Shuffles the queue.")]
@@ -59,6 +59,12 @@ namespace CasinoBot.Modules.Jukebox
         public async Task GetSongAsync()
         {
             await ReplyAsync($"**Currently playing** {(await jukebox.GetJukeboxAsync(Context.Guild)).CurrentSong}");
+        }
+
+        [Command("Duration"), Summary("Gets the duration of the playing song.")]
+        public async Task GetDurationAsync()
+        {
+            await ReplyAsync($"Duration of {(await jukebox.GetJukeboxAsync(Context.Guild)).CurrentSong.Meta.Duration}");
         }
 
         [Command("Resume"), Summary("Resumes playback.")]
@@ -90,7 +96,7 @@ namespace CasinoBot.Modules.Jukebox
         public async Task RemoveSongFromQueue(int index)
         {
             var removed = await (await jukebox.GetJukeboxAsync(Context.Guild)).RemoveFromQueueAsync(index - 1);
-            await ReplyAsync($"Removed {removed.Title} from queue.");
+            await ReplyAsync($"Removed {removed.Meta.Title} from queue.");
         }
 
         [Command("Queue"), Summary("Shows current queue.")]
@@ -98,14 +104,10 @@ namespace CasinoBot.Modules.Jukebox
         {
             var juke = await jukebox.GetJukeboxAsync(Context.Guild);
 
-            Models.PlayableMedia[] queue = null;
-            try { queue = juke.GetQueue(); } catch { }
-            if (queue != null && queue.Length == 0)
-            {
-                await ReplyAsync("No songs queued.");
-                return;
-            }
-
+            var queue = juke.GetQueue();
+            if (queue.IsEmpty)
+                await ReplyAsync("No songs are queued.");
+            
             EmbedBuilder eb = new EmbedBuilder
             {
                 Color = Color.DarkGrey
@@ -118,10 +120,10 @@ namespace CasinoBot.Modules.Jukebox
                 if (i > queue.Length)
                     break;
                 var x = queue[i - 1];
-                eb.AddField(i == 1 ? "Next:" : i == 10 ? "And more" : i.ToString(), i == 1 ? $"**{x.Title}**" : i == 10 ? $"Plus {queue.Length - (i - 1)} other songs!" : x.Title, false);
+                eb.AddField(i == 1 ? "Next:" : i == 10 ? "And more" : i.ToString(), i == 1 ? $"**{x.Meta.Title}**" : i == 10 ? $"Plus {queue.Length - (i - 1)} other songs!" : x.Meta.Title, false);
             }
 
-            eb.WithFooter($"Shuffle - {(juke.Shuffle ? "On" : "Off")}");
+            eb.WithFooter($"Duration - {juke.GetQueue().GetTotalDuration()} | Shuffle - {(juke.Shuffle ? "On" : "Off")}");
 
             await Context.Channel.SendMessageAsync(null, false, eb.Build());
         }
@@ -142,7 +144,7 @@ namespace CasinoBot.Modules.Jukebox
                 songQuery = songQuery.Replace(" !loop", null);
 
             await juke.PlayAsync(new DownloadMediaRequest<AsyncYoutubeDownloader>(songQuery, (await jukebox.GetJukeboxAsync(Context.Guild)).GetCache(), Context.Guild, (await jukebox.GetJukeboxAsync(Context.Guild)).Playing ? QueueMode.Consistent : QueueMode.Fast, LargeMediaCallback),
-                                 GetUserVoiceChannel(), true, async context => await ReplyAsync($"{"**Now Playing**"} {context.song}"));
+                                 GetUserVoiceChannel(), true, async context => await ReplyAsync($"{"**Now Playing**"} {context.media.GetTitle()}"));
         }
 
         [Command("Play"), Alias("P"), Summary("Plays the specified song.")]
@@ -176,7 +178,7 @@ namespace CasinoBot.Modules.Jukebox
 
             await juke.PlayAsync(request, GetUserVoiceChannel(), false, async (context) =>
             {
-                await ReplyAsync($"{(context.queued ? "**Queued**" : "**Now Playing**")} {context.song}");
+                await ReplyAsync($"{(context.queued ? "**Queued**" : "**Now Playing**")} {context.media.GetTitle()}");
                 juke.Looping = loop;
             });
         }
@@ -184,8 +186,12 @@ namespace CasinoBot.Modules.Jukebox
         [Command("Stop"), Summary("Stops playback.")]
         public async Task StopAsync()
         {
+            if(!(await jukebox.GetJukeboxAsync(Context.Guild)).Playing)
+            {
+                await ReplyAsync("No song is playing.");
+                return;
+            }
             await (await jukebox.GetJukeboxAsync(Context.Guild)).StopAsync();
-            await (await jukebox.GetJukeboxAsync(Context.Guild)).LeaveChannelAsync();
 
             await ReplyAsync("Stopped playback.");
         }
