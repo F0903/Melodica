@@ -32,7 +32,7 @@ namespace CasinoBot.Utility.Extensions
             TimeSpan sum = new TimeSpan();
             Parallel.ForEach(input, x =>
             {
-                sum.Add(selector(x));
+                sum = sum.Add(selector(x));
             });
             return sum;
         }

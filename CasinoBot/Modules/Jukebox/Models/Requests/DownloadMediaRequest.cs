@@ -38,9 +38,7 @@ namespace CasinoBot.Modules.Jukebox.Models.Requests
 
         public override async Task<MediaCollection> GetMediaRequestAsync()
         {
-            var title = await downloader.GetMediaTitleAsync(query);
-            bool inCache = cache.Contains(title);
-            return inCache ? await cache.GetAsync(title) : await downloader.DownloadToCacheAsync(cache, mode, guild, query, true, largeSizeWarning, videoUnavailable);
+            return await downloader.DownloadToCacheAsync(cache, mode, guild, query, true, largeSizeWarning, videoUnavailable);
         }
     }
 }

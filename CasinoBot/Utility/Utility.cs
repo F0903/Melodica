@@ -11,12 +11,12 @@ namespace CasinoBot.Utility
         public static Task<IUser> GetAppOwnerAsync() =>
             Task.FromResult(IoC.Kernel.Get<DiscordSocketClient>().GetApplicationInfoAsync().Result.Owner);
 
-        public static Task<T> GetURLArgumentValueAsync<T>(string url, string argName, bool throwOnNull = true)
+        public static Task<int?> GetURLArgumentIntValueAsync(string url, string argName, bool throwOnNull = true)
         {
             if (!url.Contains($"&{argName}"))
             {
                 if (!throwOnNull)
-                    return Task.FromResult(default(T));
+                    return Task.FromResult<int?>(null);
                 throw new Exception("URL does not contain such argument.");
             }
 
@@ -34,9 +34,9 @@ namespace CasinoBot.Utility
                 }
 
                 var sub = url.Substring(x, diff);
-                return Task.FromResult((T)Convert.ChangeType(sub, typeof(T)));
+                return Task.FromResult((int?)Convert.ToInt32(sub));
             }
-            return Task.FromResult(default(T));
+            throw new Exception($"Unexpected parse of url argument '{argName}'");
         }
     }
 

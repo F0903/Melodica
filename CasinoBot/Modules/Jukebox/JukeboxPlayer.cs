@@ -74,6 +74,7 @@ namespace CasinoBot.Modules.Jukebox
         {
             if (audioClient == null)
                 throw new NullReferenceException("Audio Client was null.");
+            Playing = true;
 
             var inS = audio.GetOutput();
 
@@ -102,6 +103,7 @@ namespace CasinoBot.Modules.Jukebox
                 await discordOut.FlushAsync();
             }           
             skip = false;
+            Playing = false;
         }      
 
         private async Task DismissAsync()
@@ -159,7 +161,7 @@ namespace CasinoBot.Modules.Jukebox
                     return;
             }
 
-            if (switchingPlayback)
+            if (Playing && switchingPlayback)
             {
                 await StopAsync();
             }
@@ -184,11 +186,10 @@ namespace CasinoBot.Modules.Jukebox
             playingCallback?.Invoke((song, false));
 
             switchingPlayback = false;
-            Playing = true;
+            
             await (writeTask = WriteToChannelAsync(new AudioProcessor(song.MediaPath, bitrate, bufferSize / 2, song.Meta.Format)));
             if (switchingPlayback)
-                return;
-            Playing = false;
+                return;          
 
             CurrentSong = null;
 

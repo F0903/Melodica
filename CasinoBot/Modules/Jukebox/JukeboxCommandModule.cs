@@ -34,7 +34,7 @@ namespace CasinoBot.Modules.Jukebox
         }
 
         [Command("Shuffle"), Summary("Shuffles the queue.")]
-        public async Task SetShuffleAsync(bool val)
+        public async Task SetShuffleAsync(bool val = true)
         {
             (await jukebox.GetJukeboxAsync(Context.Guild)).Shuffle = true;
             await ReplyAsync($"Shuffle set to {val}");
@@ -58,13 +58,14 @@ namespace CasinoBot.Modules.Jukebox
         [Command("Song"), Summary("Gets the currently playing song.")]
         public async Task GetSongAsync()
         {
-            await ReplyAsync($"**Currently playing** {(await jukebox.GetJukeboxAsync(Context.Guild)).CurrentSong}");
+            var song = (await jukebox.GetJukeboxAsync(Context.Guild)).CurrentSong;
+            await ReplyAsync(song != null ? $"**Currently playing** {song}" : "No song is playing.");
         }
 
         [Command("Duration"), Summary("Gets the duration of the playing song.")]
         public async Task GetDurationAsync()
         {
-            await ReplyAsync($"Duration of {(await jukebox.GetJukeboxAsync(Context.Guild)).CurrentSong.Meta.Duration}");
+            await ReplyAsync($"Duration is {(await jukebox.GetJukeboxAsync(Context.Guild)).CurrentSong.Meta.Duration}");
         }
 
         [Command("Resume"), Summary("Resumes playback.")]
@@ -106,7 +107,10 @@ namespace CasinoBot.Modules.Jukebox
 
             var queue = juke.GetQueue();
             if (queue.IsEmpty)
+            {
                 await ReplyAsync("No songs are queued.");
+                return;
+            }
             
             EmbedBuilder eb = new EmbedBuilder
             {

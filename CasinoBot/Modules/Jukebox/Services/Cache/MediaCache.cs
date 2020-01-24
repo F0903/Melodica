@@ -37,8 +37,13 @@ namespace CasinoBot.Modules.Jukebox.Services.Cache
 
         private readonly string cacheLocation;
 
-        public Task<long> GetCacheSizeAsync() =>
-           Task.FromResult(Directory.EnumerateFiles(cacheLocation).AsParallel().Convert(x => new FileInfo(x)).Sum(f => f.Length));
+        public Task<long> GetCacheSizeAsync()
+        {
+            var files = Directory.EnumerateFiles(cacheLocation);
+            if (files.Count() == 0)
+                return Task.FromResult((long)0);
+            return Task.FromResult(files.AsParallel().Convert(x => new FileInfo(x)).Sum(f => f.Length));
+        }
 
         public bool Contains(PlayableMedia med) => cache.Contains(med);
 
@@ -49,8 +54,15 @@ namespace CasinoBot.Modules.Jukebox.Services.Cache
             if (!forceClear && await GetCacheSizeAsync() < Settings.MaxFileCacheInMB * 1024 * 1024)
                 return false;
 
-            cache.Clear();
-            Parallel.ForEach(Directory.EnumerateFiles(cacheLocation).Convert(x => new FileInfo(x)), f => f.Delete());
+            Parallel.ForEach(Directory.EnumerateFiles(cacheLocation).Convert(x => new FileInfo(x)), async f =>
+            {
+                try
+                {
+                    f.Delete();
+                    cache.Remove(await GetAsync(f.Name));
+                }
+                catch (Exception) { }
+            });
             return true;
         }
 
@@ -62,14 +74,18 @@ namespace CasinoBot.Modules.Jukebox.Services.Cache
                 await PruneCacheAsync();
 
             var pl = col.IsPlaylist;
-
             var o = new List<PlayableMedia>();
             foreach (var med in col)
             {
                 if (Contains(med))
-                    throw new Exception("Value already exists in cache.");
+                {
+                    o.Add(await GetAsync(med.GetTitle()));
+                    continue;
+                }
 
-                o.Add(new CachedMedia(med, cacheLocation));
+                CachedMedia ca = new CachedMedia(med, cacheLocation);
+                o.Add(ca);
+                cache.Add(ca);
             }
             return pl ? new MediaCollection(o, col.PlaylistName, col.PlaylistIndex) : new MediaCollection(o.First());
         }
