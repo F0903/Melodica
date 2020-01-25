@@ -58,10 +58,13 @@ namespace CasinoBot.Modules.Jukebox.Services.Cache
             {
                 try
                 {
-                    f.Delete();
-                    cache.Remove(await GetAsync(f.Name));
+                    f.Delete();              
                 }
                 catch (Exception) { }
+                finally
+                {
+                    cache.Remove(await GetAsync(Path.ChangeExtension(f.Name, null)));
+                }
             });
             return true;
         }
