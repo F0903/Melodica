@@ -6,8 +6,10 @@ using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
 using System;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using CasinoBot.Utility.Extensions;
 
 namespace CasinoBot.Modules.Jukebox
 {
@@ -30,7 +32,7 @@ namespace CasinoBot.Modules.Jukebox
         [Command("ClearCache"), Summary("Clears cache."), RequireOwner]
         public async Task ClearCacheAsync()
         {
-            await (await jukebox.GetJukeboxAsync(Context.Guild)).GetCache().PruneCacheAsync(true);
+            await ReplyAsync($"Deleted {(await jukebox.GetJukeboxAsync(Context.Guild)).GetCache().PruneCacheAsync(true).Result} files.");
         }
 
         [Command("Shuffle"), Summary("Shuffles the queue.")]
@@ -47,11 +49,10 @@ namespace CasinoBot.Modules.Jukebox
         }
 
         [Command("Loop"), Summary("Loops the current song.")]
-        public async Task SetLoopingAsync(bool? val = null)
+        public async Task SetLoopingAsync(bool val = true)
         {
             var juke = await jukebox.GetJukeboxAsync(Context.Guild);
-            val ??= !juke.Playing;
-            juke.Looping = val.Value;
+            juke.Looping = val;
             await ReplyAsync($"Loop set to {val}");
         }
 
@@ -160,7 +161,7 @@ namespace CasinoBot.Modules.Jukebox
                 return;
             }
 
-            var attach = Context.Message.Attachments.FirstOrDefault();
+            var attach = Context.Message.Attachments;
 
             if (songQuery == null && attach == null)
             {
@@ -168,17 +169,22 @@ namespace CasinoBot.Modules.Jukebox
                 return;
             }
 
-            var loop = songQuery.EndsWith(" !loop");
+            var loop = songQuery?.EndsWith(" !loop") ?? false;
             if (loop)
                 songQuery = songQuery.Replace(" !loop", null);
 
             var juke = await jukebox.GetJukeboxAsync(Context.Guild);
 
-            MediaRequest request = Context.Message.Attachments.FirstOrDefault() switch
+            MediaRequest request;
+            if(attach == null)
             {
-                null => new DownloadMediaRequest<AsyncYoutubeDownloader>(songQuery, (await jukebox.GetJukeboxAsync(Context.Guild)).GetCache(), Context.Guild, (await jukebox.GetJukeboxAsync(Context.Guild)).Playing ? QueueMode.Consistent : QueueMode.Fast, LargeMediaCallback, MediaUnavailableCallback),
-                _ => throw new NotImplementedException(),
-            };
+                request = new DownloadMediaRequest<AsyncYoutubeDownloader>(songQuery, (await jukebox.GetJukeboxAsync(Context.Guild)).GetCache(), Context.Guild,
+                        (await jukebox.GetJukeboxAsync(Context.Guild)).Playing ? QueueMode.Consistent : QueueMode.Fast, LargeMediaCallback, MediaUnavailableCallback);
+            }
+            else
+            {
+                request = new AttachmentMediaRequest(attach.ToArray(), (await jukebox.GetJukeboxAsync(Context.Guild)).GetCache());
+            }
 
             await juke.PlayAsync(request, GetUserVoiceChannel(), false, async (context) =>
             {

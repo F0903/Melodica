@@ -14,17 +14,10 @@ namespace CasinoBot.Modules.Jukebox.Services.Cache
     {
         public MediaCache(IGuild guild)
         {
-            cacheLocation = Path.Combine(CacheRoot, $"{guild.Name}");
-            bool exists = Directory.Exists(cacheLocation);
-            if (!exists)
-                Directory.CreateDirectory(cacheLocation);
-            else
-            {
-                foreach (Metadata meta in Directory.EnumerateFileSystemEntries(cacheLocation, $"*{CachedMedia.MetaFileExtension}", SearchOption.AllDirectories))
-                {
-                    cache.Add(new PlayableMedia(meta));
-                }
-            }
+            localCache = Path.Combine(CacheRoot, $"{guild.Name}");
+            bool exists = Directory.Exists(localCache);
+            if (!exists) Directory.CreateDirectory(localCache);
+            else LoadPreexistingFilesAsync();
         }
 
         public const int MaxClearAttempt = 5;
@@ -32,44 +25,72 @@ namespace CasinoBot.Modules.Jukebox.Services.Cache
         public const int MaxFilesInCache = 25;
 
         public const string CacheRoot = @"./mediacache/";
+        public readonly string localCache;
 
-        private readonly List<PlayableMedia> cache = new List<PlayableMedia>();
+        private readonly ConcurrentDictionary<string, string> cache = new ConcurrentDictionary<string, string>();
 
-        private readonly string cacheLocation;
+        private Task LoadPreexistingFilesAsync()
+        {
+            foreach (FileInfo metaFile in Directory.EnumerateFileSystemEntries(localCache, $"*{Metadata.MetaFileExtension}", SearchOption.AllDirectories).Convert(x => new FileInfo(x)))
+            {
+                if (!cache.TryAdd(Path.GetFileNameWithoutExtension(metaFile.Name), metaFile.FullName))
+                    throw new Exception("Could not add pre-existing file to cache.");
+            }
+            return Task.CompletedTask;
+        }
 
         public Task<long> GetCacheSizeAsync()
         {
-            var files = Directory.EnumerateFiles(cacheLocation);
+            var files = Directory.EnumerateFiles(localCache);
             if (files.Count() == 0)
                 return Task.FromResult((long)0);
             return Task.FromResult(files.AsParallel().Convert(x => new FileInfo(x)).Sum(f => f.Length));
         }
 
-        public bool Contains(PlayableMedia med) => cache.Contains(med);
+        public bool Contains(PlayableMedia med) => cache.ContainsKey(med.Meta.Title);
 
-        public bool Contains(string title) => cache.Any(x => x.Meta.Title == title);
+        public bool Contains(string title) => cache.ContainsKey(title);
 
-        public async Task<bool> PruneCacheAsync(bool forceClear = false)
+        public async Task<int> PruneCacheAsync(bool forceClear = false)
         {
             if (!forceClear && await GetCacheSizeAsync() < Settings.MaxFileCacheInMB * 1024 * 1024)
-                return false;
+                return 0;
 
-            Parallel.ForEach(Directory.EnumerateFiles(cacheLocation).Convert(x => new FileInfo(x)), async f =>
+            int deletedFiles = 0;
+            List<string> metaToDelete = new List<string>();
+            Parallel.ForEach(Directory.EnumerateFiles(localCache).Where(x => !x.EndsWith(Metadata.MetaFileExtension)), x =>
             {
                 try
                 {
-                    f.Delete();              
+                    File.Delete(x);
+                    metaToDelete.Add(Path.ChangeExtension(x, Metadata.MetaFileExtension));
+                    deletedFiles++;
                 }
                 catch (Exception) { }
-                finally
-                {
-                    cache.Remove(await GetAsync(Path.ChangeExtension(f.Name, null)));
-                }
+                finally { }
             });
-            return true;
+
+            Parallel.ForEach(metaToDelete, x =>
+            {
+                File.Delete(x);
+            });
+            return deletedFiles;
         }
 
-        public Task<PlayableMedia> GetAsync(string title) => Task.FromResult(cache.Single(x => x.Meta.Title == title));
+        public async Task<PlayableMedia> GetAsync(string title)
+        {
+            PlayableMedia media;
+            try
+            {
+                media = await PlayableMedia.LoadFromFileAsync(cache[title]);
+            }
+            catch (FileNotFoundException)
+            {
+                cache.Remove(title, out var _);
+                throw new Exception("The metadata file for this media was deleted externally... Removing...");
+            }
+            return media;
+        }
 
         public async Task<MediaCollection> CacheMediaAsync(MediaCollection col, bool pruneCache = true)
         {
@@ -86,9 +107,9 @@ namespace CasinoBot.Modules.Jukebox.Services.Cache
                     continue;
                 }
 
-                CachedMedia ca = new CachedMedia(med, cacheLocation);
+                CachedMedia ca = new CachedMedia(med, localCache);
                 o.Add(ca);
-                cache.Add(ca);
+                cache.TryAdd(ca.Meta.Title, ca.Meta.MediaPath);
             }
             return pl ? new MediaCollection(o, col.PlaylistName, col.PlaylistIndex) : new MediaCollection(o.First());
         }

@@ -108,6 +108,7 @@ namespace CasinoBot.Modules.Jukebox
 
         private async Task DismissAsync()
         {
+            await channel.DisconnectAsync();
             await discordOut.DisposeAsync();
             await audioClient.StopAsync();
             await Task.Run(audioClient.Dispose);
@@ -116,13 +117,14 @@ namespace CasinoBot.Modules.Jukebox
         public Task StopAsync()
         {
             stop = true;
-            writeTask.Wait();
-            return songQueue.ClearAsync();
+            Looping = false;
+            songQueue.ClearAsync();
+            return writeTask;
         }
 
         public async Task QueueAsync(PlayableMedia media)
         {
-            if (!File.Exists(media.MediaPath))
+            if (!File.Exists(media.Meta.MediaPath))
                 throw new Exception("Specified song path to queue is empty.");
 
             await songQueue.EnqueueAsync(media);
@@ -133,18 +135,13 @@ namespace CasinoBot.Modules.Jukebox
             var temp = playlist.ToList();
             temp.RemoveAt(startIndex);
             var toQueue = temp.ToArray();
-            await songQueue.UnsafeEnqueueAsync(toQueue); // Experimental. DELETE IF NOT WORKING.
+            await songQueue.UnsafeEnqueueAsync(toQueue);
         }
 
         public async Task ConnectToChannelAsync(IAudioChannel channel)
         {
             this.channel = channel;
             audioClient = await channel.ConnectAsync();
-        }
-
-        public async Task LeaveChannelAsync()
-        {
-            await channel.DisconnectAsync();
         }
 
         public async Task PlayAsync(MediaRequest request, IAudioChannel channel, bool switchingPlayback = false, Action<(IMediaInfo media, bool queued)> playingCallback = null, int bitrate = DefaultBitrate, int bufferSize = DefaultBufferSize)
@@ -187,17 +184,11 @@ namespace CasinoBot.Modules.Jukebox
 
             switchingPlayback = false;
             
-            await (writeTask = WriteToChannelAsync(new AudioProcessor(song.MediaPath, bitrate, bufferSize / 2, song.Meta.Format)));
+            await (writeTask = WriteToChannelAsync(new AudioProcessor(song.Meta.MediaPath, bitrate, bufferSize / 2, song.Meta.Format)));
             if (switchingPlayback)
                 return;          
 
             CurrentSong = null;
-
-            if (stop)
-            {
-                stop = false;
-                return;
-            }
 
             if (!skip && Looping)
             {
@@ -210,6 +201,7 @@ namespace CasinoBot.Modules.Jukebox
                 await PlayAsync(new MediaRequest(new MediaCollection(Shuffle ? await songQueue.DequeueRandomAsync() : await songQueue.DequeueAsync())), channel, false, playingCallback).ConfigureAwait(false);
                 return;
             }
+            stop = false;
             await DismissAsync().ConfigureAwait(false);
         }
     }

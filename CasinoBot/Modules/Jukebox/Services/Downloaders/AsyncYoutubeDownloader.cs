@@ -29,7 +29,7 @@ namespace CasinoBot.Modules.Jukebox.Services.Downloaders
         public Task<string> GetMediaTitleAsync(string query) =>
             Task.FromResult(yt.SearchVideosAsync(query, 1).Result[0].Title);
 
-        private async Task<PlayableMedia> InternalDownloadAsync(string query, bool isPreFiltered, Action largeSizeWarningCallback, Action<string> videoUnavailableCallback, int attempt = 0)
+        private async Task<PlayableMedia> InternalDownloadAsync(string query, bool isPreFiltered, Action largeSizeWarningCallback, Action<string> videoUnavailableCallback, bool toQueue = false, int attempt = 0)
         {
             bool isQueryUrl = query.IsUrl();
 
@@ -58,16 +58,16 @@ namespace CasinoBot.Modules.Jukebox.Services.Downloaders
                 if (attempt > MaxDownloadAttempts)
                     throw new Exception($"No videos with available media streams could be found. Attempts: {attempt}/{MaxDownloadAttempts}");
 
-                return await InternalDownloadAsync(query, false, largeSizeWarningCallback, videoUnavailableCallback, ++attempt).ConfigureAwait(false);
+                return await InternalDownloadAsync(query, false, largeSizeWarningCallback, videoUnavailableCallback, toQueue, ++attempt).ConfigureAwait(false);
             }
             var stream = await yt.GetMediaStreamAsync(audioStreams[0]);
-            return new PlayableMedia(new Metadata(stream.ToBytes(), vid.Title.ReplaceIllegalCharacters(), audioStreams[0].Container.ToString().ToLower(), vid.Duration));
+            return new PlayableMedia(new Metadata(vid.Title.ReplaceIllegalCharacters(), audioStreams[0].Container.ToString().ToLower(), vid.Duration), stream.ToBytes());
         }
 
         private Task<MediaCollection> CacheAsync(MediaCollection col, MediaCache cache, bool pruneCache = true)
         {
             return cache.CacheMediaAsync(col, pruneCache || !col.IsPlaylist);
-        }        
+        }
 
         public async Task<MediaCollection> DownloadToCacheAsync(MediaCache cache, QueueMode mode, Discord.IGuild guild, string searchQuery, bool pruneCache = true, Action largeSizeWarningCallback = null, Action<string> videoUnavailableCallback = null)
         {

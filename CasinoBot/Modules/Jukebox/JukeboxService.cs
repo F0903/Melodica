@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace CasinoBot.Modules.Jukebox
 {
-    public class JukeboxService //TODO: Possibly combine with JukeboxDictionary
+    public class JukeboxService
     {
         private readonly ConcurrentDictionary<IGuild, JukeboxPlayer> jukeboxes = new ConcurrentDictionary<IGuild, JukeboxPlayer>();
 
