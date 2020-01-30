@@ -17,17 +17,17 @@ namespace CasinoBot.Jukebox.Models
             Duration = duration;
         }
 
+        private static readonly BinaryFormatter bin = new BinaryFormatter(null, new System.Runtime.Serialization.StreamingContext(System.Runtime.Serialization.StreamingContextStates.File));
+
         public static Task<Metadata> LoadMetadataFromFileAsync(string fullPath)
         {
-            var formatter = new BinaryFormatter();
-            return Task.FromResult((Metadata)formatter.Deserialize(File.OpenRead(fullPath)));
+            return Task.FromResult((Metadata)bin.Deserialize(File.OpenRead(fullPath)));
         }
 
         public static implicit operator Metadata(string path)
         {
-            var bf = new BinaryFormatter();
             using var fs = File.OpenRead(path);
-            return (Metadata)bf.Deserialize(fs);
+            return (Metadata)bin.Deserialize(fs);
         }
 
         public const string MetaFileExtension = ".meta";

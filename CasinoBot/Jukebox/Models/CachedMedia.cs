@@ -17,12 +17,12 @@ namespace CasinoBot.Jukebox.Models
             SaveDataAsync().Wait();
         }        
 
-        private readonly BinaryFormatter bin = new BinaryFormatter(null, new StreamingContext(StreamingContextStates.File));
+        private static readonly BinaryFormatter bin = new BinaryFormatter(null, new StreamingContext(StreamingContextStates.File));
        
         protected async override Task SaveDataAsync()
         {
             await base.SaveDataAsync();
-
+            
             using var mediaMeta = new FileStream(Path.Combine(saveDir, Meta.Title.ReplaceIllegalCharacters() + Metadata.MetaFileExtension), FileMode.Create);
             bin.Serialize(mediaMeta, Meta);
         }
