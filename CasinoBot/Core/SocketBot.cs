@@ -1,7 +1,7 @@
 ﻿using Discord;
 using Discord.WebSocket;
-using CasinoBot.Services.CommandHandlers;
-using CasinoBot.Services.Loggers;
+using CasinoBot.Core.Services.CommandHandlers;
+using CasinoBot.Core.Services.Loggers;
 using System.Threading.Tasks;
 
 namespace CasinoBot.Core

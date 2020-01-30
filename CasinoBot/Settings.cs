@@ -1,4 +1,4 @@
-﻿using CasinoBot.Filehandlers.XML;
+﻿using CasinoBot.Core.Filehandlers.XML;
 
 namespace CasinoBot
 {

@@ -1,7 +1,7 @@
 ﻿using CasinoBot.Core;
 using CasinoBot.IoC;
-using CasinoBot.Services.CommandHandlers;
-using CasinoBot.Services.Loggers;
+using CasinoBot.Core.Services.CommandHandlers;
+using CasinoBot.Core.Services.Loggers;
 using System;
 using System.Threading.Tasks;
 
