@@ -5,6 +5,7 @@ using System.IO;
 using System.Text;
 using System.Runtime.Serialization.Formatters.Binary;
 using System.Runtime.Serialization;
+using Suits.Jukebox.Services;
 
 namespace Suits.Jukebox.Models
 {
@@ -18,9 +19,9 @@ namespace Suits.Jukebox.Models
             Duration = duration;
         }
 
-        public static Task<Metadata> LoadMetadataFromFileAsync(string fullPath, IFormatter formatter)
+        public static Task<Metadata> LoadMetadataFromFileAsync(string fullPath)
         {
-            return Task.FromResult((Metadata)formatter.Deserialize(File.OpenRead(fullPath)));
+            return Serializer.DeserializeFileAsync<Metadata>(fullPath);
         }     
 
         public const string MetaFileExtension = ".meta";

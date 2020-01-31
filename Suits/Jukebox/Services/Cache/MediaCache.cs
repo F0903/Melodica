@@ -111,7 +111,7 @@ namespace Suits.Jukebox.Services.Cache
                     continue;
                 }
 
-                CachedMedia ca = new CachedMedia(med, localCache, IoC.Kernel.Get<IFormatter>());
+                CachedMedia ca = new CachedMedia(med, localCache);
                 o.Add(ca);
                 cache.TryAdd(ca.Meta.Title, ca.Meta.MediaPath);
             }

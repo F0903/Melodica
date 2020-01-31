@@ -25,12 +25,13 @@ namespace Suits.Jukebox.Models
             Meta = meta;
         }
 
-        public static async Task<PlayableMedia> LoadFromFileAsync(string pathToMetadata)
+        public static async Task<PlayableMedia> LoadFromFileAsync(string songPath)
         {
-            if (!File.Exists(pathToMetadata))
+            songPath = Path.ChangeExtension(songPath, Metadata.MetaFileExtension);
+            if (!File.Exists(songPath))
                 throw new FileNotFoundException($"Metadata file was not found.");
 
-            var meta = await Metadata.LoadMetadataFromFileAsync(pathToMetadata, IoC.Kernel.Get<IFormatter>());
+            var meta = await Metadata.LoadMetadataFromFileAsync(songPath);
             if (!File.Exists(meta.MediaPath))
                 throw new FileNotFoundException("The associated media file of this metadata does not exist.");
             return new PlayableMedia(meta);

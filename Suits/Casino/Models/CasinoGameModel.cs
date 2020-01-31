@@ -4,7 +4,7 @@ using System.Text;
 
 namespace Suits.Casino.Models
 {
-    class CasinoGame
+    public class CasinoGameModel
     {
     }
 }
