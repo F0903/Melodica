@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Runtime.Serialization;
 using System.Threading.Tasks;
 using CasinoBot.Utility.Extensions;
 
@@ -29,7 +30,7 @@ namespace CasinoBot.Jukebox.Models
             if (!File.Exists(pathToMetadata))
                 throw new FileNotFoundException($"Metadata file was not found.");
 
-            var meta = await Metadata.LoadMetadataFromFileAsync(pathToMetadata);
+            var meta = await Metadata.LoadMetadataFromFileAsync(pathToMetadata, IoC.Kernel.Get<IFormatter>());
             if (!File.Exists(meta.MediaPath))
                 throw new FileNotFoundException("The associated media file of this metadata does not exist.");
             return new PlayableMedia(meta);

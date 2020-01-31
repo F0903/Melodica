@@ -53,6 +53,8 @@ namespace CasinoBot.Jukebox
 
         private bool stop = false;
 
+        private bool switching = false;
+
         private AudioOutStream discordOut;
 
         private Task writeTask;
@@ -83,7 +85,7 @@ namespace CasinoBot.Jukebox
             int bytesRead;
             try
             {
-                while ((bytesRead = await inS.ReadAsync(buffer, 0, buffer.Length)) != 0) //.ConfigureAwait(false)) 
+                while ((bytesRead = await inS.ReadAsync(buffer, 0, buffer.Length)) != 0)
                 {
                     while (Paused)
                     {
@@ -94,7 +96,7 @@ namespace CasinoBot.Jukebox
 
                     if (skip || stop)
                         break;
-                    await discordOut.WriteAsync(buffer, 0, bytesRead); //.ConfigureAwait(false);
+                    await discordOut.WriteAsync(buffer, 0, bytesRead);
                 }
             }
             catch (OperationCanceledException) { } // Catch exception when stopping playback
@@ -115,12 +117,13 @@ namespace CasinoBot.Jukebox
             await Task.Run(audioClient.Dispose);
         }
 
-        public Task StopAsync()
+        public Task StopAsync(bool clearQueue = true)
         {
             stop = true;
-            Looping = false;
-            songQueue.ClearAsync();
-            return writeTask;
+            writeTask.Wait();
+            stop = false;
+            Looping = false;            
+            return clearQueue ? songQueue.ClearAsync() : Task.CompletedTask;
         }
 
         public async Task QueueAsync(PlayableMedia media)
@@ -148,11 +151,11 @@ namespace CasinoBot.Jukebox
         public async Task PlayAsync(MediaRequest request, IAudioChannel channel, bool switchingPlayback = false, Action<(IMediaInfo media, bool queued)> playingCallback = null, int bitrate = DefaultBitrate, int bufferSize = DefaultBufferSize)
         {
             MediaCollection col = await request.GetMediaRequestAsync();
-            PlayableMedia song = col[col.PlaylistIndex - 1]; // PlaylistIndex starts at 1, so decrease it.
+            PlayableMedia song = col[col.PlaylistIndex];
 
             if (col.IsPlaylist)
             {
-                await QueueAsync(col, col.PlaylistIndex - 1);
+                await QueueAsync(col, col.PlaylistIndex);
 
                 playingCallback?.Invoke((col, true));
                 if (Playing && !switchingPlayback)
@@ -161,7 +164,8 @@ namespace CasinoBot.Jukebox
 
             if (Playing && switchingPlayback)
             {
-                await StopAsync();
+                switching = switchingPlayback;
+                await StopAsync(false);
             }
 
             if (Playing && !switchingPlayback)
@@ -173,7 +177,7 @@ namespace CasinoBot.Jukebox
 
             this.channel = channel;
 
-            bool newClient = audioClient == null ||
+            bool newClient = audioClient                 == null                         ||
                              audioClient.ConnectionState == ConnectionState.Disconnected ||
                              audioClient.ConnectionState == ConnectionState.Disconnecting;
             audioClient = newClient ? await channel.ConnectAsync() : audioClient;
@@ -182,12 +186,13 @@ namespace CasinoBot.Jukebox
             CurrentSong = song;
 
             playingCallback?.Invoke((song, false));
-
-            switchingPlayback = false;
-            
+           
             await (writeTask = WriteToChannelAsync(new AudioProcessor(song.Meta.MediaPath, bitrate, bufferSize / 2, song.Meta.Format)));
-            if (switchingPlayback)
-                return;          
+            if (switching)
+            {
+                switching = false;
+                return;
+            }
 
             CurrentSong = null;
 
@@ -202,7 +207,6 @@ namespace CasinoBot.Jukebox
                 await PlayAsync(new MediaRequest(new MediaCollection(Shuffle ? await songQueue.DequeueRandomAsync() : await songQueue.DequeueAsync())), channel, false, playingCallback).ConfigureAwait(false);
                 return;
             }
-            stop = false;
             await DismissAsync().ConfigureAwait(false);
         }
     }

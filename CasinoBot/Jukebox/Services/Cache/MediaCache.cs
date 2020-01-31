@@ -6,6 +6,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Runtime.Serialization;
 using System.Threading.Tasks;
 
 namespace CasinoBot.Jukebox.Services.Cache
@@ -51,15 +52,33 @@ namespace CasinoBot.Jukebox.Services.Cache
 
         public bool Contains(string title) => cache.ContainsKey(title);
 
-        //TODO: Make this work
-        public async Task<int> PruneCacheAsync(bool forceClear = false)
+        public async Task<(int deletedFiles, int filesInUse)> PruneCacheAsync(bool forceClear = false)
         {
             if (!forceClear && await GetCacheSizeAsync() < Settings.MaxFileCacheInMB * 1024 * 1024)
-                return 0;
+                return (0, 0);
 
             int deletedFiles = 0;
-            
-            return deletedFiles;
+            int filesInUse = 0;
+            Parallel.ForEach(Directory.EnumerateFiles(localCache).Convert(x => new FileInfo(x)).Where(x => x.Extension != Metadata.MetaFileExtension), x =>
+            {
+                bool couldDelete;
+                try
+                {
+                    x.Delete();
+                    cache.Remove(Path.ChangeExtension(x.Name, null), out var _);
+                    couldDelete = true;
+                    deletedFiles++;
+                }
+                catch (Exception) { couldDelete = false; filesInUse++; }
+
+                if (couldDelete)
+                {
+                    File.Delete(Path.ChangeExtension(x.FullName, Metadata.MetaFileExtension));
+                    deletedFiles++;
+                }
+            });
+
+            return (deletedFiles, filesInUse);
         }
 
         public async Task<PlayableMedia> GetAsync(string title)
@@ -92,7 +111,7 @@ namespace CasinoBot.Jukebox.Services.Cache
                     continue;
                 }
 
-                CachedMedia ca = new CachedMedia(med, localCache);
+                CachedMedia ca = new CachedMedia(med, localCache, IoC.Kernel.Get<IFormatter>());
                 o.Add(ca);
                 cache.TryAdd(ca.Meta.Title, ca.Meta.MediaPath);
             }

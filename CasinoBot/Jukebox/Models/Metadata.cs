@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using System.Runtime.Serialization.Formatters.Binary;
+using System.Runtime.Serialization;
 
 namespace CasinoBot.Jukebox.Models
 {
@@ -17,18 +18,10 @@ namespace CasinoBot.Jukebox.Models
             Duration = duration;
         }
 
-        private static readonly BinaryFormatter bin = new BinaryFormatter(null, new System.Runtime.Serialization.StreamingContext(System.Runtime.Serialization.StreamingContextStates.File));
-
-        public static Task<Metadata> LoadMetadataFromFileAsync(string fullPath)
+        public static Task<Metadata> LoadMetadataFromFileAsync(string fullPath, IFormatter formatter)
         {
-            return Task.FromResult((Metadata)bin.Deserialize(File.OpenRead(fullPath)));
-        }
-
-        public static implicit operator Metadata(string path)
-        {
-            using var fs = File.OpenRead(path);
-            return (Metadata)bin.Deserialize(fs);
-        }
+            return Task.FromResult((Metadata)formatter.Deserialize(File.OpenRead(fullPath)));
+        }     
 
         public const string MetaFileExtension = ".meta";
 

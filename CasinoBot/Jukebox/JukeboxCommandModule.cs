@@ -32,7 +32,8 @@ namespace CasinoBot.Jukebox
         [Command("ClearCache"), Summary("Clears cache."), RequireOwner]
         public async Task ClearCacheAsync()
         {
-            await ReplyAsync($"Deleted {(await jukebox.GetJukeboxAsync(Context.Guild)).GetCache().PruneCacheAsync(true).Result} files.");
+            var (deletedFiles, filesInUse) = await (await jukebox.GetJukeboxAsync(Context.Guild)).GetCache().PruneCacheAsync(true);
+            await ReplyAsync($"Deleted {deletedFiles} files. ({filesInUse} files in use)");
         }
 
         [Command("Shuffle"), Summary("Shuffles the queue.")]

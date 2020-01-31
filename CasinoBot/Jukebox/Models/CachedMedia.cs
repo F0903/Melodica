@@ -11,20 +11,21 @@ namespace CasinoBot.Jukebox.Models
 {  
     public sealed class CachedMedia : PlayableMedia
     {
-        public CachedMedia(PlayableMedia media, string saveDir) : base(media)
+        public CachedMedia(PlayableMedia media, string saveDir, IFormatter formatter) : base(media)
         {
             this.saveDir = saveDir;
+            this.formatter = formatter;
             SaveDataAsync().Wait();
-        }        
+        }
 
-        private static readonly BinaryFormatter bin = new BinaryFormatter(null, new StreamingContext(StreamingContextStates.File));
-       
+        private readonly IFormatter formatter;
+
         protected async override Task SaveDataAsync()
         {
             await base.SaveDataAsync();
             
             using var mediaMeta = new FileStream(Path.Combine(saveDir, Meta.Title.ReplaceIllegalCharacters() + Metadata.MetaFileExtension), FileMode.Create);
-            bin.Serialize(mediaMeta, Meta);
+            formatter.Serialize(mediaMeta, Meta);
         }
     }
 }

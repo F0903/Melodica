@@ -14,10 +14,8 @@ namespace CasinoBot.Jukebox.Models
             playlist = new[] { media };
         }
 
-        public MediaCollection(IEnumerable<PlayableMedia> playlist, string playlistName, int playlistIndex = 1)
+        public MediaCollection(IEnumerable<PlayableMedia> playlist, string playlistName, int playlistIndex = 0)
         {
-            if (playlistIndex <= 0) playlistIndex = 1;
-
             IsPlaylist = true;
             this.playlist = playlist.ToArray();
             PlaylistName = playlistName;
@@ -47,7 +45,7 @@ namespace CasinoBot.Jukebox.Models
 
         public string PlaylistName { get; private set; }
 
-        public int PlaylistIndex { get; private set; } = 1;
+        public int PlaylistIndex { get; private set; }
 
         public string GetTitle() => PlaylistName;
         public TimeSpan GetDuration() => TotalDuration;

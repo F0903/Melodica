@@ -31,4 +31,8 @@
     </None>
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Casino\Poker\" />
+  </ItemGroup>
+
 </Project>
