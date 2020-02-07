@@ -7,7 +7,7 @@ using System.IO;
 
 namespace Suits.Jukebox.Models
 {
-    public class TempMedia : PlayableMedia
+    public sealed class TempMedia : PlayableMedia
     {
         public TempMedia(Metadata meta, byte[] data, MediaCache cache) : base(meta, data)
         {
@@ -20,7 +20,12 @@ namespace Suits.Jukebox.Models
 
         ~TempMedia()
         {
-            File.Delete(Meta.MediaPath);
+            Destroy();
+        }
+
+        private void Destroy()
+        {
+            File.Delete(saveDir);
         }
 
         protected override Task SaveDataAsync()
