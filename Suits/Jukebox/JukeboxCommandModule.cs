@@ -145,8 +145,16 @@ namespace Suits.Jukebox
 
             var juke = await jukebox.GetJukeboxAsync(Context.Guild);
 
-            await juke.PlayAsync(new DownloadMediaRequest<AsyncYoutubeDownloader>(songQuery, (await jukebox.GetJukeboxAsync(Context.Guild)).GetCache(), Context.Guild, (await jukebox.GetJukeboxAsync(Context.Guild)).Playing ? QueueMode.Consistent : QueueMode.Fast, LargeMediaCallback),
-                                 GetUserVoiceChannel(), true, async context => await ReplyAsync($"{"**Now Playing**"} {context.media.GetTitle()}"));
+            // Rewrite this request class.
+            var request = new DownloadMediaRequest<AsyncYoutubeDownloader>(songQuery, juke.GetCache(), Context.Guild, juke.Playing ? QueueMode.Consistent : QueueMode.Fast, LargeMediaCallback, MediaUnavailableCallback);
+
+            await juke.PlayAsync(request, GetUserVoiceChannel(), true, async (context) =>
+            {
+                var embed = new EmbedBuilder().WithTitle("**Now Playing**")
+                                              .WithDescription(context.media.GetTitle())
+                                              .WithFooter(context.media.GetDuration().ToString());
+                await ReplyAsync(null, false, embed.Build());
+            });
         }
 
         [Command("Play"), Alias("P"), Summary("Plays the specified song.")]
@@ -171,6 +179,7 @@ namespace Suits.Jukebox
             MediaRequest request;
             if(attach.Count == 0)
             {
+                // Rewrite this request class.
                 request = new DownloadMediaRequest<AsyncYoutubeDownloader>(songQuery, (await jukebox.GetJukeboxAsync(Context.Guild)).GetCache(), Context.Guild,
                         (await jukebox.GetJukeboxAsync(Context.Guild)).Playing ? QueueMode.Consistent : QueueMode.Fast, LargeMediaCallback, MediaUnavailableCallback);
             }
@@ -181,7 +190,10 @@ namespace Suits.Jukebox
 
             await juke.PlayAsync(request, GetUserVoiceChannel(), false, async (context) =>
             {
-                await ReplyAsync($"{(context.queued ? "**Queued**" : "**Now Playing**")} {context.media.GetTitle()}");
+                var embed = new EmbedBuilder().WithTitle((context.queued ? "**Queued**" : "**Now Playing**"))
+                                              .WithDescription(context.media.GetTitle())
+                                              .WithFooter(context.media.GetDuration().ToString());
+                await ReplyAsync(null, false, embed.Build());
             });
         }
 
