@@ -4,9 +4,10 @@ using System.Text;
 using Discord;
 using Discord.Commands;
 
-namespace Suits.Core.CommandModules
+namespace Suits.Casino.Poker
 {
-    public class PokerCommandModule : ModuleBase<SocketCommandContext>
+    [Group("Poker")]
+    public class PokerCommandModule : CasinoCommandModule
     {
 
     }

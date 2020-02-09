@@ -6,6 +6,7 @@ using Discord.Commands;
 
 namespace Suits.Casino
 {
+    [Group("Casino")]
     public class CasinoCommandModule : ModuleBase<SocketCommandContext>
     {
 

@@ -1,16 +1,23 @@
-﻿using Discord.Commands;
+﻿using Discord;
+using Discord.Commands;
 using Discord.WebSocket;
 using Suits.Utility.Extensions;
 using System;
+using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 
 namespace Suits.Core.CommandModules
 {
+    [Name("Misc")]
     public class MiscCommandModule : ModuleBase<SocketCommandContext>
     {
-        public MiscCommandModule()
+        public MiscCommandModule(CommandService cmService)
         {
+            this.commandService = cmService;
         }
+
+        private readonly CommandService commandService;
 
         [Command("Spam"), RequireOwner]
         public async Task SpamAsync(int? n, string user, [Remainder] string msg)
@@ -27,33 +34,39 @@ namespace Suits.Core.CommandModules
         }
 
         [Command("Help"), Summary("Prints out all available commands.")]
-        public async Task HelpAsync()
+        public async Task HelpAsync(int page = 1)
         {
-            await ReplyAsync("This command is not yet available.");
-        }
+            if (page < 1) page = 1;
 
-        [Command("Ping")]
-        public async Task PingAsync()
-        {
-            await ReplyAsync("Pong!");
-        }
+            var mods = commandService.Modules.ToArray();
+
+            int elemsPerPage = 25;
+
+            int CalcPages()
+            {
+                float i = 0;
+                i += mods.Aggregate(0, (val, x) => val += x.Commands.Count);
+                i /= elemsPerPage;
+                return i > (int)i ? (int)++i : (int)i;
+            }
+           
+            var eb = new EmbedBuilder().WithTitle($"Commands [{page} of {CalcPages()}]").WithFooter(Settings.Prefix);           
+            for(int x = 0; x < (mods.Length > elemsPerPage ? elemsPerPage : mods.Length); x++)
+            {
+                var comms = mods[x].Commands;
+                for (int y = (page - 1) * elemsPerPage; y < comms.Count; y++)
+                {
+                    eb.AddField($"{comms[y].Module.Name} | **{comms[y].Name}** [{comms[y].Aliases.Unfold(',')}] ({comms[y].Parameters.Unfold(',') ?? ""})", string.IsNullOrEmpty(comms[y].Summary) ? "No summary." : comms[y].Summary);
+                }           
+            };          
+            await ReplyAsync(null, false, eb.Build());
+        }       
 
         [Command("Owner")]
         public async Task GetOwnerAsync()
         {
-            await ReplyAsync(Context.Message.Author.IsOwnerOfApp() ? "You already know..." : $"My owner is {Suits.Utility.General.GetAppOwnerAsync()}");
-        }
-
-        [Group("Debug"), RequireOwner(ErrorMessage = "This command group can only be used by the app owner.")]
-        public class DebugCommands : ModuleBase<SocketCommandContext>
-        {
-            [Command("ThrowException"), Alias("Throw")]
-            public Task ThrowExceptionAsync() =>
-                throw new Exception("Test exception.");
-
-            [Command("GetTokenType"), Alias("Token")]
-            public Task GetTokenTypeAsync() =>
-                ReplyAsync($"Context Client: {Context.Client.TokenType.ToString()}\nDI Client: {Suits.IoC.Kernel.Get<DiscordSocketClient>().TokenType.ToString()}");
+            var owner = await Utility.General.GetAppOwnerAsync();
+            await ReplyAsync(Context.Message.Author.Id == owner.Id ? "You already know..." : $"My owner is {owner}");
         }
     }
 }

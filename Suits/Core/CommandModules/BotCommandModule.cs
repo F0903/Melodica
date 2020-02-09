@@ -10,7 +10,7 @@ namespace Suits.Core.CommandModules
     public class BotCommandModule : ModuleBase<SocketCommandContext>
     {
         [Command("Shutdown")]
-        public Task ShutdownAsync()
+        public Task Shutdown()
         {
             Environment.Exit(0);
             return Task.CompletedTask;

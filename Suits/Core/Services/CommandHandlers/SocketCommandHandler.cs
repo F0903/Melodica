@@ -4,6 +4,7 @@ using Discord.WebSocket;
 using Suits.Core.Services.Loggers;
 using Suits.Utility.Extensions;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
@@ -35,6 +36,7 @@ namespace Suits.Core.Services.CommandHandlers
                 DefaultRunMode = RunMode.Async,
                 CaseSensitiveCommands = false
             });
+            IoC.Kernel.RegisterInstance(cmdService);
         }
 
         private async Task CommandExecuted(Optional<CommandInfo> info, ICommandContext context, IResult result)
@@ -88,9 +90,6 @@ namespace Suits.Core.Services.CommandHandlers
 
             if (msg.Author.IsBot)
                 return;
-
-            if (message.Channel is IDMChannel && Suits.Settings.RedirectBotDMToOwner && !msg.Author.IsOwnerOfApp())
-                await (Suits.Utility.General.GetAppOwnerAsync().Result.SendMessageAsync($"**{message.Author}:** {message.Content}"));
 
             var context = new SocketCommandContext(client, msg);
 

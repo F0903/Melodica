@@ -22,7 +22,7 @@ namespace Suits.Core
 
         private readonly DiscordSocketClient client;
 
-        private readonly SocketCommandHandler commandHandler;
+        internal readonly SocketCommandHandler commandHandler;
 
         private readonly IAsyncLoggingService logger;
 

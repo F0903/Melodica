@@ -103,7 +103,7 @@ namespace Suits.Jukebox.Services.Downloaders
                         break;
 
                     case QueueMode.Fast:
-                        Parallel.For(0, num, new ParallelOptions() { MaxDegreeOfParallelism = 5 }, i =>
+                        Parallel.For(0, num, new ParallelOptions() { MaxDegreeOfParallelism = Environment.ProcessorCount * 2 }, i =>
                         {
                             if (cache.Contains(videos[i].Title))
                             {
