@@ -8,6 +8,7 @@ using System.IO;
 using System.Linq;
 using System.Runtime.Serialization;
 using System.Threading.Tasks;
+using System.Diagnostics;
 
 namespace Suits.Jukebox.Services.Cache
 {
@@ -52,13 +53,15 @@ namespace Suits.Jukebox.Services.Cache
 
         public bool Contains(string title) => cache.ContainsKey(title);
 
-        public async Task<(int deletedFiles, int filesInUse)> PruneCacheAsync(bool forceClear = false)
+        public async Task<(int deletedFiles, int filesInUse, long msDuration)> PruneCacheAsync(bool forceClear = false)
         {
             if (!forceClear && await GetCacheSizeAsync() < Settings.MaxFileCacheInMB * 1024 * 1024)
-                return (0, 0);
+                return (0, 0, 0);
 
+            Stopwatch sw = new Stopwatch();
             int deletedFiles = 0;
             int filesInUse = 0;
+            sw.Start();
             Parallel.ForEach(Directory.EnumerateFiles(localCache).Convert(x => new FileInfo(x)).Where(x => x.Extension != Metadata.MetaFileExtension), x =>
             {
                 bool couldDelete;
@@ -73,12 +76,16 @@ namespace Suits.Jukebox.Services.Cache
 
                 if (couldDelete)
                 {
-                    File.Delete(Path.ChangeExtension(x.FullName, Metadata.MetaFileExtension));
+                    var mPath = Path.ChangeExtension(x.FullName, Metadata.MetaFileExtension);
+                    if (!File.Exists(mPath))
+                        return;
+                    File.Delete(mPath);
                     deletedFiles++;
                 }
             });
-
-            return (deletedFiles, filesInUse);
+            sw.Stop();
+            
+            return (deletedFiles, filesInUse, sw.ElapsedMilliseconds);
         }
 
         public async Task<PlayableMedia> GetAsync(string title)

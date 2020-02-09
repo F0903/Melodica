@@ -37,7 +37,7 @@ namespace Suits.Jukebox.Models
             return new PlayableMedia(meta);
         }
 
-        public Metadata Meta { get; protected set; }
+        public virtual Metadata Meta { get; protected set; }
 
         private readonly byte[] mediaData;
 

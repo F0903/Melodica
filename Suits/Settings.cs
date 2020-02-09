@@ -2,6 +2,7 @@
 
 namespace Suits
 {
+    //TODO: Rewrite this to be per guild based
     public static class Settings
     {
         public static string Token { get => XmlParser.ReadContentAsync<string>("Token").Result; }
@@ -13,7 +14,5 @@ namespace Suits
         public static int MaxFileCacheInMB { get => XmlParser.ReadContentAsync<int>("MaxFileCacheInMB").Result; }
 
         public static bool ClearFileCacheOnStartup { get => XmlParser.ReadContentAsync<bool>("ClearFileCacheOnStartup").Result; }
-
-        public static bool RedirectBotDMToOwner { get => XmlParser.ReadContentAsync<bool>("RedirectBotDMToOwner").Result; }
     }
 }

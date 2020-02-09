@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 
 namespace Suits.Utility.Extensions
@@ -12,8 +13,22 @@ namespace Suits.Utility.Extensions
     {
         public static char[] CustomIllegalChars { get; set; } =
         {
-            '.'
+            
         };
+
+        public static string Unfold<T>(this IEnumerable<T> str, char? seperatorChar = null)
+        {
+            if (str.Count() == 0)
+                return str.ElementAtOrDefault(0)?.ToString();
+            var sb = new StringBuilder();
+            foreach (var item in str)
+            {
+                sb.Append(item.ToString() + seperatorChar.GetValueOrDefault() + ' ');
+            }
+            var removeNum = seperatorChar != null ? 2 : 1;
+            sb.Remove(sb.Length - removeNum, removeNum);
+            return sb.ToString();
+        }
 
         public static byte[] ToBytes(this Stream stream)
         {
@@ -52,8 +67,13 @@ namespace Suits.Utility.Extensions
         public static bool IsOwnerOfApp(this IUser user) =>
             user.Id == IoC.Kernel.Get<DiscordSocketClient>().GetApplicationInfoAsync().Result.Owner.Id;
 
-        public static string ReplaceIllegalCharacters(this string str, string replacement = "_") =>
-             System.IO.Path.GetInvalidFileNameChars().Union(CustomIllegalChars).Aggregate(str, (current, c) => current.Replace(c.ToString(), replacement));
+        public static string ReplaceIllegalCharacters(this string str, string replacement = "_")
+        {
+            var newStr = Path.GetInvalidFileNameChars().Union(CustomIllegalChars).Aggregate(str, (current, c) => current.Replace(c.ToString(), replacement));
+            if (newStr[^1] == '.')
+                newStr.Remove(newStr.Length - 1, 1);
+            return newStr;
+        }
 
         public static bool IsUrl(this string str) =>
              Uri.TryCreate(str, UriKind.Absolute, out var uri)
