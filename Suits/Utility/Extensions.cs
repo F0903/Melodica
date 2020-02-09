@@ -30,9 +30,9 @@ namespace Suits.Utility.Extensions
             return sb.ToString();
         }
 
-        public static byte[] ToBytes(this Stream stream)
+        public static byte[] ToBytes(this Stream stream, uint bufferSize = 16 * 1024)
         {
-            byte[] buffer = new byte[16 * 1024];
+            byte[] buffer = new byte[bufferSize];
             using var mem = new MemoryStream();
             int count = 0;
             while ((count = stream.Read(buffer, 0, buffer.Length)) != 0) 
