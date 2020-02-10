@@ -45,6 +45,7 @@ namespace Suits.Jukebox.Models
 
         public TimeSpan GetDuration() => Meta.Duration;
         public string GetTitle() => Meta.Title;
+        public string GetThumbnail() => Meta.ThumbnailUrl;
 
         protected virtual Task SaveDataAsync()
         {

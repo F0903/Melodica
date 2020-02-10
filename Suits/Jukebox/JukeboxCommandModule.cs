@@ -10,6 +10,7 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Suits.Utility.Extensions;
+using Suits.Jukebox.Models;
 
 namespace Suits.Jukebox
 {
@@ -24,6 +25,14 @@ namespace Suits.Jukebox
         private readonly JukeboxService jukebox;
 
         private IVoiceChannel GetUserVoiceChannel() => ((SocketGuildUser)Context.User).VoiceChannel;
+
+        private Embed GetMediaEmbed(string title, IMediaInfo media)
+        {
+            return new EmbedBuilder().WithTitle(title)
+                                     .WithDescription(media.GetTitle())
+                                     .WithFooter(media.GetDuration().ToString())
+                                     .WithThumbnailUrl(media.GetThumbnail()).Build();
+        }
 
         private async void LargeMediaCallback() => await ReplyAsync("Large media detected. This might take a while.");
 
@@ -43,18 +52,11 @@ namespace Suits.Jukebox
             await ReplyAsync($"Shuffle set to {val}");
         }
 
-        [Command("IsLooping"), Summary("")]
-        public async Task IsLoopingAsync()
-        {
-            await ReplyAsync($"Loop is set to {(await jukebox.GetJukeboxAsync(Context.Guild)).Looping}");
-        }
-
-        [Command("Loop"), Summary("Loops the current song.")]
-        public async Task SetLoopingAsync(bool val = true)
+        [Command("Loop"), Summary("Toggles loop on the current song, or sets it to the specified parameter.")]
+        public async Task SetLoopingAsync(bool? val = null)
         {
             var juke = await jukebox.GetJukeboxAsync(Context.Guild);
-            juke.Looping = val;
-            await ReplyAsync($"Loop set to {val}");
+            await juke.SetLoopAsync(val ?? !juke.IsLooping(), async (x, l) => await ReplyAsync(null, false, GetMediaEmbed(l ? "**Now Looping**" : "**Stopped Looping**", x)));
         }
 
         [Command("Song"), Summary("Gets the currently playing song.")]
@@ -76,10 +78,10 @@ namespace Suits.Jukebox
             (await jukebox.GetJukeboxAsync(Context.Guild)).Paused = false;
         }
 
-        [Command("Pause"), Summary("Pauses playback or sets the pause status if a parameter is specified.")]
-        public async Task PauseAsync(bool? val = null)
+        [Command("Pause"), Summary("Pauses playback.")]
+        public async Task PauseAsync()
         {
-            (await jukebox.GetJukeboxAsync(Context.Guild)).Paused = val ?? true;
+            (await jukebox.GetJukeboxAsync(Context.Guild)).Paused = true;
         }
 
         [Command("Skip"), Summary("Skips current song.")]
@@ -149,11 +151,8 @@ namespace Suits.Jukebox
             var request = new DownloadMediaRequest<AsyncYoutubeDownloader>(songQuery, juke.GetCache(), Context.Guild, juke.Playing ? QueueMode.Consistent : QueueMode.Fast, LargeMediaCallback, MediaUnavailableCallback);
 
             await juke.PlayAsync(request, GetUserVoiceChannel(), true, async (context) =>
-            {
-                var embed = new EmbedBuilder().WithTitle("**Now Playing**")
-                                              .WithDescription(context.media.GetTitle())
-                                              .WithFooter(context.media.GetDuration().ToString());
-                await ReplyAsync(null, false, embed.Build());
+            {               
+                await ReplyAsync(null, false, GetMediaEmbed("**Now Playing**", context.media));
             });
         }
 
@@ -190,10 +189,7 @@ namespace Suits.Jukebox
 
             await juke.PlayAsync(request, GetUserVoiceChannel(), false, async (context) =>
             {
-                var embed = new EmbedBuilder().WithTitle((context.queued ? "**Queued**" : "**Now Playing**"))
-                                              .WithDescription(context.media.GetTitle())
-                                              .WithFooter(context.media.GetDuration().ToString());
-                await ReplyAsync(null, false, embed.Build());
+                await ReplyAsync(null, false, GetMediaEmbed(context.queued ? "**Queued**" : "**Now Playing**", context.media));
             });
         }
 

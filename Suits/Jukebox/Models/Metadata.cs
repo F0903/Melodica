@@ -12,10 +12,11 @@ namespace Suits.Jukebox.Models
     [Serializable]
     public class Metadata
     {
-        public Metadata(string title, string format, TimeSpan duration)
+        public Metadata(string title, string format, TimeSpan duration, string thumbnailUrl = null)
         {
             Title = title;
             Format = format;
+            ThumbnailUrl = thumbnailUrl;
             Duration = duration;
         }
 
@@ -33,6 +34,8 @@ namespace Suits.Jukebox.Models
         public string Extension { get => '.' + Format; }
 
         public string Format { get; }
+
+        public string ThumbnailUrl { get; }
 
         public TimeSpan Duration { get; }
     }

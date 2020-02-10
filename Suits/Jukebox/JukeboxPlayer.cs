@@ -36,12 +36,10 @@ namespace Suits.Jukebox
 
         public bool Paused { get; set; } = false;
 
-        public bool Looping { get; set; } = false;
-
         public bool Shuffle { get; set; } = false;
 
         //TODO: Perhaps outsource this to the callee via constructor.
-        private readonly SongQueue songQueue = new SongQueue(); 
+        private readonly SongQueue songQueue = new SongQueue();
 
         private readonly MediaCache cache;
 
@@ -52,6 +50,8 @@ namespace Suits.Jukebox
         private bool skip = false;
 
         private bool stop = false;
+
+        private bool loop = false;
 
         private bool switching = false;
 
@@ -64,6 +64,8 @@ namespace Suits.Jukebox
         public string GetChannelName() => channel.Name;
 
         public bool IsInChannel() => GetChannelName() != null;
+
+        public bool IsLooping() => loop;
 
         public void Skip() => skip = true;
 
@@ -104,10 +106,10 @@ namespace Suits.Jukebox
             {
                 await audio.DisposeAsync();
                 await discordOut.FlushAsync();
-            }           
+            }
             skip = false;
             Playing = false;
-        }      
+        }
 
         private async Task DismissAsync()
         {
@@ -115,6 +117,13 @@ namespace Suits.Jukebox
             await discordOut.DisposeAsync();
             await audioClient.StopAsync();
             await Task.Run(audioClient.Dispose);
+        }       
+
+        public Task SetLoopAsync(bool val, Action<IMediaInfo, bool> loopCallback = null)
+        {
+            loop = val;
+            loopCallback?.Invoke(CurrentSong, val);
+            return Task.CompletedTask;
         }
 
         public Task StopAsync(bool clearQueue = true)
@@ -122,7 +131,7 @@ namespace Suits.Jukebox
             stop = true;
             writeTask.Wait();
             stop = false;
-            Looping = false;            
+            loop = false;
             return clearQueue ? songQueue.ClearAsync() : Task.CompletedTask;
         }
 
@@ -177,7 +186,7 @@ namespace Suits.Jukebox
 
             this.channel = channel;
 
-            bool newClient = audioClient                 == null                         ||
+            bool newClient = audioClient == null ||
                              audioClient.ConnectionState == ConnectionState.Disconnected ||
                              audioClient.ConnectionState == ConnectionState.Disconnecting;
             audioClient = newClient ? await channel.ConnectAsync() : audioClient;
@@ -185,8 +194,9 @@ namespace Suits.Jukebox
 
             CurrentSong = song;
 
-            playingCallback?.Invoke((song, false));
-           
+            if (!loop)
+                playingCallback?.Invoke((song, false));
+
             await (writeTask = WriteToChannelAsync(new AudioProcessor(song.Meta.MediaPath, bitrate, bufferSize / 2, song.Meta.Format)));
             if (switching)
             {
@@ -196,13 +206,13 @@ namespace Suits.Jukebox
 
             CurrentSong = null;
 
-            if (!skip && Looping)
+            if (!stop && !skip && loop)
             {
                 await PlayAsync(request, channel, false, playingCallback).ConfigureAwait(false);
                 return;
             }
 
-            if (!songQueue.IsEmpty)
+            if (!stop && !songQueue.IsEmpty)
             {
                 await PlayAsync(new MediaRequest(new MediaCollection(Shuffle ? await songQueue.DequeueRandomAsync() : await songQueue.DequeueAsync())), channel, false, playingCallback).ConfigureAwait(false);
                 return;

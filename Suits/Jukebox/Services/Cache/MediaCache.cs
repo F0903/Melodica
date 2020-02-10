@@ -98,7 +98,7 @@ namespace Suits.Jukebox.Services.Cache
             catch (FileNotFoundException)
             {
                 cache.Remove(title, out var _);
-                throw new Exception("The metadata file for this media was deleted externally... Removing...");
+                throw new Exception("The metadata file for this media was deleted externally... Please try again.");
             }
             return media;
         }

@@ -49,6 +49,7 @@ namespace Suits.Jukebox.Models
 
         public string GetTitle() => PlaylistName;
         public TimeSpan GetDuration() => TotalDuration;
+        public string GetThumbnail() => playlist[0].Meta.ThumbnailUrl;
 
         IEnumerator<PlayableMedia> IEnumerable<PlayableMedia>.GetEnumerator() => ((IEnumerable<PlayableMedia>)playlist).GetEnumerator();
 
