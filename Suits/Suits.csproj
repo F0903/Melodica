@@ -1,12 +1,9 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
     <OutputType>Exe</OutputType>
     <TargetFramework>netcoreapp3.1</TargetFramework>
     <DefineConstants>DEBUG;TRACE</DefineConstants>
-    <OutputPath></OutputPath>
   </PropertyGroup>
-
   <ItemGroup>
     <PackageReference Include="Discord.Net" Version="2.1.1" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="3.1.1" />
@@ -18,7 +15,6 @@
     <PackageReference Include="Ninject" Version="3.3.4" />
     <PackageReference Include="YoutubeExplode" Version="4.7.12" />
   </ItemGroup>
-
   <ItemGroup>
     <None Update="ffmpeg.exe">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
@@ -33,5 +29,4 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>
-
 </Project>
