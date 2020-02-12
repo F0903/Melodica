@@ -34,8 +34,6 @@ namespace Suits.Jukebox
 
         public bool Playing { get; private set; } = false;
 
-        public bool Paused { get; set; } = false;
-
         public bool Shuffle { get; set; } = false;
 
         //TODO: Perhaps outsource this to the callee via constructor.
@@ -55,9 +53,11 @@ namespace Suits.Jukebox
 
         private bool switching = false;
 
+        public bool Paused { get; set; } = false;
+
         private AudioOutStream discordOut;
 
-        private Task writeTask;
+        private Thread playbackThread;
 
         public MediaCache GetCache() => cache;
 
@@ -93,7 +93,7 @@ namespace Suits.Jukebox
                     {
                         if (skip || stop)
                             break;
-                        await Task.Delay(1000);
+                        Thread.Yield();
                     }
 
                     if (skip || stop)
@@ -119,7 +119,7 @@ namespace Suits.Jukebox
             await Task.Run(audioClient.Dispose);
         }       
 
-        public Task SetLoopAsync(bool val, Action<IMediaInfo, bool> loopCallback = null)
+        public Task LoopAsync(bool val, Action<IMediaInfo, bool> loopCallback = null)
         {
             loop = val;
             loopCallback?.Invoke(CurrentSong, val);
@@ -127,11 +127,13 @@ namespace Suits.Jukebox
         }
 
         public Task StopAsync(bool clearQueue = true)
-        {
-            stop = true;
-            writeTask.Wait();
-            stop = false;
+        { 
             loop = false;
+
+            stop = true;
+            playbackThread.Join();
+            stop = false;
+            
             return clearQueue ? songQueue.ClearAsync() : Task.CompletedTask;
         }
 
@@ -197,7 +199,15 @@ namespace Suits.Jukebox
             if (!loop)
                 playingCallback?.Invoke((song, false));
 
-            await (writeTask = WriteToChannelAsync(new AudioProcessor(song.Meta.MediaPath, bitrate, bufferSize / 2, song.Meta.Format)));
+            playbackThread = new Thread(() => WriteToChannelAsync(new AudioProcessor(song.Meta.MediaPath, bitrate, bufferSize / 2, song.Meta.Format)).Wait())
+            {
+                Name = "PlaybackThread",
+                IsBackground = false,
+                Priority = ThreadPriority.Highest
+            };
+            playbackThread.Start();
+            playbackThread.Join();
+
             if (switching)
             {
                 switching = false;

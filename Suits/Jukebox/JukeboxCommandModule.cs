@@ -56,14 +56,19 @@ namespace Suits.Jukebox
         public async Task SetLoopingAsync(bool? val = null)
         {
             var juke = await jukebox.GetJukeboxAsync(Context.Guild);
-            await juke.SetLoopAsync(val ?? !juke.IsLooping(), async (x, l) => await ReplyAsync(null, false, GetMediaEmbed(l ? "**Now Looping**" : "**Stopped Looping**", x)));
+            await juke.LoopAsync(val ?? !juke.IsLooping(), async (x, l) => await ReplyAsync(null, false, GetMediaEmbed(l ? "**Now Looping**" : "**Stopped Looping**", x)));
         }
 
         [Command("Song"), Summary("Gets the currently playing song.")]
         public async Task GetSongAsync()
         {
             var song = (await jukebox.GetJukeboxAsync(Context.Guild)).CurrentSong;
-            await ReplyAsync(song != null ? $"**Currently playing** {song}" : "No song is playing.");
+            if (song == null)
+            {
+                await ReplyAsync("No song is playing.");
+                return;
+            }
+            await ReplyAsync(null, false, GetMediaEmbed("**Now Playing**", song));
         }
 
         [Command("Duration"), Summary("Gets the duration of the playing song.")]

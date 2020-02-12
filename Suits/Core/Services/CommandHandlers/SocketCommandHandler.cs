@@ -45,7 +45,7 @@ namespace Suits.Core.Services.CommandHandlers
                 return;
 
             LogMessage msg = new LogMessage(LogSeverity.Info, $"Command Execution - {info.Value.Module} - {info.Value.Name}", "Command executed successfully.");
-
+            
             if (result.Error.HasValue)
             {
                 msg = new LogMessage(
