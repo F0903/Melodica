@@ -75,159 +75,164 @@ namespace Suits.Jukebox
 
         public Task<PlayableMedia> RemoveFromQueueAsync(int index) => songQueue.RemoveAtAsync(index);
 
-        private async Task WriteToChannelAsync(AudioProcessor audio)
+        private Thread WriteToChannel(AudioProcessor audio)
         {
             if (audioClient == null)
                 throw new NullReferenceException("Audio Client was null.");
-            Playing = true;
+                     
+            void Write()
+            {              
+                var inS = audio.GetOutput();
+                Playing = true;
 
-            var inS = audio.GetOutput();
-
-            byte[] buffer = new byte[BufferSize];
-            int bytesRead;
-            try
-            {
-                while ((bytesRead = await inS.ReadAsync(buffer, 0, buffer.Length)) != 0)
+                byte[] buffer = new byte[BufferSize];
+                int bytesRead;
+                try
                 {
-                    while (Paused)
+                    while ((bytesRead = inS.Read(buffer, 0, buffer.Length)) != 0)
                     {
+                        while (Paused)
+                        {
+                            if (skip || stop)
+                                break;
+                            Thread.Yield();
+                        }
+
                         if (skip || stop)
                             break;
-                        Thread.Yield();
+                        discordOut.Write(buffer, 0, bytesRead);
                     }
-
-                    if (skip || stop)
-                        break;
-                    await discordOut.WriteAsync(buffer, 0, bytesRead);
                 }
+                catch (OperationCanceledException) { } // Catch exception when stopping playback
+                finally
+                {
+                    audio.Dispose();
+                    discordOut.Flush();
+                }
+                skip = false;
+                Playing = false;
             }
-            catch (OperationCanceledException) { } // Catch exception when stopping playback
-            finally
-            {
-                await audio.DisposeAsync();
-                await discordOut.FlushAsync();
-            }
-            skip = false;
-            Playing = false;
-        }
-
-        private async Task DismissAsync()
-        {
-            await channel.DisconnectAsync();
-            await discordOut.DisposeAsync();
-            await audioClient.StopAsync();
-            await Task.Run(audioClient.Dispose);
-        }       
-
-        public Task LoopAsync(bool val, Action<IMediaInfo, bool> loopCallback = null)
-        {
-            loop = val;
-            loopCallback?.Invoke(CurrentSong, val);
-            return Task.CompletedTask;
-        }
-
-        public Task StopAsync(bool clearQueue = true)
-        { 
-            loop = false;
-
-            stop = true;
-            playbackThread.Join();
-            stop = false;
-            
-            return clearQueue ? songQueue.ClearAsync() : Task.CompletedTask;
-        }
-
-        public async Task QueueAsync(PlayableMedia media)
-        {
-            if (!File.Exists(media.Meta.MediaPath))
-                throw new Exception("Specified song path to queue is empty.");
-
-            await songQueue.EnqueueAsync(media);
-        }
-
-        private async Task QueueAsync(MediaCollection playlist, int startIndex = 0)
-        {
-            var temp = playlist.ToList();
-            temp.RemoveAt(startIndex);
-            var toQueue = temp.ToArray();
-            await songQueue.UnsafeEnqueueAsync(toQueue);
-        }
-
-        public async Task ConnectToChannelAsync(IAudioChannel channel)
-        {
-            this.channel = channel;
-            audioClient = await channel.ConnectAsync();
-        }
-
-        public async Task PlayAsync(MediaRequest request, IAudioChannel channel, bool switchingPlayback = false, Action<(IMediaInfo media, bool queued)> playingCallback = null, int bitrate = DefaultBitrate, int bufferSize = DefaultBufferSize)
-        {
-            MediaCollection col = await request.GetMediaRequestAsync();
-            PlayableMedia song = col[col.PlaylistIndex];
-
-            if (col.IsPlaylist)
-            {
-                await QueueAsync(col, col.PlaylistIndex);
-
-                playingCallback?.Invoke((col, true));
-                if (Playing && !switchingPlayback)
-                    return;
-            }
-
-            if (Playing && switchingPlayback)
-            {
-                switching = switchingPlayback;
-                await StopAsync(false);
-            }
-
-            if (Playing && !switchingPlayback)
-            {
-                await QueueAsync(song);
-                playingCallback?.Invoke((song, true));
-                return;
-            }
-
-            this.channel = channel;
-
-            bool newClient = audioClient == null ||
-                             audioClient.ConnectionState == ConnectionState.Disconnected ||
-                             audioClient.ConnectionState == ConnectionState.Disconnecting;
-            audioClient = newClient ? await channel.ConnectAsync() : audioClient;
-            discordOut = newClient ? audioClient.CreatePCMStream(AudioApplication.Music, Bitrate, 100, 0) : discordOut;
-
-            CurrentSong = song;
-
-            if (!loop)
-                playingCallback?.Invoke((song, false));
-
-            playbackThread = new Thread(() => WriteToChannelAsync(new AudioProcessor(song.Meta.MediaPath, bitrate, bufferSize / 2, song.Meta.Format)).Wait())
+            return new Thread(Write)
             {
                 Name = "PlaybackThread",
                 IsBackground = false,
                 Priority = ThreadPriority.Highest
             };
-            playbackThread.Start();
-            playbackThread.Join();
+        }           
+        
 
-            if (switching)
-            {
-                switching = false;
-                return;
-            }
-
-            CurrentSong = null;
-
-            if (!stop && !skip && loop)
-            {
-                await PlayAsync(request, channel, false, playingCallback).ConfigureAwait(false);
-                return;
-            }
-
-            if (!stop && !songQueue.IsEmpty)
-            {
-                await PlayAsync(new MediaRequest(new MediaCollection(Shuffle ? await songQueue.DequeueRandomAsync() : await songQueue.DequeueAsync())), channel, false, playingCallback).ConfigureAwait(false);
-                return;
-            }
-            await DismissAsync().ConfigureAwait(false);
-        }
+    private async Task DismissAsync()
+    {
+        await channel.DisconnectAsync();
+        await discordOut.DisposeAsync();
+        await audioClient.StopAsync();
+        await Task.Run(audioClient.Dispose);
     }
+
+    public Task LoopAsync(bool val, Action<IMediaInfo, bool> loopCallback = null)
+    {
+        loop = val;
+        loopCallback?.Invoke(CurrentSong, val);
+        return Task.CompletedTask;
+    }
+
+    public Task StopAsync(bool clearQueue = true)
+    {
+        loop = false;
+
+        stop = true;
+        playbackThread.Join();
+        stop = false;
+
+        return clearQueue ? songQueue.ClearAsync() : Task.CompletedTask;
+    }
+
+    public async Task QueueAsync(PlayableMedia media)
+    {
+        if (!File.Exists(media.Meta.MediaPath))
+            throw new Exception("Specified song path to queue is empty.");
+
+        await songQueue.EnqueueAsync(media);
+    }
+
+    private async Task QueueAsync(MediaCollection playlist, int startIndex = 0)
+    {
+        var temp = playlist.ToList();
+        temp.RemoveAt(startIndex);
+        var toQueue = temp.ToArray();
+        await songQueue.UnsafeEnqueueAsync(toQueue);
+    }
+
+    public async Task ConnectToChannelAsync(IAudioChannel channel)
+    {
+        this.channel = channel;
+        audioClient = await channel.ConnectAsync();
+    }
+
+    public async Task PlayAsync(MediaRequest request, IAudioChannel channel, bool switchingPlayback = false, Action<(IMediaInfo media, bool queued)> playingCallback = null, int bitrate = DefaultBitrate, int bufferSize = DefaultBufferSize)
+    {
+        MediaCollection col = await request.GetMediaRequestAsync();
+        PlayableMedia song = col[col.PlaylistIndex];
+
+        if (col.IsPlaylist)
+        {
+            await QueueAsync(col, col.PlaylistIndex);
+
+            playingCallback?.Invoke((col, true));
+            if (Playing && !switchingPlayback)
+                return;
+        }
+
+        if (Playing && switchingPlayback)
+        {
+            switching = switchingPlayback;
+            await StopAsync(false);
+        }
+
+        if (Playing && !switchingPlayback)
+        {
+            await QueueAsync(song);
+            playingCallback?.Invoke((song, true));
+            return;
+        }
+
+        this.channel = channel;
+
+        bool newClient = audioClient == null ||
+                         audioClient.ConnectionState == ConnectionState.Disconnected ||
+                         audioClient.ConnectionState == ConnectionState.Disconnecting;
+        audioClient = newClient ? await channel.ConnectAsync() : audioClient;
+        discordOut = newClient ? audioClient.CreatePCMStream(AudioApplication.Music, Bitrate, 100, 0) : discordOut;
+
+        CurrentSong = song;
+
+        if (!loop)
+            playingCallback?.Invoke((song, false));
+
+        playbackThread = WriteToChannel(new AudioProcessor(song.Meta.MediaPath, bitrate, bufferSize / 2, song.Meta.Format));       
+        playbackThread.Start();
+        playbackThread.Join();
+
+        if (switching)
+        {
+            switching = false;
+            return;
+        }
+
+        CurrentSong = null;
+
+        if (!stop && !skip && loop)
+        {
+            await PlayAsync(request, channel, false, playingCallback).ConfigureAwait(false);
+            return;
+        }
+
+        if (!stop && !songQueue.IsEmpty)
+        {
+            await PlayAsync(new MediaRequest(new MediaCollection(Shuffle ? await songQueue.DequeueRandomAsync() : await songQueue.DequeueAsync())), channel, false, playingCallback).ConfigureAwait(false);
+            return;
+        }
+        await DismissAsync().ConfigureAwait(false);
+    }
+}
 }
