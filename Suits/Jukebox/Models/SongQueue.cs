@@ -29,6 +29,8 @@ namespace Suits.Jukebox.Models
                 return list.ToArray();
         }
 
+        public MediaCollection ToMediaCollection() => new MediaCollection(list, "Queue");
+
         public Task UnsafeEnqueueAsync(PlayableMedia item)
         {
             list.Add(item);

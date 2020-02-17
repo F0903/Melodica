@@ -11,7 +11,7 @@ namespace Suits.Utility
         public static Task<IUser> GetAppOwnerAsync() =>
             Task.FromResult(IoC.Kernel.Get<DiscordSocketClient>().GetApplicationInfoAsync().Result.Owner);
 
-        public static Task<int?> GetURLArgumentIntValueAsync(string url, string argName, bool throwOnNull = true)
+        public static Task<int?> GetURLArgumentIntAsync(string url, string argName, bool throwOnNull = true)
         {
             if (!url.Contains($"&{argName}"))
             {

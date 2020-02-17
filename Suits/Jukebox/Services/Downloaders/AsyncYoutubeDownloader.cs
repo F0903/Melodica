@@ -77,7 +77,7 @@ namespace Suits.Jukebox.Services.Downloaders
                 var pl = await yt.GetPlaylistAsync(playlistId, 1);
                 var videos = pl.Videos;
                 
-                var plIndex = await Utility.General.GetURLArgumentIntValueAsync(searchQuery, "index", false) - 1 ?? 0;
+                var plIndex = await Utility.General.GetURLArgumentIntAsync(searchQuery, "index", false) - 1 ?? 0;
 
                 if (videos.Sum(x => x.Duration.Minutes) > LargeSizeDurationMinuteThreshold)
                     largeSizeWarningCallback?.Invoke();
