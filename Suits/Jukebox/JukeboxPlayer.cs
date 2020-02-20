@@ -39,15 +39,15 @@ namespace Suits.Jukebox
 
         public bool Loop { get; private set; }
 
-        public bool Paused { get; set; } = false;               
+        public bool Paused { get; set; } = false;
 
         private bool skip = false;
 
-        private bool stop = false;     
-
-        private bool switching = false;        
+        private bool switching = false;
 
         private AudioOutStream discordOut;
+
+        private CancellationTokenSource playbackToken;
 
         private Thread playbackThread;
 
@@ -78,6 +78,8 @@ namespace Suits.Jukebox
             if (audioClient == null)
                 throw new NullReferenceException("Audio Client was null.");
 
+            playbackToken = new CancellationTokenSource();
+
             void Write()
             {
                 var inS = audio.GetOutput();
@@ -91,12 +93,12 @@ namespace Suits.Jukebox
                     {
                         while (Paused)
                         {
-                            if (skip || stop)
+                            if (skip || playbackToken.IsCancellationRequested)
                                 break;
                             Thread.Yield();
                         }
 
-                        if (skip || stop)
+                        if (skip || playbackToken.IsCancellationRequested)
                             break;
                         discordOut.Write(buffer, 0, bytesRead);
                     }
@@ -106,8 +108,7 @@ namespace Suits.Jukebox
                 {
                     audio.Dispose();
                     discordOut.Flush();
-                }
-                skip = false;
+                }                
                 Playing = false;
             }
             return new Thread(Write)
@@ -144,8 +145,8 @@ namespace Suits.Jukebox
         {
             Loop = false;
 
-            stop = true;
-            playbackThread.Join();           
+            playbackToken?.Cancel();
+            playbackThread.Join();
 
             return clearQueue ? songQueue.ClearAsync() : Task.CompletedTask;
         }
@@ -202,11 +203,11 @@ namespace Suits.Jukebox
 
             this.channel = channel;
 
-            bool newClient = audioClient                 == null                         ||
+            bool badClient = audioClient == null ||
                              audioClient.ConnectionState == ConnectionState.Disconnected ||
                              audioClient.ConnectionState == ConnectionState.Disconnecting;
-            audioClient = newClient ? await channel.ConnectAsync() : audioClient;
-            discordOut = newClient ? audioClient.CreatePCMStream(AudioApplication.Music, Bitrate, 100, 0) : discordOut;
+            audioClient = badClient ? await channel.ConnectAsync() : audioClient;
+            discordOut = badClient ? audioClient.CreatePCMStream(AudioApplication.Music, Bitrate, 100, 0) : discordOut;
 
             CurrentSong = song;
 
@@ -225,19 +226,19 @@ namespace Suits.Jukebox
 
             CurrentSong = null;
 
-            if (!stop && !skip && Loop)
+            if (playbackToken.IsCancellationRequested || songQueue.IsEmpty)
+            {
+                await DismissAsync().ConfigureAwait(false);
+                return;
+            }
+
+            if (!skip && Loop)
             {
                 await PlayAsync(request, channel, false, playingCallback).ConfigureAwait(false);
                 return;
             }
-
-            if (!stop && !songQueue.IsEmpty)
-            {
-                await PlayAsync(new MediaRequest(new MediaCollection(Shuffle ? await songQueue.DequeueRandomAsync() : await songQueue.DequeueAsync())), channel, false, playingCallback).ConfigureAwait(false);
-                return;
-            }
-            stop = false;
-            await DismissAsync().ConfigureAwait(false);
+            skip = false;
+            await PlayAsync(new MediaRequest(new MediaCollection(Shuffle ? await songQueue.DequeueRandomAsync() : await songQueue.DequeueAsync())), channel, false, playingCallback).ConfigureAwait(false);
         }
     }
 }

@@ -115,11 +115,9 @@ namespace Suits.Jukebox
                 return;
             }
 
-            EmbedBuilder eb = new EmbedBuilder
-            {
-                Color = Color.DarkGrey
-            }
+            EmbedBuilder eb = new EmbedBuilder()
             .WithTitle("**Queue**")
+            .WithThumbnailUrl(queue.ToMediaCollection().GetThumbnail())
             .WithFooter($"Duration - {juke.GetQueue().GetTotalDuration()} | Shuffle - {(juke.Shuffle ? "On" : "Off")}");
 
             int maxElems = 20;

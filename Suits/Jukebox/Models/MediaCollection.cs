@@ -7,7 +7,7 @@ using Suits.Utility.Extensions;
 namespace Suits.Jukebox.Models
 {
     public class MediaCollection : IEnumerable<PlayableMedia>, IMediaInfo
-    {       
+    {
         public MediaCollection(PlayableMedia media)
         {
             IsPlaylist = false;
@@ -39,7 +39,7 @@ namespace Suits.Jukebox.Models
 
         public int Length { get => playlist.Length; }
 
-        public TimeSpan TotalDuration { get => playlist.Sum(x => x.Meta.Duration); }
+        public TimeSpan TotalDuration => playlist.Sum(x => x.Meta.Duration);
 
         public bool IsPlaylist { get; private set; }
 
@@ -47,12 +47,14 @@ namespace Suits.Jukebox.Models
 
         public int PlaylistIndex { get; private set; }
 
+        public string Thumbnail => GetThumbnail();
+
         public string GetTitle() => PlaylistName;
         public TimeSpan GetDuration() => TotalDuration;
         public string GetThumbnail() => playlist[0].Meta.ThumbnailUrl;
 
         IEnumerator<PlayableMedia> IEnumerable<PlayableMedia>.GetEnumerator() => ((IEnumerable<PlayableMedia>)playlist).GetEnumerator();
 
-        IEnumerator IEnumerable.GetEnumerator() => ((IEnumerable<PlayableMedia>)playlist).GetEnumerator();       
+        IEnumerator IEnumerable.GetEnumerator() => ((IEnumerable<PlayableMedia>)playlist).GetEnumerator();
     }
 }
