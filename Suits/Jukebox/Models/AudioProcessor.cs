@@ -16,7 +16,7 @@ namespace Suits.Jukebox.Models
             {
                 StartInfo = new ProcessStartInfo()
                 {
-                    FileName = "ffmpeg.exe",
+                    FileName = Environment.Is64BitProcess ? "ffmpeg64.exe" : "ffmpeg32.exe",
                     Arguments = $"-hide_banner -loglevel debug -vn {(format != null ? $"-f {format}" : string.Empty)} -i {$"\"{path}\"" ?? "pipe:0"} -f s16le -bufsize {bufferSize} -b:a {bitrate} -ac 2 -ar 48000 -y pipe:1",
                     UseShellExecute = false,
                     RedirectStandardError = false,
