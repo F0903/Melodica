@@ -12,6 +12,8 @@ namespace Suits.Jukebox.Models
         {
             IsPlaylist = false;
             playlist = new[] { media };
+            PlaylistName = media.GetTitle();
+            PlaylistIndex = 0;
         }
 
         public MediaCollection(IEnumerable<PlayableMedia> playlist, string playlistName, int playlistIndex = 0)
@@ -47,11 +49,11 @@ namespace Suits.Jukebox.Models
 
         public int PlaylistIndex { get; private set; }
 
-        public string Thumbnail => GetThumbnail();
+        public string? Thumbnail => GetThumbnail();
 
         public string GetTitle() => PlaylistName;
         public TimeSpan GetDuration() => TotalDuration;
-        public string GetThumbnail() => playlist[0].Meta.ThumbnailUrl;
+        public string? GetThumbnail() => playlist[0].Meta.ThumbnailUrl;
 
         IEnumerator<PlayableMedia> IEnumerable<PlayableMedia>.GetEnumerator() => ((IEnumerable<PlayableMedia>)playlist).GetEnumerator();
 

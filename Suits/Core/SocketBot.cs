@@ -1,26 +1,29 @@
 ﻿using Discord;
 using Discord.WebSocket;
 using Suits.Core.Services.CommandHandlers;
-using Suits.Core.Services.Loggers;
+using Suits.Core.Services;
 using System.Threading.Tasks;
 
 namespace Suits.Core
 {
     public class SocketBot : IAsyncBot
     {
-        public SocketBot(string token, DiscordSocketClient client, IAsyncLoggingService logger, SocketCommandHandler commandHandler)
+        public SocketBot(BotSettings settings, IAsyncLoggingService logger, SocketCommandHandler commandHandler)
         {
-            this.token = token;
-            this.client = client;
+            this.settings = settings;
+            this.client = new DiscordSocketClient(new DiscordSocketConfig() 
+            { 
+                LogLevel = settings.LogSeverity
+            });
             this.logger = logger;
             this.commandHandler = commandHandler;
 
             Bootstrap().Wait();
         }
 
-        private readonly string token;
+        internal readonly BotSettings settings;
 
-        private readonly DiscordSocketClient client;
+        internal readonly DiscordSocketClient client;
 
         internal readonly SocketCommandHandler commandHandler;
 
@@ -30,21 +33,25 @@ namespace Suits.Core
         {
             Suits.IoC.Kernel.RegisterInstance(client);
       
-            await commandHandler.BuildCommandsAsync(client);
+            await commandHandler.BuildCommandsAsync(this);
             client.MessageReceived += commandHandler.HandleCommandsAsync;
             client.Log += logger.LogAsync;
         }
-
-        public SocketCommandHandler GetCmdHandler() => commandHandler;
 
         public async Task SetActivityAsync(string name, ActivityType type)
         {
             await client.SetActivityAsync(new Game(name, type));
         }
 
+        public async Task ConnectAsync(string activityName, ActivityType type, bool startOnConnect = false)
+        {
+            await SetActivityAsync(activityName, type);
+            await ConnectAsync(startOnConnect);
+        }
+
         public async Task ConnectAsync(bool startOnConnect = false)
         {
-            await client.LoginAsync(TokenType.Bot, token);
+            await client.LoginAsync(TokenType.Bot, settings.Token);
             await client.GetApplicationInfoAsync().Result.UpdateAsync();
             if (startOnConnect)
                 await client.StartAsync();

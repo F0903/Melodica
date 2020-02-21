@@ -11,6 +11,6 @@ namespace Suits.Jukebox.Services.Downloaders
     {
         public Task<string> GetMediaTitleAsync(string query);
 
-        public Task<MediaCollection> DownloadToCacheAsync(MediaCache cache, QueueMode mode, Discord.IGuild guild, string searchQuery, bool pruneCache = true, Action largeSizeWarningCallback = null, Action<string> videoUnavailableCallback = null);
+        public Task<MediaCollection> DownloadToCacheAsync(MediaCache cache, QueueMode mode, Discord.IGuild guild, string searchQuery, bool pruneCache = true, Action? largeSizeWarningCallback = null, Action<string>? videoUnavailableCallback = null);
     }
 }

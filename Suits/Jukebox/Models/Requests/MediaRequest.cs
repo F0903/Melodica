@@ -19,11 +19,11 @@ namespace Suits.Jukebox.Models.Requests
 
         protected MediaRequest() { }
 
-        private readonly MediaCollection col;
+        private readonly MediaCollection? col;
 
         public virtual Task<MediaCollection> GetMediaRequestAsync()
         {
-            return Task.FromResult(col);
+            return Task.FromResult(col!);
         }
     }
 }

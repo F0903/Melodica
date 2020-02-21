@@ -3,16 +3,16 @@ using System.Threading.Tasks;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
-using System.Runtime.Serialization.Formatters.Binary;
 using System.Runtime.Serialization;
 using Suits.Jukebox.Services;
+using Suits.Core.Services;
 
 namespace Suits.Jukebox.Models
 {
     [Serializable]
     public class Metadata
     {
-        public Metadata(string title, string format, TimeSpan duration, string thumbnailUrl = null)
+        public Metadata(string title, string format, TimeSpan duration, string? thumbnailUrl = null)
         {
             Title = title;
             Format = format;
@@ -20,14 +20,16 @@ namespace Suits.Jukebox.Models
             Duration = duration;
         }
 
+        private static readonly BinarySerializer bs = new BinarySerializer();
+
         public static Task<Metadata> LoadMetadataFromFileAsync(string fullPath)
         {
-            return Serializer.DeserializeFileAsync<Metadata>(fullPath);
+            return bs.DeserializeFileAsync<Metadata>(fullPath);
         }     
 
         public const string MetaFileExtension = ".meta";
 
-        public string MediaPath { get; set; }
+        public string? MediaPath { get; set; }
 
         public string Title { get; }
 
@@ -35,7 +37,7 @@ namespace Suits.Jukebox.Models
 
         public string Format { get; }
 
-        public string ThumbnailUrl { get; }
+        public string? ThumbnailUrl { get; }
 
         public TimeSpan Duration { get; }
     }
