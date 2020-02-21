@@ -4,6 +4,7 @@ using Suits.Core.Services.CommandHandlers;
 using Suits.Core.Services;
 using System;
 using System.Threading.Tasks;
+using System.Runtime.InteropServices;
 
 namespace Suits
 {
@@ -13,6 +14,8 @@ namespace Suits
 
         private static async Task Main()
         {
+            Console.WriteLine($"IS WINDOWS: {RuntimeInformation.IsOSPlatform(OSPlatform.Windows)}");
+
             await currentBot.ConnectAsync(true);
             await currentBot.SetActivityAsync($"{GuildSettings.DefaultPrefix}play", Discord.ActivityType.Listening);
             AppDomain.CurrentDomain.ProcessExit += CurrentDomain_ProcessExit;
