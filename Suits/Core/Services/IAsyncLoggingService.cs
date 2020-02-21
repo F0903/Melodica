@@ -1,6 +1,6 @@
 ﻿using System.Threading.Tasks;
 
-namespace Suits.Core.Services.Loggers
+namespace Suits.Core.Services
 {
     public interface IAsyncLoggingService
     {

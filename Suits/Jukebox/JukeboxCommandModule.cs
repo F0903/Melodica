@@ -26,7 +26,7 @@ namespace Suits.Jukebox
 
         private IVoiceChannel GetUserVoiceChannel() => ((SocketGuildUser)Context.User).VoiceChannel;
 
-        private Embed GetMediaEmbed(string title, IMediaInfo media, string description = null)
+        private Embed GetMediaEmbed(string title, IMediaInfo media, string? description = null)
         {
             return new EmbedBuilder().WithTitle(title)
                                      .WithDescription(description ?? media.GetTitle())
@@ -152,7 +152,7 @@ namespace Suits.Jukebox
         }
 
         [Command("Play"), Alias("P"), Summary("Plays the specified song.")]
-        public async Task PlayAsync([Remainder] string songQuery = null)
+        public async Task PlayAsync([Remainder] string? songQuery = null)
         {
             if (GetUserVoiceChannel() == null)
             {
@@ -174,7 +174,7 @@ namespace Suits.Jukebox
             if(attach.Count == 0)
             {
                 // Refactor this request class.
-                request = new DownloadMediaRequest<AsyncYoutubeDownloader>(songQuery, (await jukebox.GetJukeboxAsync(Context.Guild)).GetCache(), Context.Guild,
+                request = new DownloadMediaRequest<AsyncYoutubeDownloader>(songQuery!, (await jukebox.GetJukeboxAsync(Context.Guild)).GetCache(), Context.Guild,
                         (await jukebox.GetJukeboxAsync(Context.Guild)).Playing ? QueueMode.Consistent : QueueMode.Fast, LargeMediaCallback, MediaUnavailableCallback);
             }
             else

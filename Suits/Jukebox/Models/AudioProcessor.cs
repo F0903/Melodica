@@ -4,8 +4,6 @@ using System.Diagnostics;
 using System.IO;
 using System.Threading.Tasks;
 
-#nullable enable
-
 namespace Suits.Jukebox.Models
 {
     public sealed class AudioProcessor : IDisposable

@@ -39,17 +39,17 @@ namespace Suits.Jukebox.Models
 
         public virtual Metadata Meta { get; protected set; }
 
-        private readonly byte[] mediaData;
+        private readonly byte[]? mediaData;
 
-        protected string saveDir;
+        protected string? saveDir;
 
         public TimeSpan GetDuration() => Meta.Duration;
         public string GetTitle() => Meta.Title;
-        public string GetThumbnail() => Meta.ThumbnailUrl;
+        public string? GetThumbnail() => Meta.ThumbnailUrl;
 
         protected virtual Task SaveDataAsync()
         {
-            var location = Path.Combine(saveDir, Meta.Title.ReplaceIllegalCharacters() + Meta.Extension);
+            var location = Path.Combine(saveDir ?? throw new NullReferenceException("Please set saveDir before saving."), Meta.Title.ReplaceIllegalCharacters() + Meta.Extension);
             File.WriteAllBytes(location, mediaData);
             Meta.MediaPath = location;
             return Task.CompletedTask;

@@ -6,6 +6,7 @@ using System.Runtime.Serialization;
 using System.Threading.Tasks;
 using Suits.Utility.Extensions;
 using Suits.Jukebox.Services;
+using Suits.Core.Services;
 
 namespace Suits.Jukebox.Models
 {  
@@ -17,11 +18,13 @@ namespace Suits.Jukebox.Models
             SaveDataAsync().Wait();
         }
 
+        private static readonly BinarySerializer bs = new BinarySerializer();
+
         protected async override Task SaveDataAsync()
         {
             await base.SaveDataAsync();
             
-            await Serializer.SerializeToFileAsync(Path.Combine(saveDir, Meta.Title.ReplaceIllegalCharacters() + Metadata.MetaFileExtension), Meta);
+            await bs.SerializeToFileAsync(Path.Combine(saveDir!, Meta.Title.ReplaceIllegalCharacters() + Metadata.MetaFileExtension), Meta);
         }
     }
 }

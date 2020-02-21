@@ -9,6 +9,7 @@ using System.Linq;
 using System.Runtime.Serialization;
 using System.Threading.Tasks;
 using System.Diagnostics;
+using Suits.Core;
 
 namespace Suits.Jukebox.Services.Cache
 {
@@ -16,7 +17,8 @@ namespace Suits.Jukebox.Services.Cache
     {
         public MediaCache(IGuild guild)
         {
-            localCache = Path.Combine(CacheRoot, $"{guild.Name}");
+            connectedGuild = guild;
+            localCache = Path.Combine(CacheRoot, $"{connectedGuild.Name}");
             bool exists = Directory.Exists(localCache);
             if (!exists) Directory.CreateDirectory(localCache);
             else LoadPreexistingFilesAsync();
@@ -28,6 +30,8 @@ namespace Suits.Jukebox.Services.Cache
 
         public const string CacheRoot = @"./mediacache/";
         public readonly string localCache;
+
+        private readonly IGuild connectedGuild;
 
         private readonly ConcurrentDictionary<string, string> cache = new ConcurrentDictionary<string, string>();
 
@@ -55,7 +59,7 @@ namespace Suits.Jukebox.Services.Cache
 
         public async Task<(int deletedFiles, int filesInUse, long msDuration)> PruneCacheAsync(bool forceClear = false)
         {
-            if (!forceClear && await GetCacheSizeAsync() < Settings.MaxFileCacheInMB * 1024 * 1024)
+            if (!forceClear && await GetCacheSizeAsync() < GuildSettings.GetOrCreateSettings(connectedGuild, () => new GuildSettings(connectedGuild)).MaxFileCacheInMB * 1024 * 1024)
                 return (0, 0, 0);
 
             Stopwatch sw = new Stopwatch();
@@ -120,7 +124,7 @@ namespace Suits.Jukebox.Services.Cache
 
                 CachedMedia ca = new CachedMedia(med, localCache);
                 o.Add(ca);
-                cache.TryAdd(ca.Meta.Title, ca.Meta.MediaPath);
+                cache.TryAdd(ca.Meta.Title, ca.Meta.MediaPath!);
             }
             return pl ? new MediaCollection(o, col.PlaylistName, col.PlaylistIndex) : new MediaCollection(o.First());
         }

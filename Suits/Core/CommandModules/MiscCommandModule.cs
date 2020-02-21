@@ -50,7 +50,7 @@ namespace Suits.Core.CommandModules
                 return i > (int)i ? (int)++i : (int)i;
             }
            
-            var eb = new EmbedBuilder().WithTitle($"Commands [{page} of {CalcPages()}]").WithFooter(Settings.Prefix);           
+            var eb = new EmbedBuilder().WithTitle($"Commands [{page} of {CalcPages()}]");           
             for(int x = 0; x < (mods.Length > elemsPerPage ? elemsPerPage : mods.Length); x++)
             {
                 var comms = mods[x].Commands;

@@ -13,6 +13,15 @@ namespace Suits.Core.CommandModules
     {
         [Command("Message"), Summary("Messages a guild user by username.")]
         public async Task MessageGuildUserAsync(string userToMsg, [Remainder] string content) =>
-            await Context.Guild.AutoGetUser(userToMsg).GetOrCreateDMChannelAsync().Result.SendMessageAsync(content);       
+            await Context.Guild.AutoGetUser(userToMsg).GetOrCreateDMChannelAsync().Result.SendMessageAsync(content); 
+        
+        [Command("Prefix"), Summary("Changes the prefix.")]
+        public async Task ChangePrefixAsync(string newPrefix)
+        {
+            var settings = GuildSettings.GetOrCreateSettings(Context.Guild, () => new GuildSettings(Context.Guild));
+            settings.Prefix = newPrefix;
+            settings.SaveData();
+            await ReplyAsync($"Prefix for {Context.Guild.Name} is now {newPrefix}.");
+        }
     }
 }
