@@ -202,8 +202,8 @@ namespace Suits.Jukebox
             }
 
             this.channel = channel;
-
-            bool badClient = audioClient == null ||
+                
+            bool badClient = audioClient                 == null                         ||
                              audioClient.ConnectionState == ConnectionState.Disconnected ||
                              audioClient.ConnectionState == ConnectionState.Disconnecting;
             audioClient = badClient ? await channel.ConnectAsync() : audioClient;
