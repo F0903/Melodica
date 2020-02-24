@@ -53,9 +53,15 @@ namespace Suits.Jukebox
         }
 
         [Command("Loop"), Summary("Toggles loop on the current song.")]
-        public async Task SetLoopingAsync()
+        public async Task SetLoopingAsync([Remainder] string? query = null)
         {
             var juke = await jukebox.GetJukeboxAsync(Context.Guild);
+            if (!juke.Playing)
+            {
+                if (query == null)
+                    return;
+                //await juke.PlayAsync(new DownloadMediaRequest(query!, juke.GetCache(), Context.Guild, QueueMode.Fast, LargeMediaCallback), GetUserVoiceChannel(), false);
+            }
             await juke.ToggleLoopAsync(async (x, l) => await ReplyAsync(null, false, GetMediaEmbed(l ? "**Now Looping**" : "**Stopped Looping**", x)));
         }
 
@@ -143,10 +149,10 @@ namespace Suits.Jukebox
             var juke = await jukebox.GetJukeboxAsync(Context.Guild);
 
             // Refactor this request class.
-            var request = new DownloadMediaRequest<AsyncYoutubeDownloader>(songQuery, juke.GetCache(), Context.Guild, juke.Playing ? QueueMode.Consistent : QueueMode.Fast, LargeMediaCallback, MediaUnavailableCallback);
+            var request = new DownloadMediaRequest(songQuery, juke.GetCache(), Context.Guild, juke.Playing ? QueueMode.Consistent : QueueMode.Fast, LargeMediaCallback, MediaUnavailableCallback);
 
             await juke.PlayAsync(request, GetUserVoiceChannel(), true, async (context) =>
-            {               
+            {
                 await ReplyAsync(null, false, GetMediaEmbed("**Now Playing**", context.media));
             });
         }
@@ -171,10 +177,10 @@ namespace Suits.Jukebox
             var juke = await jukebox.GetJukeboxAsync(Context.Guild);
 
             MediaRequest request;
-            if(attach.Count == 0)
+            if (attach.Count == 0)
             {
                 // Refactor this request class.
-                request = new DownloadMediaRequest<AsyncYoutubeDownloader>(songQuery!, (await jukebox.GetJukeboxAsync(Context.Guild)).GetCache(), Context.Guild,
+                request = new DownloadMediaRequest(songQuery!, (await jukebox.GetJukeboxAsync(Context.Guild)).GetCache(), Context.Guild,
                         (await jukebox.GetJukeboxAsync(Context.Guild)).Playing ? QueueMode.Consistent : QueueMode.Fast, LargeMediaCallback, MediaUnavailableCallback);
             }
             else
@@ -191,7 +197,7 @@ namespace Suits.Jukebox
         [Command("Stop"), Summary("Stops playback.")]
         public async Task StopAsync()
         {
-            if(!(await jukebox.GetJukeboxAsync(Context.Guild)).Playing)
+            if (!(await jukebox.GetJukeboxAsync(Context.Guild)).Playing)
             {
                 await ReplyAsync("No song is playing.");
                 return;

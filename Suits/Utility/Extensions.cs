@@ -13,7 +13,7 @@ namespace Suits.Utility.Extensions
     {
         public static char[] CustomIllegalChars { get; set; } =
         {
-            
+            '<'
         };
 
         public static string Unfold<T>(this IEnumerable<T> str, char? seperatorChar = null)

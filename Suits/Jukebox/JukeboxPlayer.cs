@@ -80,6 +80,10 @@ namespace Suits.Jukebox
 
             playbackToken = new CancellationTokenSource();
 
+            bool IsAlone() => channel!.GetUsersAsync().First().Result.Count == 1;
+
+            bool BreakConditions() => IsAlone() || skip || playbackToken!.IsCancellationRequested;
+
             void Write()
             {
                 var inS = audio.GetOutput();
@@ -93,13 +97,14 @@ namespace Suits.Jukebox
                     {
                         while (Paused)
                         {
-                            if (skip || playbackToken!.IsCancellationRequested)
+                            if (BreakConditions())
                                 break;
                             Thread.Yield();
                         }
 
-                        if (skip || playbackToken!.IsCancellationRequested)
+                        if (BreakConditions())
                             break;
+
                         discordOut!.Write(buffer, 0, bytesRead);
                     }
                 }
@@ -226,17 +231,18 @@ namespace Suits.Jukebox
 
             CurrentSong = null;
 
-            if (playbackToken?.IsCancellationRequested ?? false || songQueue.IsEmpty)
-            {
-                await DismissAsync().ConfigureAwait(false);
-                return;
-            }
-
             if (!skip && Loop)
             {
                 await PlayAsync(request, channel, false, playingCallback).ConfigureAwait(false);
                 return;
             }
+
+            if (songQueue.IsEmpty || (playbackToken?.IsCancellationRequested ?? false))
+            {
+                await DismissAsync().ConfigureAwait(false);
+                return;
+            }
+            
             skip = false;
             await PlayAsync(new MediaRequest(new MediaCollection(Shuffle ? await songQueue.DequeueRandomAsync() : await songQueue.DequeueAsync())), channel, false, playingCallback).ConfigureAwait(false);
         }

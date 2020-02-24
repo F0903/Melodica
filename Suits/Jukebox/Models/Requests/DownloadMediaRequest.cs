@@ -7,13 +7,13 @@ using System.Threading.Tasks;
 
 namespace Suits.Jukebox.Models.Requests
 {
-    public class DownloadMediaRequest<D> : MediaRequest where D : IAsyncDownloadService, new()
+    public class DownloadMediaRequest : MediaRequest
     {
         public DownloadMediaRequest(string query, MediaCache cache, Discord.IGuild guild, QueueMode mode = QueueMode.Consistent,
                                     Action? largeSizeWarning = null, Action<string>? videoUnavailable = null,
                                     IAsyncDownloadService? downloader = null)
         {
-            this.downloader = downloader ?? IoC.Kernel.Get<D>() ?? new D();
+            this.downloader = downloader ?? IoC.Kernel.Get<IAsyncDownloadService>();
             this.query = query;
             this.guild = guild;
             this.mode = mode;

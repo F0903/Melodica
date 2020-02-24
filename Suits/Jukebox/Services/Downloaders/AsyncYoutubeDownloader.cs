@@ -62,7 +62,8 @@ namespace Suits.Jukebox.Services.Downloaders
                 return await InternalDownloadAsync(query, false, largeSizeWarningCallback!, videoUnavailableCallback, toQueue, ++attempt).ConfigureAwait(false);
             }
             var stream = await yt.GetMediaStreamAsync(audioStreams[0]);
-            return new PlayableMedia(new Metadata(vid.Title.ReplaceIllegalCharacters(), audioStreams[0].Container.ToString().ToLower(), vid.Duration, vid.Thumbnails.MaxResUrl ?? vid.Thumbnails.HighResUrl), stream.ToBytes());
+
+            return new PlayableMedia(new Metadata(vid.Title.ReplaceIllegalCharacters(), audioStreams[0].Container.ToString().ToLower(), vid.Duration, vid.Thumbnails.HighResUrl), stream.ToBytes());
         }
 
         private Task<MediaCollection> CacheAsync(MediaCollection col, MediaCache cache, bool pruneCache = true)
