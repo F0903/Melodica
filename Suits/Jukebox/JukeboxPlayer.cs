@@ -73,6 +73,8 @@ namespace Suits.Jukebox
 
         public Task<PlayableMedia> RemoveFromQueueAsync(int index) => songQueue.RemoveAtAsync(index);
 
+        private bool IsAlone() => channel!.GetUsersAsync().First().Result.Count == 1;
+
         private Thread WriteToChannel(AudioProcessor audio)
         {
             if (audioClient == null)
@@ -80,9 +82,9 @@ namespace Suits.Jukebox
 
             playbackToken = new CancellationTokenSource();
 
-            bool IsAlone() => channel!.GetUsersAsync().First().Result.Count == 1;
-
             bool BreakConditions() => IsAlone() || skip || playbackToken!.IsCancellationRequested;
+
+            void CheckConnection() => discordOut = audioClient!.ConnectionState == ConnectionState.Disconnected ? audioClient.CreatePCMStream(AudioApplication.Music, Bitrate, 100, 0) : discordOut;
 
             void Write()
             {
@@ -105,6 +107,7 @@ namespace Suits.Jukebox
                         if (BreakConditions())
                             break;
 
+                        CheckConnection();
                         discordOut!.Write(buffer, 0, bytesRead);
                     }
                 }
@@ -113,7 +116,7 @@ namespace Suits.Jukebox
                 {
                     audio.Dispose();
                     discordOut!.Flush();
-                }                
+                }
                 Playing = false;
             }
             return new Thread(Write)
@@ -207,8 +210,8 @@ namespace Suits.Jukebox
             }
 
             this.channel = channel;
-                
-            bool badClient = audioClient                 == null                         ||
+
+            bool badClient = audioClient == null ||
                              audioClient.ConnectionState == ConnectionState.Disconnected ||
                              audioClient.ConnectionState == ConnectionState.Disconnecting;
             audioClient = badClient ? await channel.ConnectAsync() : audioClient!;
@@ -222,6 +225,11 @@ namespace Suits.Jukebox
             playbackThread = WriteToChannel(new AudioProcessor(song.Meta.MediaPath, bitrate, bufferSize / 2, song.Meta.Format));
             playbackThread.Start();
             playbackThread.Join();
+
+            if (IsAlone())
+            {
+                await DismissAsync().ConfigureAwait(false);
+            }
 
             if (switching)
             {
@@ -242,7 +250,7 @@ namespace Suits.Jukebox
                 await DismissAsync().ConfigureAwait(false);
                 return;
             }
-            
+
             skip = false;
             await PlayAsync(new MediaRequest(new MediaCollection(Shuffle ? await songQueue.DequeueRandomAsync() : await songQueue.DequeueAsync())), channel, false, playingCallback).ConfigureAwait(false);
         }

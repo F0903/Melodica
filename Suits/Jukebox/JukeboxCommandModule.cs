@@ -42,6 +42,7 @@ namespace Suits.Jukebox
         public async Task ClearCacheAsync()
         {
             var (deletedFiles, filesInUse, ms) = await (await jukebox.GetJukeboxAsync(Context.Guild)).GetCache().PruneCacheAsync(true);
+            await (await jukebox.GetJukeboxAsync(Context.Guild)).ClearQueueAsync();
             await ReplyAsync($"Deleted {deletedFiles} files. ({filesInUse} files in use) [{ms}ms]");
         }
 
@@ -49,7 +50,7 @@ namespace Suits.Jukebox
         public async Task ShuffleAsync()
         {
             var juke = await jukebox.GetJukeboxAsync(Context.Guild);
-            await ReplyAsync(null, false, GetMediaEmbed(juke.Shuffle ? "**Shuffling**" : "**Stopped Shuffling**", juke.GetQueue().ToMediaCollection()));
+            await juke.ToggleShuffleAsync(async (x, b) => await ReplyAsync(null, false, GetMediaEmbed(b ? "**Shuffling**" : "**Stopped Shuffling**", x)));
         }
 
         [Command("Loop"), Summary("Toggles loop on the current song.")]
