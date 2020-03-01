@@ -11,12 +11,18 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using System.Threading;
 using System.IO;
+using Discord;
 
 namespace Suits.Jukebox.Services.Downloaders
 {
-    //TODO: REFACTOR REFACTOR REFACTOR
     public class AsyncYoutubeDownloader : IAsyncDownloadService
     {
+        public AsyncYoutubeDownloader(Action? largeSizeWarningCallback, Action<string>? videoUnavailableCallback)
+        {
+            LargeSizeWarningCallback = largeSizeWarningCallback;
+            VideoUnavailableCallback = videoUnavailableCallback;
+        }
+
         private readonly YoutubeClient yt = new YoutubeClient(new System.Net.Http.HttpClient());
 
         public const int MaxCacheAttempts = 5;
@@ -25,19 +31,44 @@ namespace Suits.Jukebox.Services.Downloaders
 
         public const int MaxPlaylistVideos = 100;
 
-        private TimeSpan LargeSizeDurationThreshold = new TimeSpan(0, 45, 0);
+        private readonly TimeSpan LargeSizeDurationThreshold = new TimeSpan(0, 45, 0);
+
+        public Action? LargeSizeWarningCallback { get; set; }
+        public Action<string>? VideoUnavailableCallback { get; set; }
 
         public Task<string> GetMediaTitleAsync(string query) =>
             Task.FromResult(yt.SearchVideosAsync(query, 1).Result[0].Title);
+      
+        private async Task<MediaCollection> DownloadPlaylist(string id, int index = 0)
+        {
+            var pl = await yt.GetPlaylistAsync(id, 1);
+            var videos = pl.Videos;
 
-        private async Task<PlayableMedia> InternalDownloadAsync(string query, bool isPreFiltered, Action? largeSizeWarningCallback, Action<string>? videoUnavailableCallback, bool toQueue = false, int attempt = 0)
+            if (videos.Sum(x => x.Duration) > LargeSizeDurationThreshold)
+                LargeSizeWarningCallback?.Invoke();           
+
+            var num = videos.Count > MaxPlaylistVideos ? MaxPlaylistVideos : videos.Count;
+            List<PlayableMedia> vids = new List<PlayableMedia>(pl.Videos.Count);
+            for (int i = index; i < num; i++)
+            {
+                var vid = videos[i];
+                Stream vs = new MemoryStream();
+                var iSet = await yt.GetVideoMediaStreamInfosAsync(vid.Id);
+                var audInfo = iSet.Audio.OrderByDescending(x => x.Bitrate).First();
+                await yt.DownloadMediaStreamAsync(audInfo, vs);
+                vids.Add(new PlayableMedia(new Metadata(vid.Title, audInfo.Container.ToString(), vid.Duration, vid.Thumbnails.HighResUrl), vs.ToBytes()));
+            }
+            return new MediaCollection(vids, pl.Title);
+        }
+
+        private async Task<PlayableMedia> DownloadVideo(string query, bool isPreFiltered, int attempt = 0)
         {
             bool isQueryUrl = query.IsUrl();
             
             var vid = isQueryUrl || isPreFiltered ? (await yt.GetVideoAsync(isPreFiltered ? query : YoutubeClient.ParseVideoId(query))) : (await yt.SearchVideosAsync(query, 1))[attempt];
 
             if (vid.Duration > LargeSizeDurationThreshold)
-                largeSizeWarningCallback?.Invoke();
+                LargeSizeWarningCallback?.Invoke();
 
             MediaStreamInfoSet info;
             try
@@ -46,7 +77,7 @@ namespace Suits.Jukebox.Services.Downloaders
             }
             catch (Exception ex) when (ex is VideoUnplayableException || ex is VideoUnavailableException)
             {
-                videoUnavailableCallback?.Invoke(vid.Title);
+                VideoUnavailableCallback?.Invoke(vid.Title);
                 return null!;
             }
 
@@ -59,85 +90,21 @@ namespace Suits.Jukebox.Services.Downloaders
                 if (attempt > MaxDownloadAttempts)
                     throw new Exception($"No videos with available media streams could be found. Attempts: {attempt}/{MaxDownloadAttempts}");
 
-                return await InternalDownloadAsync(query, false, largeSizeWarningCallback!, videoUnavailableCallback, toQueue, ++attempt).ConfigureAwait(false);
+                return await DownloadVideo(query, false, ++attempt).ConfigureAwait(false);
             }
             var stream = await yt.GetMediaStreamAsync(audioStreams[0]);
 
             return new PlayableMedia(new Metadata(vid.Title.ReplaceIllegalCharacters(), audioStreams[0].Container.ToString().ToLower(), vid.Duration, vid.Thumbnails.HighResUrl), stream.ToBytes());
         }
 
-        private Task<MediaCollection> CacheAsync(MediaCollection col, MediaCache cache, bool pruneCache = true)
+        public async Task<MediaCollection> DownloadAsync(string searchQuery)
         {
-            return cache.CacheMediaAsync(col, pruneCache || !col.IsPlaylist);
-        }
-
-        public async Task<MediaCollection> DownloadToCacheAsync(MediaCache cache, QueueMode mode, Discord.IGuild guild, string searchQuery, bool pruneCache = true, Action? largeSizeWarningCallback = null, Action<string>? videoUnavailableCallback = null)
-        {
-            // Refactor this whole shite.
-            if (YoutubeClient.TryParsePlaylistId(searchQuery, out var playlistId))
+            if(YoutubeClient.TryParsePlaylistId(searchQuery, out var plId))
             {
-                var pl = await yt.GetPlaylistAsync(playlistId!, 1);
-                var videos = pl.Videos;
-                
                 var plIndex = await Utility.General.GetURLArgumentIntAsync(searchQuery, "index", false) - 1 ?? 0;
-
-                if (videos.Sum(x => x.Duration) > LargeSizeDurationThreshold)
-                    largeSizeWarningCallback?.Invoke();
-
-                var num = videos.Count > MaxPlaylistVideos ? MaxPlaylistVideos : videos.Count;
-
-                PlayableMedia[] pList = new PlayableMedia[num];
-                switch (mode)
-                {
-                    case QueueMode.Consistent:
-                        for (int i = 0; i < num; i++)
-                        {
-                            if (cache.Contains(videos[i].Title))
-                            {
-                                pList[i] = await cache.GetAsync(videos[i].Title);
-                                continue;
-                            }
-                            var result = await InternalDownloadAsync(videos[i].Id, true, null, videoUnavailableCallback);
-                            if (result == null)
-                                continue;
-                            pList[i] = result;
-                        }
-                        break;
-
-                    case QueueMode.Fast:
-                        Parallel.For(0, num, new ParallelOptions() { MaxDegreeOfParallelism = Environment.ProcessorCount * 2 }, i =>
-                        {
-                            if (cache.Contains(videos[i].Title))
-                            {
-                                pList[i] = cache.GetAsync(videos[i].Title).Result;
-                                return;
-                            }
-                            var result = InternalDownloadAsync(videos[i].Id, true, null, videoUnavailableCallback).Result;
-                            if (result == null)
-                                return;
-                            pList[i] = result;
-                        });
-                        break;
-                }
-
-                var pListFilter = pList.ToList();
-                pListFilter.RemoveAll(x => x == null);
-                pList = pListFilter.ToArray();
-
-                var cached = await cache.CacheMediaAsync(new MediaCollection(pList, pl.Title));
-
-                return cached;
+                return await DownloadPlaylist(plId!, plIndex);
             }
-
-            var title = await GetMediaTitleAsync(searchQuery);
-            if (cache.Contains(title))
-            {
-                return await cache.GetAsync(title);
-            }
-
-            var media = await InternalDownloadAsync(searchQuery, false, largeSizeWarningCallback, videoUnavailableCallback);
-
-            return await CacheAsync(media, cache);
-        }       
+            return await DownloadVideo(searchQuery, false);
+        }
     }
 }

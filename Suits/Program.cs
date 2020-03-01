@@ -14,10 +14,7 @@ namespace Suits
 
         private static async Task Main()
         {
-            Console.WriteLine($"IS WINDOWS: {RuntimeInformation.IsOSPlatform(OSPlatform.Windows)}");
-
-            await currentBot.ConnectAsync(true);
-            await currentBot.SetActivityAsync($"{GuildSettings.DefaultPrefix}play", Discord.ActivityType.Listening);
+            await currentBot.ConnectAsync($"{GuildSettings.DefaultPrefix}play", Discord.ActivityType.Listening, true);
             AppDomain.CurrentDomain.ProcessExit += CurrentDomain_ProcessExit;
 
             await Task.Delay(-1);

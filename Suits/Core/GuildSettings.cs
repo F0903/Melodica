@@ -21,7 +21,11 @@ namespace Suits.Core
         public static GuildSettings GetOrCreateSettings(IGuild guild, Func<GuildSettings> settingsFactory)
         {
             if (!File.Exists(GetGuildSettingsPath(guild)))
-                return settingsFactory();
+            {
+                var newSettings = settingsFactory();
+                newSettings.SaveData();
+                return newSettings;
+            }
             return serializer!.DeserializeFileAsync<GuildSettings>(GetGuildSettingsPath(guild)).Result;
         }
       

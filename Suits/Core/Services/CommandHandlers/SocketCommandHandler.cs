@@ -49,18 +49,18 @@ namespace Suits.Core.Services.CommandHandlers
         public Task BuildCommandsAsync(SocketBot owner)
         {
             this.owner = owner;
-
             cmdService = new CommandService(new CommandServiceConfig()
             {
                 LogLevel = owner.settings.LogSeverity,
                 DefaultRunMode = RunMode.Async,
                 CaseSensitiveCommands = false
             });
-            IoC.Kernel.RegisterInstance(cmdService);
 
-            cmdService.AddModulesAsync(Assembly.GetExecutingAssembly(), IoC.Kernel.GetRawKernel());
+            cmdService.AddModulesAsync(Assembly.GetAssembly(typeof(SocketCommandHandler)), IoC.Kernel.GetRawKernel());
 
             cmdService.CommandExecuted += CommandExecuted;
+
+            IoC.Kernel.RegisterInstance(cmdService);
             BuiltCommands = true;
             return Task.CompletedTask;
         }

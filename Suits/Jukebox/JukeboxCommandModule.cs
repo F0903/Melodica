@@ -17,12 +17,18 @@ namespace Suits.Jukebox
     //[Group("Jukebox"), Alias("J")]
     public class JukeboxCommandModule : ModuleBase<SocketCommandContext>
     {
-        public JukeboxCommandModule(JukeboxService jukebox)
+        public JukeboxCommandModule(JukeboxService jukebox, IAsyncDownloadService downloader)
         {
             this.jukebox = jukebox;
+            this.downloader = downloader;
+
+            downloader.LargeSizeWarningCallback = LargeMediaCallback;
+            downloader.VideoUnavailableCallback = MediaUnavailableCallback;
         }
 
         private readonly JukeboxService jukebox;
+
+        private readonly IAsyncDownloadService downloader;
 
         private IVoiceChannel GetUserVoiceChannel() => ((SocketGuildUser)Context.User).VoiceChannel;
 
@@ -150,7 +156,7 @@ namespace Suits.Jukebox
             var juke = await jukebox.GetJukeboxAsync(Context.Guild);
 
             // Refactor this request class.
-            var request = new DownloadMediaRequest(songQuery, juke.GetCache(), Context.Guild, juke.Playing ? QueueMode.Consistent : QueueMode.Fast, LargeMediaCallback, MediaUnavailableCallback);
+            var request = new DownloadMediaRequest(downloader, songQuery);
 
             await juke.PlayAsync(request, GetUserVoiceChannel(), true, async (context) =>
             {
@@ -180,9 +186,7 @@ namespace Suits.Jukebox
             MediaRequest request;
             if (attach.Count == 0)
             {
-                // Refactor this request class.
-                request = new DownloadMediaRequest(songQuery!, (await jukebox.GetJukeboxAsync(Context.Guild)).GetCache(), Context.Guild,
-                        (await jukebox.GetJukeboxAsync(Context.Guild)).Playing ? QueueMode.Consistent : QueueMode.Fast, LargeMediaCallback, MediaUnavailableCallback);
+                request = new DownloadMediaRequest(downloader, songQuery!);
             }
             else
             {

@@ -183,7 +183,7 @@ namespace Suits.Jukebox
 
         public async Task PlayAsync(MediaRequest request, IAudioChannel channel, bool switchingPlayback = false, Action<(IMediaInfo media, bool queued)>? playingCallback = null, int bitrate = DefaultBitrate, int bufferSize = DefaultBufferSize)
         {
-            MediaCollection col = await request.GetMediaRequestAsync();
+            MediaCollection col = await cache.CacheMediaAsync(await request.GetMediaRequestAsync());
             PlayableMedia song = col[col.PlaylistIndex];
 
             if (col.IsPlaylist)
