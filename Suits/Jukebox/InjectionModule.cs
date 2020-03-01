@@ -10,8 +10,6 @@ namespace Suits.Jukebox
         public override void Load()
         {
             Bind<IAsyncDownloadService>().To<AsyncYoutubeDownloader>();
-
-            Bind<JukeboxService>().ToSelf().InSingletonScope(); // This MUST be made in singleton scope, else will not work.
         }
     }
 }

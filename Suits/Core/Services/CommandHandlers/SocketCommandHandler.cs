@@ -56,7 +56,7 @@ namespace Suits.Core.Services.CommandHandlers
                 CaseSensitiveCommands = false
             });
 
-            cmdService.AddModulesAsync(Assembly.GetAssembly(typeof(SocketCommandHandler)), IoC.Kernel.GetRawKernel());
+            cmdService.AddModulesAsync(Assembly.GetEntryAssembly(), IoC.Kernel.GetRawKernel());
 
             cmdService.CommandExecuted += CommandExecuted;
 

@@ -17,12 +17,6 @@ namespace Suits.Jukebox.Services.Downloaders
 {
     public class AsyncYoutubeDownloader : IAsyncDownloadService
     {
-        public AsyncYoutubeDownloader(Action? largeSizeWarningCallback, Action<string>? videoUnavailableCallback)
-        {
-            LargeSizeWarningCallback = largeSizeWarningCallback;
-            VideoUnavailableCallback = videoUnavailableCallback;
-        }
-
         private readonly YoutubeClient yt = new YoutubeClient(new System.Net.Http.HttpClient());
 
         public const int MaxCacheAttempts = 5;
