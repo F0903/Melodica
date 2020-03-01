@@ -73,12 +73,18 @@ namespace Suits.Jukebox
 
         public Task<PlayableMedia> RemoveFromQueueAsync(int index) => songQueue.RemoveAtAsync(index);
 
+        private bool IsAlone() => channel!.GetUsersAsync().First().Result.Count == 1;
+
         private Thread WriteToChannel(AudioProcessor audio)
         {
             if (audioClient == null)
                 throw new NullReferenceException("Audio Client was null.");
 
             playbackToken = new CancellationTokenSource();
+
+            bool BreakConditions() => IsAlone() || skip || playbackToken!.IsCancellationRequested;
+
+            void CheckConnection() => discordOut = audioClient!.ConnectionState == ConnectionState.Disconnected ? audioClient.CreatePCMStream(AudioApplication.Music, Bitrate, 100, 0) : discordOut;
 
             void Write()
             {
@@ -93,13 +99,15 @@ namespace Suits.Jukebox
                     {
                         while (Paused)
                         {
-                            if (skip || playbackToken!.IsCancellationRequested)
+                            if (BreakConditions())
                                 break;
                             Thread.Yield();
                         }
 
-                        if (skip || playbackToken!.IsCancellationRequested)
+                        if (BreakConditions())
                             break;
+
+                        CheckConnection();
                         discordOut!.Write(buffer, 0, bytesRead);
                     }
                 }
@@ -108,7 +116,7 @@ namespace Suits.Jukebox
                 {
                     audio.Dispose();
                     discordOut!.Flush();
-                }                
+                }
                 Playing = false;
             }
             return new Thread(Write)
@@ -202,8 +210,8 @@ namespace Suits.Jukebox
             }
 
             this.channel = channel;
-                
-            bool badClient = audioClient                 == null                         ||
+
+            bool badClient = audioClient == null ||
                              audioClient.ConnectionState == ConnectionState.Disconnected ||
                              audioClient.ConnectionState == ConnectionState.Disconnecting;
             audioClient = badClient ? await channel.ConnectAsync() : audioClient!;
@@ -218,6 +226,11 @@ namespace Suits.Jukebox
             playbackThread.Start();
             playbackThread.Join();
 
+            if (IsAlone())
+            {
+                await DismissAsync().ConfigureAwait(false);
+            }
+
             if (switching)
             {
                 switching = false;
@@ -226,17 +239,18 @@ namespace Suits.Jukebox
 
             CurrentSong = null;
 
-            if (playbackToken?.IsCancellationRequested ?? false || songQueue.IsEmpty)
-            {
-                await DismissAsync().ConfigureAwait(false);
-                return;
-            }
-
             if (!skip && Loop)
             {
                 await PlayAsync(request, channel, false, playingCallback).ConfigureAwait(false);
                 return;
             }
+
+            if (songQueue.IsEmpty || (playbackToken?.IsCancellationRequested ?? false))
+            {
+                await DismissAsync().ConfigureAwait(false);
+                return;
+            }
+
             skip = false;
             await PlayAsync(new MediaRequest(new MediaCollection(Shuffle ? await songQueue.DequeueRandomAsync() : await songQueue.DequeueAsync())), channel, false, playingCallback).ConfigureAwait(false);
         }

@@ -23,9 +23,9 @@ namespace Suits.Jukebox.Services.Downloaders
 
         public const int MaxDownloadAttempts = 10;
 
-        public const int LargeSizeDurationMinuteThreshold = 20;
-
         public const int MaxPlaylistVideos = 100;
+
+        private TimeSpan LargeSizeDurationThreshold = new TimeSpan(0, 45, 0);
 
         public Task<string> GetMediaTitleAsync(string query) =>
             Task.FromResult(yt.SearchVideosAsync(query, 1).Result[0].Title);
@@ -36,7 +36,7 @@ namespace Suits.Jukebox.Services.Downloaders
             
             var vid = isQueryUrl || isPreFiltered ? (await yt.GetVideoAsync(isPreFiltered ? query : YoutubeClient.ParseVideoId(query))) : (await yt.SearchVideosAsync(query, 1))[attempt];
 
-            if (vid.Duration.Minutes > LargeSizeDurationMinuteThreshold)
+            if (vid.Duration > LargeSizeDurationThreshold)
                 largeSizeWarningCallback?.Invoke();
 
             MediaStreamInfoSet info;
@@ -62,7 +62,8 @@ namespace Suits.Jukebox.Services.Downloaders
                 return await InternalDownloadAsync(query, false, largeSizeWarningCallback!, videoUnavailableCallback, toQueue, ++attempt).ConfigureAwait(false);
             }
             var stream = await yt.GetMediaStreamAsync(audioStreams[0]);
-            return new PlayableMedia(new Metadata(vid.Title.ReplaceIllegalCharacters(), audioStreams[0].Container.ToString().ToLower(), vid.Duration, vid.Thumbnails.MaxResUrl ?? vid.Thumbnails.HighResUrl), stream.ToBytes());
+
+            return new PlayableMedia(new Metadata(vid.Title.ReplaceIllegalCharacters(), audioStreams[0].Container.ToString().ToLower(), vid.Duration, vid.Thumbnails.HighResUrl), stream.ToBytes());
         }
 
         private Task<MediaCollection> CacheAsync(MediaCollection col, MediaCache cache, bool pruneCache = true)
@@ -80,7 +81,7 @@ namespace Suits.Jukebox.Services.Downloaders
                 
                 var plIndex = await Utility.General.GetURLArgumentIntAsync(searchQuery, "index", false) - 1 ?? 0;
 
-                if (videos.Sum(x => x.Duration.Minutes) > LargeSizeDurationMinuteThreshold)
+                if (videos.Sum(x => x.Duration) > LargeSizeDurationThreshold)
                     largeSizeWarningCallback?.Invoke();
 
                 var num = videos.Count > MaxPlaylistVideos ? MaxPlaylistVideos : videos.Count;
