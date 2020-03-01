@@ -35,6 +35,7 @@ namespace Suits.Jukebox.Services.Downloaders
       
         private async Task<MediaCollection> DownloadPlaylist(string id, int index = 0)
         {
+            //TODO: Check cache for each
             var pl = await yt.GetPlaylistAsync(id, 1);
             var videos = pl.Videos;
 
