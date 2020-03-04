@@ -12,13 +12,10 @@ namespace Suits.Jukebox.Models.Requests
 {
     class AttachmentMediaRequest : MediaRequest
     {
-        public AttachmentMediaRequest(Discord.Attachment[] attachments, MediaCache cache)
+        public AttachmentMediaRequest(Discord.Attachment[] attachments)
         {
-            this.cache = cache;
             this.attachments = attachments;
         }
-
-        readonly MediaCache cache;
 
         readonly Discord.Attachment[] attachments;
 
@@ -31,7 +28,7 @@ namespace Suits.Jukebox.Models.Requests
                 var data = web.DownloadData(item.Url);
                 var name = item.Filename;
                 var format = Path.GetExtension(name).Replace(".", "");
-                media.Add(new TempMedia(new Metadata(name, format, new TimeSpan(0)), data, cache));
+                media.Add(new TempMedia(new Metadata(name, format, new TimeSpan(0)), data));
             }
             return Task.FromResult(media.Count > 1 ? new MediaCollection(media, "Attachments") : new MediaCollection(media.First()));
         }

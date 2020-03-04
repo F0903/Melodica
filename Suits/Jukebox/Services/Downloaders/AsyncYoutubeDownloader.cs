@@ -32,35 +32,45 @@ namespace Suits.Jukebox.Services.Downloaders
 
         public Task<string> GetMediaTitleAsync(string query) =>
             Task.FromResult(yt.SearchVideosAsync(query, 1).Result[0].Title);
-      
+
         private async Task<MediaCollection> DownloadPlaylist(string id, int index = 0)
         {
-            //TODO: Check cache for each
             var pl = await yt.GetPlaylistAsync(id, 1);
-            var videos = pl.Videos;
+            var playlistVids = pl.Videos;
 
-            if (videos.Sum(x => x.Duration) > LargeSizeDurationThreshold)
-                LargeSizeWarningCallback?.Invoke();           
+            if (playlistVids.Sum(x => x.Duration) > LargeSizeDurationThreshold)
+                LargeSizeWarningCallback?.Invoke();
 
-            var num = videos.Count > MaxPlaylistVideos ? MaxPlaylistVideos : videos.Count;
-            List<PlayableMedia> vids = new List<PlayableMedia>(pl.Videos.Count);
+            var num = playlistVids.Count > MaxPlaylistVideos ? MaxPlaylistVideos : playlistVids.Count;
+            PlayableMedia[] vids = new PlayableMedia[playlistVids.Count];
             for (int i = index; i < num; i++)
             {
-                var vid = videos[i];
-                Stream vs = new MemoryStream();
+                var vid = playlistVids[i];
+                if (MediaCache.Contains(vid.Title))
+                {
+                    vids[i] = await MediaCache.GetAsync(vid.Title);
+                    continue;
+                }
+
                 var iSet = await yt.GetVideoMediaStreamInfosAsync(vid.Id);
                 var audInfo = iSet.Audio.OrderByDescending(x => x.Bitrate).First();
-                await yt.DownloadMediaStreamAsync(audInfo, vs);
-                vids.Add(new PlayableMedia(new Metadata(vid.Title, audInfo.Container.ToString(), vid.Duration, vid.Thumbnails.HighResUrl), vs.ToBytes()));
+                var ms = await yt.GetMediaStreamAsync(audInfo);
+                var format = audInfo.Container.ToString().ToLower();
+                vids[i] = new PlayableMedia(new Metadata(vid.Title, format, vid.Duration, vid.Thumbnails.HighResUrl), ms.ToBytes());
             }
-            return new MediaCollection(vids, pl.Title);
+            return await MediaCache.CacheMediaAsync(new MediaCollection(vids, pl.Title), false);
         }
 
         private async Task<PlayableMedia> DownloadVideo(string query, bool isPreFiltered, int attempt = 0)
         {
             bool isQueryUrl = query.IsUrl();
-            
+
             var vid = isQueryUrl || isPreFiltered ? (await yt.GetVideoAsync(isPreFiltered ? query : YoutubeClient.ParseVideoId(query))) : (await yt.SearchVideosAsync(query, 1))[attempt];
+
+            if (MediaCache.Contains(vid.Title))
+            {
+                return await MediaCache.GetAsync(vid.Title);
+            }
 
             if (vid.Duration > LargeSizeDurationThreshold)
                 LargeSizeWarningCallback?.Invoke();
@@ -89,12 +99,12 @@ namespace Suits.Jukebox.Services.Downloaders
             }
             var stream = await yt.GetMediaStreamAsync(audioStreams[0]);
 
-            return new PlayableMedia(new Metadata(vid.Title.ReplaceIllegalCharacters(), audioStreams[0].Container.ToString().ToLower(), vid.Duration, vid.Thumbnails.HighResUrl), stream.ToBytes());
+            return (await MediaCache.CacheMediaAsync(new PlayableMedia(new Metadata(vid.Title.ReplaceIllegalCharacters(), audioStreams[0].Container.ToString().ToLower(), vid.Duration, vid.Thumbnails.HighResUrl), stream.ToBytes())));
         }
 
         public async Task<MediaCollection> DownloadAsync(string searchQuery)
         {
-            if(YoutubeClient.TryParsePlaylistId(searchQuery, out var plId))
+            if (YoutubeClient.TryParsePlaylistId(searchQuery, out var plId))
             {
                 var plIndex = await Utility.General.GetURLArgumentIntAsync(searchQuery, "index", false) - 1 ?? 0;
                 return await DownloadPlaylist(plId!, plIndex);

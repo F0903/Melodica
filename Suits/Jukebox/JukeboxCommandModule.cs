@@ -42,25 +42,23 @@ namespace Suits.Jukebox
 
         private async void MediaUnavailableCallback(string vid) => await ReplyAsync($"{vid} was unavailable. Skipping...");
 
-        private async Task<MediaRequest> GetRequestAsync(string query, JukeboxPlayer juke)
+        private Task<MediaRequest> GetRequestAsync(string query)
         {
-            var cache = juke.GetCache();
             var attach = Context.Message.Attachments;
-            if (attach.Count == 0)
+            if (attach.Count != 0)
             {
-                var title = await downloader.GetMediaTitleAsync(query!);
-                return cache.Contains(title) ? new MediaRequest(await cache.GetAsync(title)) : new DownloadMediaRequest(downloader, query!);
+                return Task.FromResult(new AttachmentMediaRequest(attach.ToArray()) as MediaRequest);
             }
             else
             {
-                return new AttachmentMediaRequest(attach.ToArray(), (await JukeboxService.GetJukeboxAsync(Context.Guild)).GetCache());
+                return Task.FromResult(new DownloadMediaRequest(downloader, query!) as MediaRequest);            
             }
         }
 
         [Command("ClearCache"), Summary("Clears cache."), RequireOwner]
         public async Task ClearCacheAsync()
         {
-            var (deletedFiles, filesInUse, ms) = await (await JukeboxService.GetJukeboxAsync(Context.Guild)).GetCache().PruneCacheAsync(true);
+            var (deletedFiles, filesInUse, ms) = await MediaCache.PruneCacheAsync(true);
             await (await JukeboxService.GetJukeboxAsync(Context.Guild)).ClearQueueAsync();
             await ReplyAsync($"Deleted {deletedFiles} files. ({filesInUse} files in use) [{ms}ms]");
         }
@@ -168,7 +166,7 @@ namespace Suits.Jukebox
 
             var juke = await JukeboxService.GetJukeboxAsync(Context.Guild);
 
-            await juke.PlayAsync(await GetRequestAsync(songQuery, juke), GetUserVoiceChannel(), true, async (context) =>
+            await juke.PlayAsync(await GetRequestAsync(songQuery), GetUserVoiceChannel(), true, async (context) =>
             {
                 await ReplyAsync(null, false, GetMediaEmbed("**Now Playing**", context.media));
             });
@@ -191,7 +189,7 @@ namespace Suits.Jukebox
 
             var juke = await JukeboxService.GetJukeboxAsync(Context.Guild);         
 
-            await juke.PlayAsync(await GetRequestAsync(query!, juke), GetUserVoiceChannel(), false, async (context) =>
+            await juke.PlayAsync(await GetRequestAsync(query!), GetUserVoiceChannel(), false, async (context) =>
             {
                 await ReplyAsync(null, false, GetMediaEmbed(context.queued ? "**Queued**" : "**Now Playing**", context.media));
             });

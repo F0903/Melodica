@@ -9,9 +9,9 @@ namespace Suits.Jukebox.Models
 {
     public sealed class TempMedia : PlayableMedia
     {
-        public TempMedia(Metadata meta, byte[] data, MediaCache cache) : base(meta, data)
+        public TempMedia(Metadata meta, byte[] data) : base(meta, data)
         {
-            var toSave = Path.Combine(cache.localCache, "temp/");
+            var toSave = Path.Combine(MediaCache.CacheLocation, "temp/");
             if (!Directory.Exists(toSave))
                 Directory.CreateDirectory(toSave);
             saveDir = toSave;

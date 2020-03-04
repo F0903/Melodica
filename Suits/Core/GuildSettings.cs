@@ -37,8 +37,6 @@ namespace Suits.Core
 
         public string Prefix { get; set; } = DefaultPrefix;
 
-        public int MaxFileCacheInMB { get; set; } = 2000;
-
         public void SaveData()
         {
             serializer.SerializeToFileAsync(GetGuildSettingsPath(connectedGuild!), this);

@@ -50,6 +50,7 @@ namespace Suits.Jukebox.Models
         protected virtual Task SaveDataAsync()
         {
             var location = Path.Combine(saveDir ?? throw new NullReferenceException("Please set saveDir before saving."), Meta.Title.ReplaceIllegalCharacters() + Meta.Extension);
+            if (mediaData == null) throw new Exception("Media data was null.");
             File.WriteAllBytes(location, mediaData);
             Meta.MediaPath = location;
             return Task.CompletedTask;

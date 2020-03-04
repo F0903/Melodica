@@ -16,9 +16,8 @@ namespace Suits.Jukebox
 {
     public sealed class JukeboxPlayer
     {
-        public JukeboxPlayer(MediaCache cache, SongQueue? queue = null, int bitrate = DefaultBitrate, int bufferSize = DefaultBufferSize)
+        public JukeboxPlayer(SongQueue? queue = null, int bitrate = DefaultBitrate, int bufferSize = DefaultBufferSize)
         {
-            this.cache = cache;
             this.songQueue = queue ?? new SongQueue();
             Bitrate = bitrate;
             BufferSize = bufferSize;
@@ -39,7 +38,7 @@ namespace Suits.Jukebox
 
         public bool Loop { get; private set; }
 
-        public bool Paused { get; set; } = false;
+        public bool Paused { get; set; }
 
         private bool skip = false;
 
@@ -53,13 +52,9 @@ namespace Suits.Jukebox
 
         private readonly SongQueue songQueue;
 
-        private readonly MediaCache cache;
-
         private IAudioChannel? channel;
 
         private IAudioClient? audioClient;
-
-        public MediaCache GetCache() => cache;
 
         public string GetChannelName() => channel!.Name;
 
@@ -90,22 +85,19 @@ namespace Suits.Jukebox
             {
                 var inS = audio.GetOutput();
                 Playing = true;
-
                 byte[] buffer = new byte[BufferSize];
                 int bytesRead;
                 try
                 {
                     while ((bytesRead = inS!.Read(buffer, 0, buffer.Length)) != 0)
                     {
-                        while (Paused)
-                        {
-                            if (BreakConditions())
-                                break;
-                            Thread.Yield();
-                        }
-
                         if (BreakConditions())
                             break;
+
+                        while (Paused && !BreakConditions())
+                        {
+                            Thread.Sleep(1000);
+                        }                 
 
                         CheckConnection();
                         discordOut!.Write(buffer, 0, bytesRead);
@@ -183,7 +175,7 @@ namespace Suits.Jukebox
 
         public async Task PlayAsync(MediaRequest request, IAudioChannel channel, bool switchingPlayback = false, Action<(IMediaInfo media, bool queued)>? playingCallback = null, int bitrate = DefaultBitrate, int bufferSize = DefaultBufferSize)
         {
-            MediaCollection col = await cache.CacheMediaAsync(await request.GetMediaRequestAsync());
+            MediaCollection col = await request.GetMediaRequestAsync();
             PlayableMedia song = col[col.PlaylistIndex];
 
             if (col.IsPlaylist)
@@ -229,6 +221,7 @@ namespace Suits.Jukebox
             if (IsAlone())
             {
                 await DismissAsync().ConfigureAwait(false);
+                return;
             }
 
             if (switching)

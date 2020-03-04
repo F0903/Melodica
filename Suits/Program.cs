@@ -10,7 +10,7 @@ namespace Suits
 {
     public static class Program
     {
-        private static readonly SocketBot currentBot = new SocketBot(BotSettings.GetOrSetSettings(() => new BotSettings() { LogSeverity = Discord.LogSeverity.Debug}), Kernel.Get<IAsyncLoggingService>(), Kernel.Get<SocketCommandHandler>());
+        private static readonly SocketBot currentBot = new SocketBot(BotSettings.GetOrSet(), Kernel.Get<IAsyncLoggingService>(), Kernel.Get<SocketCommandHandler>());
 
         private static async Task Main()
         {

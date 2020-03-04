@@ -13,7 +13,7 @@ namespace Suits.Jukebox
         public static Task<JukeboxPlayer> GetJukeboxAsync(IGuild guild)
         {
             if (!jukeboxes.TryGetValue(guild, out var juke))
-                if (!jukeboxes.TryAdd(guild, new JukeboxPlayer(new Services.Cache.MediaCache(guild))))
+                if (!jukeboxes.TryAdd(guild, new JukeboxPlayer()))
                     throw new System.Exception("Could not add or get player from dictionary.");
 
             return Task.FromResult(juke ?? jukeboxes[guild]);
