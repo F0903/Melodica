@@ -55,21 +55,27 @@ namespace Suits.Jukebox.Services.Cache
             if (!forceClear && await GetCacheSizeAsync() < BotSettings.GetOrSet().MaxFileCacheInMB * 1024 * 1024)
                 return (0, 0, 0);
 
-            Stopwatch sw = new Stopwatch();
             int deletedFiles = 0;
             int filesInUse = 0;
+            var files = Directory.EnumerateFiles(CacheLocation).Convert(x => new FileInfo(x));
+            Stopwatch sw = new Stopwatch();
             sw.Start();
-            Parallel.ForEach(Directory.EnumerateFiles(CacheLocation).Convert(x => new FileInfo(x)).Where(x => x.Extension != Metadata.MetaFileExtension), x =>
+            Parallel.ForEach(files, (x, s) => 
             {
-                bool couldDelete;
-                try
+                bool couldDelete = false;
+                if (x.Extension == Metadata.MetaFileExtension)
                 {
-                    x.Delete();
-                    cache.Remove(cache.Single(y => y.Title == x.Name));
-                    couldDelete = true;
-                    deletedFiles++;
+                    couldDelete = files.Where(y => Path.ChangeExtension(y.Name, null) == Path.ChangeExtension(x.Name, null)).Count() == 1;
                 }
-                catch (Exception) { couldDelete = false; filesInUse++; }
+                if (!couldDelete)
+                    try
+                    {
+                        x.Delete();
+                        cache.Remove(cache.Single(y => y.Title == x.Name));
+                        couldDelete = true;
+                        deletedFiles++;
+                    }
+                    catch (Exception) { couldDelete = false; filesInUse++; }
 
                 if (couldDelete)
                 {
@@ -81,7 +87,7 @@ namespace Suits.Jukebox.Services.Cache
                 }
             });
             sw.Stop();
-            
+
             return (deletedFiles, filesInUse, sw.ElapsedMilliseconds);
         }
 

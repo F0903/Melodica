@@ -79,8 +79,6 @@ namespace Suits.Jukebox
 
             bool BreakConditions() => IsAlone() || skip || playbackToken!.IsCancellationRequested;
 
-            void CheckConnection() => discordOut = audioClient!.ConnectionState == ConnectionState.Disconnected ? audioClient.CreatePCMStream(AudioApplication.Music, Bitrate, 100, 0) : discordOut;
-
             void Write()
             {
                 var inS = audio.GetOutput();
@@ -97,19 +95,27 @@ namespace Suits.Jukebox
                         while (Paused && !BreakConditions())
                         {
                             Thread.Sleep(1000);
-                        }                 
+                        }
 
-                        CheckConnection();
                         discordOut!.Write(buffer, 0, bytesRead);
                     }
                 }
-                catch (OperationCanceledException) { } // Catch exception when stopping playback
+                catch (Exception e) when (e is OperationCanceledException ||  // Catch exception when stopping playback
+                                          e is System.Net.WebSockets.WebSocketException) 
+                { 
+                    // Attempt to reconnect if the WebSocket expires.
+                    if(e is System.Net.WebSockets.WebSocketException)
+                    {
+                        discordOut = audioClient!.CreatePCMStream(AudioApplication.Music, Bitrate, 100, 0);
+                        Write();
+                    }
+                } 
                 finally
                 {
                     audio.Dispose();
                     discordOut!.Flush();
+                    Playing = false;
                 }
-                Playing = false;
             }
             return new Thread(Write)
             {

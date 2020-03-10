@@ -58,7 +58,7 @@ namespace Suits.Jukebox.Services.Downloaders
                 var format = audInfo.Container.ToString().ToLower();
                 vids[i] = new PlayableMedia(new Metadata(vid.Title, format, vid.Duration, vid.Thumbnails.HighResUrl), ms.ToBytes());
             }
-            return await MediaCache.CacheMediaAsync(new MediaCollection(vids, pl.Title), false);
+            return await MediaCache.CacheMediaAsync(new MediaCollection(vids.Where(x => x != null), pl.Title), false);
         }
 
         private async Task<PlayableMedia> DownloadVideo(string query, bool isPreFiltered, int attempt = 0)

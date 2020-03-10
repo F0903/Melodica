@@ -5,7 +5,7 @@
         public override void Load()
         {
             Bind<Services.IAsyncLoggingService>().To<Services.ColoredLogger>();
-            Bind<Services.CommandHandlers.IAsyncCommandHandlerService>().To<Services.CommandHandlers.SocketCommandHandler>().InSingletonScope();
+            Bind<Services.CommandHandlers.IAsyncCommandHandlerService>().To<Services.CommandHandlers.SocketCommandHandler>();//.InSingletonScope();
         }
     }
 }
