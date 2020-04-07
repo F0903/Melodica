@@ -30,20 +30,19 @@ namespace Suits.Core.Services.CommandHandlers
         {
             if (!info.IsSpecified)
                 return;
-
-            LogMessage msg = new LogMessage(LogSeverity.Info, $"Command Execution - {info.Value.Module} - {info.Value.Name}", "Command executed successfully.");
             
             if (result.Error.HasValue)
             {
-                msg = new LogMessage(
-                        LogSeverity.Error,
-                        $"Command Execution - {info.Value.Module} - {info.Value.Name}",
-                        $"Error: {result.ErrorReason} Exception type: {(result.Error.HasValue ? result.Error.Value.ToString() : "not specified")}");
+                var embed = new EmbedBuilder().WithTitle("**Error!**")
+                                              .WithDescription(result.ErrorReason)
+                                              .WithCurrentTimestamp()
+                                              .WithColor(Color.Red)
+                                              .Build();
 
-                await context.Channel.SendMessageAsync($"**Error:** {result.ErrorReason}{(owner!.settings.LogSeverity == LogSeverity.Debug ? $"\n**Type:** {result.Error.Value}" : string.Empty)}");
+                await context.Channel.SendMessageAsync(null, false, embed);
             }
 
-            await logger.LogAsync(msg);
+            await logger.LogAsync(new LogMessage(result.IsSuccess ? LogSeverity.Verbose : LogSeverity.Error, $"{info.Value.Module} - {info.Value.Name} - {context.Guild}", result.IsSuccess ? "Successfully executed command." : result.ErrorReason));
         }
 
         public Task BuildCommandsAsync(SocketBot owner)

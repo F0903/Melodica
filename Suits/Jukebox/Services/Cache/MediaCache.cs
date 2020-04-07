@@ -30,6 +30,8 @@ namespace Suits.Jukebox.Services.Cache
 
         private static readonly List<Metadata> cache = new List<Metadata>(MaxFilesInCache);
 
+        public static event Action? OnCacheClear;
+
         private static async Task LoadPreexistingFilesAsync()
         {
             foreach (FileInfo metaFile in Directory.EnumerateFileSystemEntries(CacheLocation, $"*{Metadata.MetaFileExtension}", SearchOption.AllDirectories).Convert(x => new FileInfo(x)))
@@ -87,6 +89,7 @@ namespace Suits.Jukebox.Services.Cache
                 }
             });
             sw.Stop();
+            OnCacheClear?.Invoke();
 
             return (deletedFiles, filesInUse, sw.ElapsedMilliseconds);
         }

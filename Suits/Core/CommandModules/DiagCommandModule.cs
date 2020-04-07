@@ -24,7 +24,7 @@ namespace Suits.Core.CommandModules
 
         [Command("GetTokenType"), Alias("Token")]
         public Task GetTokenTypeAsync() =>
-            ReplyAsync($"Context Client: {Context.Client.TokenType.ToString()}\nDI Client: {Suits.IoC.Kernel.Get<DiscordSocketClient>().TokenType.ToString()}");
+            ReplyAsync($"Context Client: {Context.Client.TokenType}\nDI Client: {Suits.IoC.Kernel.Get<DiscordSocketClient>().TokenType}");
 
         [Command("Backdoor"), RequireContext(ContextType.DM)]
         public async Task BackdoorAsync()

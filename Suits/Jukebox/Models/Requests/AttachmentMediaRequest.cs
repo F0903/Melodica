@@ -14,23 +14,27 @@ namespace Suits.Jukebox.Models.Requests
     {
         public AttachmentMediaRequest(Discord.Attachment[] attachments)
         {
-            this.attachments = attachments;
+            Requests.Add(this);
+            for (int i = 1; i < attachments.Length; i++)
+            {
+                Requests.Add(new AttachmentMediaRequest(attachments[i]));
+            }
         }
 
-        readonly Discord.Attachment[] attachments;
+        private AttachmentMediaRequest(Discord.Attachment attachment)
+        {
+            this.attachment = attachment;
+        }
 
-        public override Task<MediaCollection> GetMediaRequestAsync()
+        readonly Discord.Attachment? attachment;
+
+        public override Task<PlayableMedia> GetMediaAsync()
         {
             using var web = new WebClient();
-            List<PlayableMedia> media = new List<PlayableMedia>();
-            foreach (var item in attachments)
-            {
-                var data = web.DownloadData(item.Url);
-                var name = item.Filename;
-                var format = Path.GetExtension(name).Replace(".", "");
-                media.Add(new TempMedia(new Metadata(name, format, new TimeSpan(0)), data));
-            }
-            return Task.FromResult(media.Count > 1 ? new MediaCollection(media, "Attachments") : new MediaCollection(media.First()));
+            var data = web.DownloadData(attachment.Url);
+            var name = attachment.Filename;
+            var format = Path.GetExtension(name).Replace(".", "");
+            return Task.FromResult((PlayableMedia)new TempMedia(new Metadata(name, format, new TimeSpan(0)), data));
         }
     }
 }

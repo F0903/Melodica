@@ -7,9 +7,9 @@ using Suits.Jukebox.Services.Cache;
 
 namespace Suits.Jukebox.Models.Requests
 {
-    public class CustomMediaRequest : MediaRequest
+    public class URLMediaRequest : MediaRequest
     {
-        public CustomMediaRequest(string mediaName, string mediaFormat, string mediaUrl)
+        public URLMediaRequest(string mediaName, string mediaFormat, string mediaUrl)
         {
             this.mediaName = mediaName;
             this.mediaFormat = mediaFormat;
@@ -21,13 +21,14 @@ namespace Suits.Jukebox.Models.Requests
         private readonly string mediaFormat;
 
         private readonly string mediaUrl;
-        public override Task<MediaCollection> GetMediaRequestAsync()
+
+        public override Task<PlayableMedia> GetMediaAsync()
         {
             using var web = new WebClient();
 
             var data = web.DownloadData(mediaUrl);
 
-            return Task.FromResult(new MediaCollection(MediaCache.CacheMediaAsync(new PlayableMedia(new Metadata(mediaName, mediaFormat, new TimeSpan(0)), data)).Result));
+            return Task.FromResult(MediaCache.CacheMediaAsync(new PlayableMedia(new Metadata(mediaName, mediaFormat, new TimeSpan(0)), data)).Result);
         }
     }
 }

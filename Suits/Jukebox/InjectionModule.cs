@@ -9,7 +9,7 @@ namespace Suits.Jukebox
     {
         public override void Load()
         {
-            Bind<IAsyncDownloadService>().To<AsyncYoutubeDownloader>();
+            
         }
     }
 }

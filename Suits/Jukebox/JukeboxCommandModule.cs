@@ -18,21 +18,22 @@ namespace Suits.Jukebox
     //[Group("Jukebox"), Alias("J")]
     public class JukeboxCommandModule : ModuleBase<SocketCommandContext>
     {
-        public JukeboxCommandModule(IAsyncDownloadService downloader)
+        public JukeboxCommandModule(AsyncYoutubeDownloader dl)
         {
-            this.downloader = downloader;
+            this.downloader = dl;
 
             downloader.LargeSizeWarningCallback = LargeMediaCallback;
             downloader.VideoUnavailableCallback = MediaUnavailableCallback;
         }
 
-        private readonly IAsyncDownloadService downloader;
+        private readonly AsyncYoutubeDownloader downloader; // Temp until a better solution is figured out for more platforms
 
         private IVoiceChannel GetUserVoiceChannel() => ((SocketGuildUser)Context.User).VoiceChannel;
 
-        private Embed GetMediaEmbed(string title, IMediaInfo media, string? description = null)
+        private Embed GetMediaEmbed(string embedTitle, IMediaInfo media, Color? color = null, string? description = null)
         {
-            return new EmbedBuilder().WithTitle(title)
+            return new EmbedBuilder().WithColor(color ?? Color.DarkGrey)
+                                     .WithTitle(embedTitle)
                                      .WithDescription(description ?? media.GetTitle())
                                      .WithFooter(media.GetDuration().ToString())
                                      .WithThumbnailUrl(media.GetThumbnail()).Build();
@@ -51,7 +52,7 @@ namespace Suits.Jukebox
             }
             else
             {
-                return Task.FromResult(new DownloadMediaRequest(downloader, query!) as MediaRequest);            
+                return Task.FromResult(new DownloadRequest<AsyncYoutubeDownloader>(query!) as MediaRequest);
             }
         }
 
@@ -123,8 +124,8 @@ namespace Suits.Jukebox
         [Command("Remove"), Summary("Removes song from queue by index.")]
         public async Task RemoveSongFromQueue(int index)
         {
-            var removed = await (await JukeboxService.GetJukeboxAsync(Context.Guild)).RemoveFromQueueAsync(index - 1);
-            await ReplyAsync($"Removed {removed.Meta.Title} from queue.");
+            var removed = (await JukeboxService.GetJukeboxAsync(Context.Guild)).RemoveFromQueue(index - 1);
+            await ReplyAsync(null, false, GetMediaEmbed("Removed", removed));
         }
 
         [Command("Queue"), Summary("Shows current queue.")]
@@ -141,8 +142,8 @@ namespace Suits.Jukebox
 
             EmbedBuilder eb = new EmbedBuilder()
             .WithTitle("**Queue**")
-            .WithThumbnailUrl(queue.ToMediaCollection().GetThumbnail())
-            .WithFooter($"Duration - {juke.GetQueue().GetTotalDuration()} | Shuffle - {(juke.Shuffle ? "On" : "Off")}");
+            .WithThumbnailUrl(queue.GetMediaInfo().GetThumbnail());
+            //.WithFooter($"Duration - {queue.GetTotalDuration()} | Shuffle - {(juke.Shuffle ? "On" : "Off")}");
 
             int maxElems = 20;
             for (int i = 1; i <= maxElems; i++)
@@ -150,13 +151,13 @@ namespace Suits.Jukebox
                 if (i > queue.Length)
                     break;
                 var x = queue[i - 1];
-                eb.AddField(i == 1 ? "Next:" : i == maxElems ? "And more" : i.ToString(), i == 1 ? $"**{x.Meta.Title}**" : i == maxElems ? $"Plus {queue.Length - (i - 1)} other songs!" : x.Meta.Title, false);
+                eb.AddField(i == 1 ? "Next:" : i == maxElems ? "And more" : i.ToString(), i == 1 ? $"**{x.GetMediaInfo().GetTitle()}**" : i == maxElems ? $"Plus {queue.Length - (i - 1)} other songs!" : x.GetMediaInfo().GetTitle(), false);
             }
             await Context.Channel.SendMessageAsync(null, false, eb.Build());
         }
 
         [Command("Switch"), Alias("Change"), Summary("Changes the current song.")]
-        public async Task SwitchAsync([Remainder] string songQuery)
+        public async Task SwitchAsync([Remainder] string mediaQuery)
         {
             if (GetUserVoiceChannel() == null)
             {
@@ -166,14 +167,22 @@ namespace Suits.Jukebox
 
             var juke = await JukeboxService.GetJukeboxAsync(Context.Guild);
 
-            await juke.PlayAsync(await GetRequestAsync(songQuery), GetUserVoiceChannel(), true, async (context) =>
+            IUserMessage? msg = null;
+            await juke.PlayAsync(await GetRequestAsync(mediaQuery), GetUserVoiceChannel(), true, new JukeboxPlayer.StatusCallbacks()
             {
-                await ReplyAsync(null, false, GetMediaEmbed("**Now Playing**", context.media));
+                downloadingCallback = async (media) =>
+                {
+                    msg = await ReplyAsync(null, false, GetMediaEmbed("**Downloading...**", media, Color.Blue));
+                },
+                playingCallback = async (media, queued) =>
+                {
+                    await msg!.ModifyAsync(x => x.Embed = GetMediaEmbed("**Now Playing**", media, Color.Green));
+                }
             });
         }
 
         [Command("Play"), Alias("P"), Summary("Plays the specified song.")]
-        public async Task PlayAsync([Remainder] string? query = null)
+        public async Task PlayAsync([Remainder] string? mediaQuery = null)
         {
             if (GetUserVoiceChannel() == null)
             {
@@ -181,17 +190,25 @@ namespace Suits.Jukebox
                 return;
             }
 
-            if (query == null && Context.Message.Attachments.Count == 0)
+            if (mediaQuery == null && Context.Message.Attachments.Count == 0)
             {
                 await ReplyAsync("You need to specify a url, search query or upload a file.");
                 return;
             }
 
-            var juke = await JukeboxService.GetJukeboxAsync(Context.Guild);         
+            var juke = await JukeboxService.GetJukeboxAsync(Context.Guild);
 
-            await juke.PlayAsync(await GetRequestAsync(query!), GetUserVoiceChannel(), false, async (context) =>
+            IUserMessage? msg = null;
+            await juke.PlayAsync(await GetRequestAsync(mediaQuery!), GetUserVoiceChannel(), false, new JukeboxPlayer.StatusCallbacks()
             {
-                await ReplyAsync(null, false, GetMediaEmbed(context.queued ? "**Queued**" : "**Now Playing**", context.media));
+                downloadingCallback = async (media) =>
+                {
+                    msg = await ReplyAsync(null, false, GetMediaEmbed("**Downloading...**", media, Color.Blue));
+                },
+                playingCallback = async (media, queued) =>
+                {
+                    await msg!.ModifyAsync(x => x.Embed = GetMediaEmbed("**Now Playing**", media, Color.Green));                   
+                }
             });
         }
 

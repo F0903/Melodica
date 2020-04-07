@@ -2,20 +2,17 @@
 using Suits.Jukebox.Services.Cache;
 using Suits.Utility.Extensions;
 using System;
+using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using YoutubeExplode;
-using YoutubeExplode.Models;
 using YoutubeExplode.Exceptions;
 using YoutubeExplode.Models.MediaStreams;
-using System.Collections.Generic;
-using System.Threading.Tasks;
-using System.Threading;
-using System.IO;
-using Discord;
 
 namespace Suits.Jukebox.Services.Downloaders
 {
-    public class AsyncYoutubeDownloader : IAsyncDownloadService
+    public class AsyncYoutubeDownloader : IAsyncDownloader
     {
         private readonly YoutubeClient yt = new YoutubeClient(new System.Net.Http.HttpClient());
 
@@ -30,12 +27,47 @@ namespace Suits.Jukebox.Services.Downloaders
         public Action? LargeSizeWarningCallback { get; set; }
         public Action<string>? VideoUnavailableCallback { get; set; }
 
+        public Task<bool> IsPlaylistAsync(string url) => Task.FromResult(YoutubeClient.ValidatePlaylistId(YoutubeClient.TryParsePlaylistId(url, out var pId) != false ? pId! : ""));
+
         public Task<string> GetMediaTitleAsync(string query) =>
             Task.FromResult(yt.SearchVideosAsync(query, 1).Result[0].Title);
 
-        private async Task<MediaCollection> DownloadPlaylist(string id, int index = 0)
+        public Task<bool> VerifyURLAsync(string url)
         {
+            bool isPlaylist = YoutubeClient.TryParsePlaylistId(url, out var plID);
+            bool couldValidate = isPlaylist ? YoutubeClient.ValidatePlaylistId(plID!) : YoutubeClient.ValidateVideoId(url);
+            bool couldParse = couldValidate ? true : YoutubeClient.TryParseVideoId(url, out var _);
+            return Task.FromResult(couldValidate || couldParse);
+        }
+
+        public async Task<IMediaInfo> GetMediaInfoAsync(string query)
+        {
+            bool isUrl = query.IsUrl();
+            string? playlistID = null;
+            bool isPlaylist = isUrl ? YoutubeClient.ValidatePlaylistId(YoutubeClient.TryParsePlaylistId(query, out playlistID) ? playlistID! : "") : YoutubeClient.ValidatePlaylistId(query);
+            if (isPlaylist)
+            {
+                var playlist = await yt.GetPlaylistAsync(playlistID!, 1);
+                return new MediaInfo() { Duration = playlist.GetTotalDuration(), Thumbnail = playlist.Videos.First().Thumbnails.MediumResUrl, Title = playlist.Title };
+            }
+            else
+            {
+                var couldParse = YoutubeClient.TryParseVideoId(query, out var videoID);
+                var video = couldParse ? await yt.GetVideoAsync(videoID!) : (await yt.SearchVideosAsync(query, 1)).First();
+                return new MediaInfo() { Duration = video.Duration, Thumbnail = video.Thumbnails.MediumResUrl, Title = video.Title };
+            }
+        }
+
+        public async Task<IEnumerable<string>> GetPlaylistVideoURLsAsync(string url)
+        {
+            var id = YoutubeClient.ParsePlaylistId(url);
             var pl = await yt.GetPlaylistAsync(id, 1);
+            return pl.Videos.Convert(x => x.Id);
+        }
+
+        public async Task<MediaCollection> DownloadPlaylist(string url, int index = 0)
+        {
+            var pl = await yt.GetPlaylistAsync(YoutubeClient.ParsePlaylistId(url), 1);
             var playlistVids = pl.Videos;
 
             if (playlistVids.Sum(x => x.Duration) > LargeSizeDurationThreshold)
@@ -46,9 +78,10 @@ namespace Suits.Jukebox.Services.Downloaders
             for (int i = index; i < num; i++)
             {
                 var vid = playlistVids[i];
-                if (MediaCache.Contains(vid.Title))
+                var normVidTitle = vid.Title.ReplaceIllegalCharacters();
+                if (MediaCache.Contains(normVidTitle))
                 {
-                    vids[i] = await MediaCache.GetAsync(vid.Title);
+                    vids[i] = await MediaCache.GetAsync(normVidTitle);
                     continue;
                 }
 
@@ -56,20 +89,21 @@ namespace Suits.Jukebox.Services.Downloaders
                 var audInfo = iSet.Audio.OrderByDescending(x => x.Bitrate).First();
                 var ms = await yt.GetMediaStreamAsync(audInfo);
                 var format = audInfo.Container.ToString().ToLower();
-                vids[i] = new PlayableMedia(new Metadata(vid.Title, format, vid.Duration, vid.Thumbnails.HighResUrl), ms.ToBytes());
+                vids[i] = new PlayableMedia(new Metadata(normVidTitle, format, vid.Duration, vid.Thumbnails.HighResUrl), ms.ToBytes());
             }
-            return await MediaCache.CacheMediaAsync(new MediaCollection(vids.Where(x => x != null), pl.Title), false);
+            return new MediaCollection(vids.Where(x => x != null), pl.Title);
         }
 
-        private async Task<PlayableMedia> DownloadVideo(string query, bool isPreFiltered, int attempt = 0)
+        public async Task<PlayableMedia> DownloadVideo(string query, bool isPreFiltered, int attempt = 0)
         {
             bool isQueryUrl = query.IsUrl();
 
-            var vid = isQueryUrl || isPreFiltered ? (await yt.GetVideoAsync(isPreFiltered ? query : YoutubeClient.ParseVideoId(query))) : (await yt.SearchVideosAsync(query, 1))[attempt];
+            var vid = isQueryUrl || isPreFiltered ? (await yt.GetVideoAsync(query)) : (await yt.SearchVideosAsync(query, 1))[attempt];
+            var normVidTitle = vid.Title.ReplaceIllegalCharacters();
 
-            if (MediaCache.Contains(vid.Title))
+            if (MediaCache.Contains(normVidTitle))
             {
-                return await MediaCache.GetAsync(vid.Title);
+                return await MediaCache.GetAsync(normVidTitle);
             }
 
             if (vid.Duration > LargeSizeDurationThreshold)
@@ -99,17 +133,32 @@ namespace Suits.Jukebox.Services.Downloaders
             }
             var stream = await yt.GetMediaStreamAsync(audioStreams[0]);
 
-            return (await MediaCache.CacheMediaAsync(new PlayableMedia(new Metadata(vid.Title.ReplaceIllegalCharacters(), audioStreams[0].Container.ToString().ToLower(), vid.Duration, vid.Thumbnails.HighResUrl), stream.ToBytes())));
+            try
+            {
+                var _ = stream.ReadByte();
+                stream.Seek(0, SeekOrigin.Begin);
+            }
+            catch (System.Net.Http.HttpRequestException)
+            {
+                if (isQueryUrl)
+                    throw new Exception("Specified video is unavailable.");
+                VideoUnavailableCallback?.Invoke(vid.Title);
+                return await DownloadVideo(query, false, ++attempt).ConfigureAwait(false);
+            }
+
+            return new PlayableMedia(new Metadata(normVidTitle, audioStreams[0].Container.ToString().ToLower(), vid.Duration, vid.Thumbnails.HighResUrl), stream.ToBytes());
         }
 
-        public async Task<MediaCollection> DownloadAsync(string searchQuery)
+        public Task<MediaCollection> DownloadAsync(string query)
         {
-            if (YoutubeClient.TryParsePlaylistId(searchQuery, out var plId))
-            {
-                var plIndex = await Utility.General.GetURLArgumentIntAsync(searchQuery, "index", false) - 1 ?? 0;
-                return await DownloadPlaylist(plId!, plIndex);
-            }
-            return await DownloadVideo(searchQuery, false);
+            var isPlaylist = IsPlaylistAsync(query).Result;
+
+            bool preFiltered = YoutubeClient.ValidateVideoId(query);
+
+            if (isPlaylist)
+                return DownloadPlaylist(query);
+            else
+                return Task.FromResult((MediaCollection)DownloadVideo(query, preFiltered).Result);
         }
     }
 }
