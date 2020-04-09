@@ -42,8 +42,6 @@ namespace Suits.Jukebox
 
         private bool skip = false;
 
-        private bool switching = false;
-
         private AudioOutStream? discordOut;
 
         private CancellationTokenSource? playbackToken;
@@ -70,6 +68,8 @@ namespace Suits.Jukebox
 
         private bool IsAlone() => channel!.GetUsersAsync().First().Result.Count == 1;
 
+        private volatile bool switching = false;
+
         private Thread WriteToChannel(AudioProcessor audio)
         {
             if (audioClient == null)
@@ -81,8 +81,7 @@ namespace Suits.Jukebox
 
             void Write()
             {
-                var inS = audio.GetOutput();
-                Playing = true;
+                var inS = audio.GetOutput();               
                 byte[] buffer = new byte[BufferSize];
                 int bytesRead;
                 try
@@ -96,7 +95,7 @@ namespace Suits.Jukebox
                         {
                             Thread.Sleep(1000);
                         }
-
+                        // Check if null
                         discordOut!.Write(buffer, 0, bytesRead);
                     }
                 }
@@ -170,15 +169,15 @@ namespace Suits.Jukebox
 
         public async Task PlayAsync(MediaRequest request, IAudioChannel channel, bool switchingPlayback = false, StatusCallbacks? callbacks = null, int bitrate = DefaultBitrate, int bufferSize = DefaultBufferSize)
         {
-            if (Playing)
+            switching = switchingPlayback;
+            if (Playing && !switching)
             {
                 await songQueue.EnqueueAsync(await request.GetRequestsAsync());
                 callbacks?.playingCallback(request.GetMediaInfo(), true);
                 return;
             }
-            else if (Playing && switchingPlayback)
+            else if (Playing && switching)
             {
-                switching = true;
                 Paused = false;
                 await StopAsync(false);
             }
@@ -195,13 +194,16 @@ namespace Suits.Jukebox
 
             try
             {
-                callbacks?.downloadingCallback(request.GetMediaInfo());
+                Playing = true;
+                if (!Loop)
+                    callbacks?.downloadingCallback(request.GetMediaInfo());
                 CurrentSong = await (await songQueue.DequeueAsync()).GetMediaAsync();
             }
-            catch
+            catch (Exception ex)
             {
+                Playing = false;
                 await DismissAsync().ConfigureAwait(false);
-                return;
+                throw new Exception("Error while downloading video. " + ex.Message);
             }
 
             if (!Loop)
@@ -209,6 +211,7 @@ namespace Suits.Jukebox
                 callbacks?.playingCallback(request.IsPlaylist ? request.GetMediaInfo() : CurrentSong!, false);
             }
 
+            switching = false;
             playbackThread = WriteToChannel(new AudioProcessor(CurrentSong!.Meta.MediaPath, bitrate, bufferSize / 2, CurrentSong.Meta.Format));
             playbackThread.Start();
             playbackThread.Join();
@@ -221,7 +224,6 @@ namespace Suits.Jukebox
 
             if (switching)
             {
-                switching = false;
                 return;
             }
 

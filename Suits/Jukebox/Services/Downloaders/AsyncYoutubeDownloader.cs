@@ -22,9 +22,6 @@ namespace Suits.Jukebox.Services.Downloaders
 
         public const int MaxPlaylistVideos = 100;
 
-        private readonly TimeSpan LargeSizeDurationThreshold = new TimeSpan(0, 45, 0);
-
-        public Action? LargeSizeWarningCallback { get; set; }
         public Action<string>? VideoUnavailableCallback { get; set; }
 
         public Task<bool> IsPlaylistAsync(string url) => Task.FromResult(YoutubeClient.ValidatePlaylistId(YoutubeClient.TryParsePlaylistId(url, out var pId) != false ? pId! : ""));
@@ -52,8 +49,9 @@ namespace Suits.Jukebox.Services.Downloaders
             }
             else
             {
+                var queryIsID = YoutubeClient.ValidateVideoId(query);
                 var couldParse = YoutubeClient.TryParseVideoId(query, out var videoID);
-                var video = couldParse ? await yt.GetVideoAsync(videoID!) : (await yt.SearchVideosAsync(query, 1)).First();
+                var video = queryIsID || couldParse ? await yt.GetVideoAsync(queryIsID ? query : videoID!) : (await yt.SearchVideosAsync(query, 1)).First();
                 return new MediaInfo() { Duration = video.Duration, Thumbnail = video.Thumbnails.MediumResUrl, Title = video.Title };
             }
         }
@@ -65,49 +63,17 @@ namespace Suits.Jukebox.Services.Downloaders
             return pl.Videos.Convert(x => x.Id);
         }
 
-        public async Task<MediaCollection> DownloadPlaylist(string url, int index = 0)
-        {
-            var pl = await yt.GetPlaylistAsync(YoutubeClient.ParsePlaylistId(url), 1);
-            var playlistVids = pl.Videos;
-
-            if (playlistVids.Sum(x => x.Duration) > LargeSizeDurationThreshold)
-                LargeSizeWarningCallback?.Invoke();
-
-            var num = playlistVids.Count > MaxPlaylistVideos ? MaxPlaylistVideos : playlistVids.Count;
-            PlayableMedia[] vids = new PlayableMedia[playlistVids.Count];
-            for (int i = index; i < num; i++)
-            {
-                var vid = playlistVids[i];
-                var normVidTitle = vid.Title.ReplaceIllegalCharacters();
-                if (MediaCache.Contains(normVidTitle))
-                {
-                    vids[i] = await MediaCache.GetAsync(normVidTitle);
-                    continue;
-                }
-
-                var iSet = await yt.GetVideoMediaStreamInfosAsync(vid.Id);
-                var audInfo = iSet.Audio.OrderByDescending(x => x.Bitrate).First();
-                var ms = await yt.GetMediaStreamAsync(audInfo);
-                var format = audInfo.Container.ToString().ToLower();
-                vids[i] = new PlayableMedia(new Metadata(normVidTitle, format, vid.Duration, vid.Thumbnails.HighResUrl), ms.ToBytes());
-            }
-            return new MediaCollection(vids.Where(x => x != null), pl.Title);
-        }
-
         public async Task<PlayableMedia> DownloadVideo(string query, bool isPreFiltered, int attempt = 0)
         {
             bool isQueryUrl = query.IsUrl();
 
-            var vid = isQueryUrl || isPreFiltered ? (await yt.GetVideoAsync(query)) : (await yt.SearchVideosAsync(query, 1))[attempt];
+            var vid = isQueryUrl || isPreFiltered ? (await yt.GetVideoAsync(isPreFiltered ? query : YoutubeClient.ParseVideoId(query))) : (await yt.SearchVideosAsync(query, 1))[attempt];
             var normVidTitle = vid.Title.ReplaceIllegalCharacters();
 
             if (MediaCache.Contains(normVidTitle))
             {
                 return await MediaCache.GetAsync(normVidTitle);
             }
-
-            if (vid.Duration > LargeSizeDurationThreshold)
-                LargeSizeWarningCallback?.Invoke();
 
             MediaStreamInfoSet info;
             try
@@ -151,14 +117,9 @@ namespace Suits.Jukebox.Services.Downloaders
 
         public Task<MediaCollection> DownloadAsync(string query)
         {
-            var isPlaylist = IsPlaylistAsync(query).Result;
-
             bool preFiltered = YoutubeClient.ValidateVideoId(query);
 
-            if (isPlaylist)
-                return DownloadPlaylist(query);
-            else
-                return Task.FromResult((MediaCollection)DownloadVideo(query, preFiltered).Result);
+            return Task.FromResult((MediaCollection)DownloadVideo(query, preFiltered).Result);
         }
     }
 }

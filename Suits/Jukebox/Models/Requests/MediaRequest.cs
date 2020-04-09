@@ -19,6 +19,7 @@ namespace Suits.Jukebox.Models.Requests
         public MediaRequest(PlayableMedia media)
         {
             this.col = media;
+            Requests.Add(this);
         }
 
         protected MediaRequest() { }

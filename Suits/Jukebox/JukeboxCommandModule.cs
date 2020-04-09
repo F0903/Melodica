@@ -22,7 +22,6 @@ namespace Suits.Jukebox
         {
             this.downloader = dl;
 
-            downloader.LargeSizeWarningCallback = LargeMediaCallback;
             downloader.VideoUnavailableCallback = MediaUnavailableCallback;
         }
 
@@ -38,8 +37,6 @@ namespace Suits.Jukebox
                                      .WithFooter(media.GetDuration().ToString())
                                      .WithThumbnailUrl(media.GetThumbnail()).Build();
         }
-
-        private async void LargeMediaCallback() => await ReplyAsync("Large media detected. This might take a while.");
 
         private async void MediaUnavailableCallback(string vid) => await ReplyAsync($"{vid} was unavailable. Skipping...");
 
@@ -60,7 +57,6 @@ namespace Suits.Jukebox
         public async Task ClearCacheAsync()
         {
             var (deletedFiles, filesInUse, ms) = await MediaCache.PruneCacheAsync(true);
-            await (await JukeboxService.GetJukeboxAsync(Context.Guild)).ClearQueueAsync();
             await ReplyAsync($"Deleted {deletedFiles} files. ({filesInUse} files in use) [{ms}ms]");
         }
 
@@ -168,7 +164,7 @@ namespace Suits.Jukebox
             var juke = await JukeboxService.GetJukeboxAsync(Context.Guild);
 
             IUserMessage? msg = null;
-            await juke.PlayAsync(await GetRequestAsync(mediaQuery), GetUserVoiceChannel(), true, new JukeboxPlayer.StatusCallbacks()
+            await juke.PlayAsync(await GetRequestAsync(mediaQuery!), GetUserVoiceChannel(), true, new JukeboxPlayer.StatusCallbacks()
             {
                 downloadingCallback = async (media) =>
                 {
@@ -207,7 +203,14 @@ namespace Suits.Jukebox
                 },
                 playingCallback = async (media, queued) =>
                 {
-                    await msg!.ModifyAsync(x => x.Embed = GetMediaEmbed("**Now Playing**", media, Color.Green));                   
+                    if (!queued)
+                        await msg!.ModifyAsync(x =>
+                        {
+                            x.Embed = msg.Embeds.First().ToEmbedBuilder().WithTitle("**Now Playing**")
+                                                                         .WithColor(Color.Green).Build();
+                        });
+                    else
+                        msg = await ReplyAsync(null, false, GetMediaEmbed("**Queued**", media));
                 }
             });
         }

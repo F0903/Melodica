@@ -48,7 +48,7 @@ namespace Suits.Jukebox.Services.Cache
             return Task.FromResult(files.AsParallel().Convert(x => new FileInfo(x)).Sum(f => f.Length));
         }
 
-        public static bool Contains(PlayableMedia med) => cache.Any(x => x.Title == med.GetTitle()); //Contains does not work correctly, so this is used instead.
+        public static bool Contains(PlayableMedia med) => cache.Any(x => x.Title == med.GetTitle()); // Contains does not work correctly, so this is used instead.
 
         public static bool Contains(string title) => cache.Any(x => x.Title == title);
 
@@ -62,30 +62,20 @@ namespace Suits.Jukebox.Services.Cache
             var files = Directory.EnumerateFiles(CacheLocation).Convert(x => new FileInfo(x));
             Stopwatch sw = new Stopwatch();
             sw.Start();
-            Parallel.ForEach(files, (x, s) => 
+            Parallel.ForEach<FileInfo>(files, (file, loop) =>
             {
-                bool couldDelete = false;
-                if (x.Extension == Metadata.MetaFileExtension)
+                if (file.Extension == Metadata.MetaFileExtension)
+                    return;
+                try
                 {
-                    couldDelete = files.Where(y => Path.ChangeExtension(y.Name, null) == Path.ChangeExtension(x.Name, null)).Count() == 1;
-                }
-                if (!couldDelete)
-                    try
-                    {
-                        x.Delete();
-                        cache.Remove(cache.Single(y => y.Title == x.Name));
-                        couldDelete = true;
-                        deletedFiles++;
-                    }
-                    catch (Exception) { couldDelete = false; filesInUse++; }
-
-                if (couldDelete)
-                {
-                    var mPath = Path.ChangeExtension(x.FullName, Metadata.MetaFileExtension);
-                    if (!File.Exists(mPath))
-                        return;
-                    File.Delete(mPath);
+                    file.Delete();
+                    File.Delete(Path.ChangeExtension(file.FullName, Metadata.MetaFileExtension));
+                    cache.Remove(cache.Single(x => x.Title == Path.ChangeExtension(file.Name, null)));
                     deletedFiles++;
+                }
+                catch
+                {
+                    filesInUse++;
                 }
             });
             sw.Stop();
@@ -103,7 +93,8 @@ namespace Suits.Jukebox.Services.Cache
             }
             catch (FileNotFoundException)
             {
-                cache.Remove(cache.Single(x => x.Title == title));
+                cache.Clear();
+                await LoadPreexistingFilesAsync();
                 throw new Exception("The metadata file for this media was deleted externally... Please try again.");
             }
             return media;
