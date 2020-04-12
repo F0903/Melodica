@@ -112,7 +112,7 @@ namespace Suits.Jukebox.Services.Downloaders
                 return await DownloadVideo(query, false, ++attempt).ConfigureAwait(false);
             }
 
-            return new PlayableMedia(new Metadata(normVidTitle, audioStreams[0].Container.ToString().ToLower(), vid.Duration, vid.Thumbnails.HighResUrl), stream.ToBytes());
+            return new PlayableMedia(new Metadata(normVidTitle, audioStreams[0].Container.ToString().ToLower(), vid.Duration, vid.Thumbnails.MediumResUrl), stream.ToBytes());
         }
 
         public Task<MediaCollection> DownloadAsync(string query)

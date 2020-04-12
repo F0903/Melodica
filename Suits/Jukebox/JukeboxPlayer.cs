@@ -70,6 +70,8 @@ namespace Suits.Jukebox
 
         private volatile bool switching = false;
 
+        private AudioOutStream CreateOutputStream() => audioClient!.CreatePCMStream(AudioApplication.Music, Bitrate, 100, 0);
+
         private Thread WriteToChannel(AudioProcessor audio)
         {
             if (audioClient == null)
@@ -79,9 +81,9 @@ namespace Suits.Jukebox
 
             bool BreakConditions() => IsAlone() || skip || playbackToken!.IsCancellationRequested;
 
-            void Write()
+            void Write() // Refactor
             {
-                var inS = audio.GetOutput();               
+                var inS = audio.GetOutput();
                 byte[] buffer = new byte[BufferSize];
                 int bytesRead;
                 try
@@ -95,8 +97,14 @@ namespace Suits.Jukebox
                         {
                             Thread.Sleep(1000);
                         }
-                        // Check if null
-                        discordOut!.Write(buffer, 0, bytesRead);
+                        try
+                        {
+                            discordOut!.Write(buffer, 0, bytesRead);
+                        }
+                        catch
+                        {
+                            discordOut = CreateOutputStream();
+                        }
                     }
                 }
                 catch (Exception e) when (e is OperationCanceledException ||  // Catch exception when stopping playback
@@ -105,15 +113,14 @@ namespace Suits.Jukebox
                     // Attempt to reconnect if the WebSocket expires.
                     if (e is System.Net.WebSockets.WebSocketException)
                     {
-                        discordOut = audioClient!.CreatePCMStream(AudioApplication.Music, Bitrate, 100, 0);
+                        discordOut = CreateOutputStream();
                         Write();
                     }
                 }
                 finally
                 {
                     audio.Dispose();
-                    discordOut!.Flush();
-                    Playing = false;
+                    discordOut?.Flush();
                 }
             }
             return new Thread(Write)
@@ -132,17 +139,17 @@ namespace Suits.Jukebox
             await Task.Run(audioClient.Dispose);
         }
 
-        public Task ToggleLoopAsync(Action<IMediaInfo, bool>? callback = null)
+        public Task ToggleLoopAsync(Action<(IMediaInfo info, bool wasLooping)>? callback = null)
         {
+            callback?.Invoke((CurrentSong!, Loop));
             Loop = !Loop;
-            callback?.Invoke(CurrentSong!, Loop);
             return Task.CompletedTask;
         }
 
         public Task ToggleShuffleAsync(Action<IMediaInfo, bool>? callback = null)
         {
-            Shuffle = !Shuffle;
             callback?.Invoke(GetQueue().GetMediaInfo(), Shuffle);
+            Shuffle = !Shuffle;
             return Task.CompletedTask;
         }
 
@@ -164,25 +171,26 @@ namespace Suits.Jukebox
         public struct StatusCallbacks
         {
             public Action<IMediaInfo> downloadingCallback;
-            public Action<IMediaInfo, bool> playingCallback;
+            public Action<(IMediaInfo info, bool queued)> playingCallback;
+            public Action<(IMediaInfo playlistInfo, IMediaInfo currentSong)> playingPlaylistCallback;
         }
 
-        public async Task PlayAsync(MediaRequest request, IAudioChannel channel, bool switchingPlayback = false, StatusCallbacks? callbacks = null, int bitrate = DefaultBitrate, int bufferSize = DefaultBufferSize)
+        // Refactor
+        public async Task PlayAsync(MediaRequest request, IAudioChannel channel, bool switchingPlayback = false, bool loop = false, StatusCallbacks? callbacks = null, int bitrate = DefaultBitrate, int bufferSize = DefaultBufferSize)
         {
+            bool wasPlaying = Playing;
+
+            Loop = loop;
             switching = switchingPlayback;
+            var requests = await request.GetRequestsAsync();
             if (Playing && !switching)
             {
-                await songQueue.EnqueueAsync(await request.GetRequestsAsync());
-                callbacks?.playingCallback(request.GetMediaInfo(), true);
+                await songQueue.EnqueueAsync(requests);
+                callbacks?.playingCallback?.Invoke((request.GetMediaInfo(), true));
                 return;
             }
-            else if (Playing && switching)
-            {
-                Paused = false;
-                await StopAsync(false);
-            }
 
-            await songQueue.PutFirst(await request.GetRequestsAsync());
+            await songQueue.PutFirst(requests);
 
             this.channel = channel;
 
@@ -190,31 +198,43 @@ namespace Suits.Jukebox
                              audioClient.ConnectionState == ConnectionState.Disconnected ||
                              audioClient.ConnectionState == ConnectionState.Disconnecting;
             audioClient = badClient ? await channel.ConnectAsync() : audioClient!;
-            discordOut = badClient ? audioClient.CreatePCMStream(AudioApplication.Music, Bitrate, 100, 0) : discordOut;
+            discordOut = badClient ? CreateOutputStream() : discordOut;
 
+            if (!Loop)
+                callbacks?.downloadingCallback?.Invoke(request.GetMediaInfo());
             try
             {
                 Playing = true;
-                if (!Loop)
-                    callbacks?.downloadingCallback(request.GetMediaInfo());
                 CurrentSong = await (await songQueue.DequeueAsync()).GetMediaAsync();
             }
             catch (Exception ex)
             {
                 Playing = false;
-                await DismissAsync().ConfigureAwait(false);
+                Shuffle = false;
                 throw new Exception("Error while downloading video. " + ex.Message);
             }
 
-            if (!Loop)
+            if (switching)
             {
-                callbacks?.playingCallback(request.IsPlaylist ? request.GetMediaInfo() : CurrentSong!, false);
+                Paused = false;
+                if (wasPlaying)
+                    await StopAsync(false);
+                Playing = true;
+            }
+
+            if (!Loop || (Loop && switching))
+            {
+                if (request.IsPlaylist)
+                    callbacks?.playingPlaylistCallback?.Invoke((request.GetMediaInfo(), CurrentSong));
+                else
+                    callbacks?.playingCallback?.Invoke((CurrentSong!, false));
             }
 
             switching = false;
             playbackThread = WriteToChannel(new AudioProcessor(CurrentSong!.Meta.MediaPath, bitrate, bufferSize / 2, CurrentSong.Meta.Format));
             playbackThread.Start();
             playbackThread.Join();
+            Playing = false;
 
             if (IsAlone())
             {
@@ -229,7 +249,7 @@ namespace Suits.Jukebox
 
             if (!skip && Loop)
             {
-                await PlayAsync(new MediaRequest(CurrentSong), channel, false, callbacks).ConfigureAwait(false);
+                await PlayAsync(new MediaRequest(CurrentSong), channel, false, loop, callbacks).ConfigureAwait(false);
                 return;
             }
 
@@ -240,7 +260,7 @@ namespace Suits.Jukebox
             }
 
             skip = false;
-            await PlayAsync(Shuffle ? await songQueue.DequeueRandomAsync() : await songQueue.DequeueAsync(), channel, false, callbacks).ConfigureAwait(false);
+            await PlayAsync(Shuffle ? await songQueue.DequeueRandomAsync() : await songQueue.DequeueAsync(), channel, false, loop, callbacks).ConfigureAwait(false);
         }
     }
 }

@@ -64,20 +64,19 @@ namespace Suits.Jukebox
         public async Task ShuffleAsync()
         {
             var juke = await JukeboxService.GetJukeboxAsync(Context.Guild);
-            await juke.ToggleShuffleAsync(async (x, b) => await ReplyAsync(null, false, GetMediaEmbed(b ? "**Shuffling**" : "**Stopped Shuffling**", x)));
+            await juke.ToggleShuffleAsync(async (info, wasShuffling) => await ReplyAsync(null, false, GetMediaEmbed(wasShuffling ? "**Stopped Shuffling**" : "**Shuffling**", info)));
         }
 
         [Command("Loop"), Summary("Toggles loop on the current song.")]
         public async Task SetLoopingAsync([Remainder] string? query = null)
         {
             var juke = await JukeboxService.GetJukeboxAsync(Context.Guild);
-            if (!juke.Playing)
-            {
-                if (query == null)
-                    return;
-                //TODO: Complete this
-            }
-            await juke.ToggleLoopAsync(async (x, l) => await ReplyAsync(null, false, GetMediaEmbed(l ? "**Now Looping**" : "**Stopped Looping**", x)));
+
+            if (!string.IsNullOrEmpty(query))
+                await juke.PlayAsync(new DownloadRequest<AsyncYoutubeDownloader>(query), GetUserVoiceChannel(), true, true,
+                                     new JukeboxPlayer.StatusCallbacks() { playingCallback = async (ctx) => await ReplyAsync(null, false, GetMediaEmbed("**Now Looping**", ctx.info)) });
+            else
+                await juke.ToggleLoopAsync(async ctx => await ReplyAsync(null, false, GetMediaEmbed(ctx.wasLooping ? "**Stopped Looping**" : "**Now Looping**", ctx.info)));
         }
 
         [Command("Song"), Alias("Info", "SongInfo"), Summary("Gets info about the current song.")]
@@ -164,15 +163,22 @@ namespace Suits.Jukebox
             var juke = await JukeboxService.GetJukeboxAsync(Context.Guild);
 
             IUserMessage? msg = null;
-            await juke.PlayAsync(await GetRequestAsync(mediaQuery!), GetUserVoiceChannel(), true, new JukeboxPlayer.StatusCallbacks()
+            await juke.PlayAsync(await GetRequestAsync(mediaQuery!), GetUserVoiceChannel(), true, false, new JukeboxPlayer.StatusCallbacks()
             {
                 downloadingCallback = async (media) =>
                 {
                     msg = await ReplyAsync(null, false, GetMediaEmbed("**Downloading...**", media, Color.Blue));
                 },
-                playingCallback = async (media, queued) =>
+                playingCallback = async (ctx) =>
                 {
-                    await msg!.ModifyAsync(x => x.Embed = GetMediaEmbed("**Now Playing**", media, Color.Green));
+                    if (msg != null)
+                        await msg.ModifyAsync(x => x.Embed = GetMediaEmbed("**Now Playing**", ctx.info, Color.Green));
+                },
+                playingPlaylistCallback = async (ctx) =>
+                {
+                    if (msg != null)
+                        await msg.ModifyAsync(x => x.Embed = GetMediaEmbed("**Now Playing**", ctx.playlistInfo, Color.Green));
+                    await ReplyAsync(null, false, GetMediaEmbed("**Now Playing**", ctx.currentSong, Color.Green));
                 }
             });
         }
@@ -195,22 +201,31 @@ namespace Suits.Jukebox
             var juke = await JukeboxService.GetJukeboxAsync(Context.Guild);
 
             IUserMessage? msg = null;
-            await juke.PlayAsync(await GetRequestAsync(mediaQuery!), GetUserVoiceChannel(), false, new JukeboxPlayer.StatusCallbacks()
+            await juke.PlayAsync(await GetRequestAsync(mediaQuery!), GetUserVoiceChannel(), false, false, new JukeboxPlayer.StatusCallbacks()
             {
                 downloadingCallback = async (media) =>
                 {
                     msg = await ReplyAsync(null, false, GetMediaEmbed("**Downloading...**", media, Color.Blue));
                 },
-                playingCallback = async (media, queued) =>
+                playingCallback = async (ctx) =>
                 {
-                    if (!queued)
+                    if (!ctx.queued)
                         await msg!.ModifyAsync(x =>
                         {
                             x.Embed = msg.Embeds.First().ToEmbedBuilder().WithTitle("**Now Playing**")
                                                                          .WithColor(Color.Green).Build();
                         });
                     else
-                        msg = await ReplyAsync(null, false, GetMediaEmbed("**Queued**", media));
+                        msg = await ReplyAsync(null, false, GetMediaEmbed("**Queued**", ctx.info));
+                },
+                playingPlaylistCallback = async (ctx) =>
+                {
+                    await msg!.ModifyAsync(x =>
+                    {
+                        x.Embed = msg.Embeds.First().ToEmbedBuilder().WithTitle("**Now Playing**")
+                                                                     .WithColor(Color.Green).Build();
+                    });
+                    await ReplyAsync(null, false, GetMediaEmbed("**Now Playing**", ctx.currentSong, Color.Green));
                 }
             });
         }

@@ -48,7 +48,7 @@ namespace Suits.Jukebox.Models.Requests
 
         private readonly string query;
 
-        private IMediaInfo cachedInfo;
+        private IMediaInfo? cachedInfo;
         public override IMediaInfo GetMediaInfo() => cachedInfo ?? (cachedInfo = downloader.GetMediaInfoAsync(playlistQuery ?? query).Result);
 
         public async override Task<PlayableMedia> GetMediaAsync()

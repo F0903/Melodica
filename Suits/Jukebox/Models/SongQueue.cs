@@ -30,7 +30,7 @@ namespace Suits.Jukebox.Models
                 return list.ToArray();
         }
 
-        public IMediaInfo GetMediaInfo() => list[0].GetMediaInfo();
+        public IMediaInfo GetMediaInfo() => new MediaInfo() { Duration = GetTotalDuration(), Thumbnail = list[0].GetMediaInfo().GetThumbnail(), Title = "Queue" };
 
         public Task EnqueueAsync(MediaRequest item)
         {
