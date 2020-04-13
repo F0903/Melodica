@@ -12,15 +12,15 @@ namespace Suits.Jukebox.Models
         {
             IsPlaylist = false;
             playlist = new[] { media };
-            PlaylistName = media.GetTitle();
-            PlaylistIndex = 0;
+            
         }
 
-        public MediaCollection(IEnumerable<PlayableMedia> playlist, string playlistName, int playlistIndex = 0)
+        public MediaCollection(IEnumerable<PlayableMedia> playlist, MediaInfo playlistInfo, int playlistIndex = 0)
         {
             IsPlaylist = true;
             this.playlist = playlist.ToArray();
-            PlaylistName = playlistName;
+            this.Info = playlistInfo;
+            
             PlaylistIndex = playlistIndex;
         }
 
@@ -41,19 +41,21 @@ namespace Suits.Jukebox.Models
 
         public int Length { get => playlist.Length; }
 
-        public TimeSpan TotalDuration => playlist.Sum(x => x.Meta.Duration);
+        public MediaInfo Info { get; }
 
-        public bool IsPlaylist { get; private set; }
+        public bool IsPlaylist { get; }
 
-        public string PlaylistName { get; private set; }
+        public int PlaylistIndex { get; }
 
-        public int PlaylistIndex { get; private set; }
+        public string GetTitle() => Info.Title;
 
-        public string? Thumbnail => GetThumbnail();
+        public TimeSpan GetDuration() => playlist.Sum(x => x.Meta.Info.Duration);
 
-        public string GetTitle() => PlaylistName;
-        public TimeSpan GetDuration() => TotalDuration;
-        public string? GetThumbnail() => playlist[0].Meta.ThumbnailUrl;
+        public string? GetThumbnail() => Info.Thumbnail;
+
+        public string? GetID() => Info.ID;
+
+        public string? GetURL() => IsPlaylist ? $"https://www.youtube.com/playlist?list={Info.ID}" : playlist[0].Meta.Info.URL;
 
         IEnumerator<PlayableMedia> IEnumerable<PlayableMedia>.GetEnumerator() => ((IEnumerable<PlayableMedia>)playlist).GetEnumerator();
 

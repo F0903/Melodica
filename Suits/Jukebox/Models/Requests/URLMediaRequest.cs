@@ -28,7 +28,7 @@ namespace Suits.Jukebox.Models.Requests
 
             var data = web.DownloadData(mediaUrl);
 
-            return Task.FromResult(MediaCache.CacheMediaAsync(new PlayableMedia(new Metadata(mediaName, mediaFormat, new TimeSpan(0)), data)).Result);
+            return Task.FromResult(MediaCache.CacheMediaAsync(new PlayableMedia(new Metadata(new MediaInfo() { Title = mediaName, Duration = new TimeSpan(0) }, mediaFormat), data)).Result);
         }
     }
 }

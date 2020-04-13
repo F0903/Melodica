@@ -48,9 +48,9 @@ namespace Suits.Jukebox.Services.Cache
             return Task.FromResult(files.AsParallel().Convert(x => new FileInfo(x)).Sum(f => f.Length));
         }
 
-        public static bool Contains(PlayableMedia med) => cache.Any(x => x.Title == med.GetTitle()); // Contains does not work correctly, so this is used instead.
+        public static bool Contains(PlayableMedia med) => cache.Any(x => x.Info.Title == med.GetTitle()); // Contains does not work correctly, so this is used instead.
 
-        public static bool Contains(string title) => cache.Any(x => x.Title == title);
+        public static bool Contains(string title) => cache.Any(x => x.Info.Title == title);
 
         public static async Task<(int deletedFiles, int filesInUse, long msDuration)> PruneCacheAsync(bool forceClear = false)
         {
@@ -70,7 +70,7 @@ namespace Suits.Jukebox.Services.Cache
                 {
                     file.Delete();
                     File.Delete(Path.ChangeExtension(file.FullName, Metadata.MetaFileExtension));
-                    cache.Remove(cache.Single(x => x.Title == Path.ChangeExtension(file.Name, null)));
+                    cache.Remove(cache.Single(x => x.Info.Title == Path.ChangeExtension(file.Name, null)));
                     deletedFiles++;
                 }
                 catch
@@ -89,7 +89,7 @@ namespace Suits.Jukebox.Services.Cache
             PlayableMedia media;
             try
             {
-                media = await PlayableMedia.LoadFromFileAsync(cache.Single(x => x.Title == title).MediaPath!);
+                media = await PlayableMedia.LoadFromFileAsync(cache.Single(x => x.Info.Title == title).MediaPath!);
             }
             catch (FileNotFoundException)
             {
@@ -119,20 +119,20 @@ namespace Suits.Jukebox.Services.Cache
                 await PruneCacheAsync();
 
             var pl = col.IsPlaylist;
-            var o = new List<PlayableMedia>();
+            var playlist = new List<PlayableMedia>();
             foreach (var med in col)
             {
                 if (Contains(med))
                 {
-                    o.Add(await GetAsync(med.GetTitle()));
+                    playlist.Add(await GetAsync(med.GetTitle()));
                     continue;
                 }
 
                 CachedMedia ca = new CachedMedia(med, CacheLocation);
-                o.Add(ca);
+                playlist.Add(ca);
                 cache.Add(ca.Meta);
             }
-            return pl ? new MediaCollection(o, col.PlaylistName, col.PlaylistIndex) : new MediaCollection(o.First());
+            return pl ? new MediaCollection(playlist, col.Info, col.PlaylistIndex) : new MediaCollection(playlist.First());
         }
     }
 }

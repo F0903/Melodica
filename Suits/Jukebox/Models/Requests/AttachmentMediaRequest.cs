@@ -31,10 +31,10 @@ namespace Suits.Jukebox.Models.Requests
         public override Task<PlayableMedia> GetMediaAsync()
         {
             using var web = new WebClient();
-            var data = web.DownloadData(attachment.Url);
+            var data = web.DownloadData(attachment!.Url);
             var name = attachment.Filename;
             var format = Path.GetExtension(name).Replace(".", "");
-            return Task.FromResult((PlayableMedia)new TempMedia(new Metadata(name, format, new TimeSpan(0)), data));
+            return Task.FromResult((PlayableMedia)new TempMedia(new Metadata(new MediaInfo() { Title = name, Duration = new TimeSpan(0) }, format), data));
         }
     }
 }

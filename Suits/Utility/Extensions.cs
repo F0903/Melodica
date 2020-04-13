@@ -16,11 +16,12 @@ namespace Suits.Utility.Extensions
             '<'
         };
 
-        public static TimeSpan GetTotalDuration(this YoutubeExplode.Models.Playlist pl) 
+        public async static Task<TimeSpan> GetTotalDurationAsync(this YoutubeExplode.Playlists.Playlist pl, YoutubeExplode.YoutubeClient? client = null) 
         {
-            var videos = pl.Videos;
+            client ??= new YoutubeExplode.YoutubeClient();
+            var videos = client.Playlists.GetVideosAsync(pl.Id);
             TimeSpan ts = new TimeSpan();
-            foreach (var video in videos)
+            await foreach (var video in videos)
             {
                 ts += video.Duration;
             }

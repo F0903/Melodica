@@ -22,14 +22,14 @@ namespace Suits.Jukebox.Models.Requests
 
             if (IsPlaylist = downloader.IsPlaylistAsync(query).Result)
             {
-                this.playlistQuery = query;
-                var pl = downloader.GetPlaylistVideoURLsAsync(query).Result;
-                for (int i = 0; i < pl.Count(); i++)
+                var (pl, videos) = downloader.DownloadPlaylistInfoAsync(query).Result;
+                for (int i = 0; i < videos.Count(); i++)
                 {
-                    var item = pl.ElementAt(i);
+                    var item = videos.ElementAt(i);
                     if (i == 0)
                     {
-                        this.query = item;
+                        this.info = pl; // Set first requests info to the playlists info.
+                        this.query = item.GetID()!;
                         Requests.Add(this);
                         continue;
                     }
@@ -42,18 +42,24 @@ namespace Suits.Jukebox.Models.Requests
             }
         }
 
-        private readonly Downloader downloader;
+        private DownloadRequest(IMediaInfo info)
+        {
+            downloader = new Downloader();
+            this.info = info;
+            query = info.GetID()!;
+        }
 
-        private readonly string? playlistQuery = null;
+        private readonly Downloader downloader;
 
         private readonly string query;
 
-        private IMediaInfo? cachedInfo;
-        public override IMediaInfo GetMediaInfo() => cachedInfo ?? (cachedInfo = downloader.GetMediaInfoAsync(playlistQuery ?? query).Result);
+        private IMediaInfo? info;
+        public override IMediaInfo GetMediaInfo() => info ?? (info = downloader.DownloadMediaInfoAsync(query).Result);
 
         public async override Task<PlayableMedia> GetMediaAsync()
         {
             var media = await downloader.DownloadAsync(query);
+            info ??= media;
             return (await MediaCache.CacheMediaAsync(media)).First();
         }
     }

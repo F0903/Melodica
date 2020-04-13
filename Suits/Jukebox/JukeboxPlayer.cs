@@ -90,13 +90,18 @@ namespace Suits.Jukebox
                 {
                     while ((bytesRead = inS!.Read(buffer, 0, buffer.Length)) != 0)
                     {
-                        if (BreakConditions())
-                            break;
+                        var shouldBreak = BreakConditions();
 
-                        while (Paused && !BreakConditions())
+                        while (Paused && !shouldBreak)
                         {
                             Thread.Sleep(1000);
                         }
+
+                        if (shouldBreak)
+                            break;
+
+                        if (discordOut == null)
+                            throw new NullReferenceException("Unknown error occured during playback.");
                         try
                         {
                             discordOut!.Write(buffer, 0, bytesRead);
@@ -110,17 +115,20 @@ namespace Suits.Jukebox
                 catch (Exception e) when (e is OperationCanceledException ||  // Catch exception when stopping playback
                                           e is System.Net.WebSockets.WebSocketException)
                 {
+                    if (e is OperationCanceledException)
+                        return;
                     // Attempt to reconnect if the WebSocket expires.
                     if (e is System.Net.WebSockets.WebSocketException)
                     {
                         discordOut = CreateOutputStream();
                         Write();
                     }
+                    throw e;
                 }
                 finally
                 {
                     audio.Dispose();
-                    discordOut?.Flush();
+                    discordOut!.Flush();
                 }
             }
             return new Thread(Write)
@@ -178,6 +186,13 @@ namespace Suits.Jukebox
         // Refactor
         public async Task PlayAsync(MediaRequest request, IAudioChannel channel, bool switchingPlayback = false, bool loop = false, StatusCallbacks? callbacks = null, int bitrate = DefaultBitrate, int bufferSize = DefaultBufferSize)
         {
+            bool badClient = audioClient == null ||
+                             audioClient.ConnectionState == ConnectionState.Disconnected ||
+                             audioClient.ConnectionState == ConnectionState.Disconnecting;
+            audioClient = badClient ? await channel.ConnectAsync() : audioClient!;
+            discordOut = badClient ? CreateOutputStream() : discordOut;
+            this.channel = channel;
+
             bool wasPlaying = Playing;
 
             Loop = loop;
@@ -191,14 +206,6 @@ namespace Suits.Jukebox
             }
 
             await songQueue.PutFirst(requests);
-
-            this.channel = channel;
-
-            bool badClient = audioClient == null ||
-                             audioClient.ConnectionState == ConnectionState.Disconnected ||
-                             audioClient.ConnectionState == ConnectionState.Disconnecting;
-            audioClient = badClient ? await channel.ConnectAsync() : audioClient!;
-            discordOut = badClient ? CreateOutputStream() : discordOut;
 
             if (!Loop)
                 callbacks?.downloadingCallback?.Invoke(request.GetMediaInfo());
@@ -230,12 +237,12 @@ namespace Suits.Jukebox
                     callbacks?.playingCallback?.Invoke((CurrentSong!, false));
             }
 
-            switching = false;
-            playbackThread = WriteToChannel(new AudioProcessor(CurrentSong!.Meta.MediaPath, bitrate, bufferSize / 2, CurrentSong.Meta.Format));
+            
+            playbackThread = WriteToChannel(new AudioProcessor(CurrentSong!.Meta.MediaPath, bitrate, bufferSize / 2, CurrentSong.Meta.FileFormat));
             playbackThread.Start();
             playbackThread.Join();
             Playing = false;
-
+            
             if (IsAlone())
             {
                 await DismissAsync().ConfigureAwait(false);
@@ -244,6 +251,7 @@ namespace Suits.Jukebox
 
             if (switching)
             {
+                switching = false;
                 return;
             }
 
