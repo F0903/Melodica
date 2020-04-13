@@ -16,6 +16,18 @@ namespace Suits.Utility.Extensions
             '<'
         };
 
+        public async static Task<TimeSpan> GetTotalDurationAsync(this YoutubeExplode.Playlists.Playlist pl, YoutubeExplode.YoutubeClient? client = null) 
+        {
+            client ??= new YoutubeExplode.YoutubeClient();
+            var videos = client.Playlists.GetVideosAsync(pl.Id);
+            TimeSpan ts = new TimeSpan();
+            await foreach (var video in videos)
+            {
+                ts += video.Duration;
+            }
+            return ts;
+        }
+
         public static string Unfold<T>(this IEnumerable<T> str, char? seperatorChar = null)
         {
             if (str.Count() == 0)
@@ -45,10 +57,8 @@ namespace Suits.Utility.Extensions
         public static TimeSpan Sum<T>(this IEnumerable<T> input, Func<T, TimeSpan> selector)
         {
             TimeSpan sum = new TimeSpan();
-            Parallel.ForEach(input, x =>
-            {
-                sum = sum.Add(selector(x));
-            });
+            foreach (var item in input)
+                sum += selector(item);
             return sum;
         }
 

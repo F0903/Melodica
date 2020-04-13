@@ -21,7 +21,11 @@ namespace Suits.Core
         public static GuildSettings GetOrCreateSettings(IGuild guild, Func<GuildSettings> settingsFactory)
         {
             if (!File.Exists(GetGuildSettingsPath(guild)))
-                return settingsFactory();
+            {
+                var newSettings = settingsFactory();
+                newSettings.SaveData();
+                return newSettings;
+            }
             return serializer!.DeserializeFileAsync<GuildSettings>(GetGuildSettingsPath(guild)).Result;
         }
       
@@ -32,8 +36,6 @@ namespace Suits.Core
         public static IGuild? connectedGuild;
 
         public string Prefix { get; set; } = DefaultPrefix;
-
-        public int MaxFileCacheInMB { get; set; } = 2000;
 
         public void SaveData()
         {

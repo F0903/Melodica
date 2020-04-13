@@ -16,16 +16,15 @@ namespace Suits.Jukebox
 {
     public sealed class JukeboxPlayer
     {
-        public JukeboxPlayer(MediaCache cache, SongQueue? queue = null, int bitrate = DefaultBitrate, int bufferSize = DefaultBufferSize)
+        public JukeboxPlayer(SongQueue? queue = null, int bitrate = DefaultBitrate, int bufferSize = DefaultBufferSize)
         {
-            this.cache = cache;
             this.songQueue = queue ?? new SongQueue();
             Bitrate = bitrate;
             BufferSize = bufferSize;
         }
 
         public const int DefaultBitrate = 128 * 1024;
-        public const int DefaultBufferSize = 1 * 1024;
+        public const int DefaultBufferSize = 1024 / 2;
 
         public int Bitrate { get; private set; }
 
@@ -39,11 +38,9 @@ namespace Suits.Jukebox
 
         public bool Loop { get; private set; }
 
-        public bool Paused { get; set; } = false;
+        public bool Paused { get; set; }
 
         private bool skip = false;
-
-        private bool switching = false;
 
         private AudioOutStream? discordOut;
 
@@ -53,13 +50,9 @@ namespace Suits.Jukebox
 
         private readonly SongQueue songQueue;
 
-        private readonly MediaCache cache;
-
         private IAudioChannel? channel;
 
         private IAudioClient? audioClient;
-
-        public MediaCache GetCache() => cache;
 
         public string GetChannelName() => channel!.Name;
 
@@ -71,9 +64,13 @@ namespace Suits.Jukebox
 
         public Task ClearQueueAsync() => songQueue.ClearAsync();
 
-        public Task<PlayableMedia> RemoveFromQueueAsync(int index) => songQueue.RemoveAtAsync(index);
+        public IMediaInfo RemoveFromQueue(int index) => songQueue.RemoveAtAsync(index).Result.GetMediaInfo();
 
         private bool IsAlone() => channel!.GetUsersAsync().First().Result.Count == 1;
+
+        private volatile bool switching = false;
+
+        private AudioOutStream CreateOutputStream() => audioClient!.CreatePCMStream(AudioApplication.Music, Bitrate, 100, 0);
 
         private Thread WriteToChannel(AudioProcessor audio)
         {
@@ -84,40 +81,55 @@ namespace Suits.Jukebox
 
             bool BreakConditions() => IsAlone() || skip || playbackToken!.IsCancellationRequested;
 
-            void CheckConnection() => discordOut = audioClient!.ConnectionState == ConnectionState.Disconnected ? audioClient.CreatePCMStream(AudioApplication.Music, Bitrate, 100, 0) : discordOut;
-
-            void Write()
+            void Write() // Refactor
             {
                 var inS = audio.GetOutput();
-                Playing = true;
-
                 byte[] buffer = new byte[BufferSize];
                 int bytesRead;
                 try
                 {
                     while ((bytesRead = inS!.Read(buffer, 0, buffer.Length)) != 0)
                     {
-                        while (Paused)
+                        var shouldBreak = BreakConditions();
+
+                        while (Paused && !shouldBreak)
                         {
-                            if (BreakConditions())
-                                break;
-                            Thread.Yield();
+                            Thread.Sleep(1000);
                         }
 
-                        if (BreakConditions())
+                        if (shouldBreak)
                             break;
 
-                        CheckConnection();
-                        discordOut!.Write(buffer, 0, bytesRead);
+                        if (discordOut == null)
+                            throw new NullReferenceException("Unknown error occured during playback.");
+                        try
+                        {
+                            discordOut!.Write(buffer, 0, bytesRead);
+                        }
+                        catch
+                        {
+                            discordOut = CreateOutputStream();
+                        }
                     }
                 }
-                catch (OperationCanceledException) { } // Catch exception when stopping playback
+                catch (Exception e) when (e is OperationCanceledException ||  // Catch exception when stopping playback
+                                          e is System.Net.WebSockets.WebSocketException)
+                {
+                    if (e is OperationCanceledException)
+                        return;
+                    // Attempt to reconnect if the WebSocket expires.
+                    if (e is System.Net.WebSockets.WebSocketException)
+                    {
+                        discordOut = CreateOutputStream();
+                        Write();
+                    }
+                    throw e;
+                }
                 finally
                 {
                     audio.Dispose();
                     discordOut!.Flush();
                 }
-                Playing = false;
             }
             return new Thread(Write)
             {
@@ -135,44 +147,27 @@ namespace Suits.Jukebox
             await Task.Run(audioClient.Dispose);
         }
 
-        public Task ToggleLoopAsync(Action<IMediaInfo, bool>? callback = null)
+        public Task ToggleLoopAsync(Action<(IMediaInfo info, bool wasLooping)>? callback = null)
         {
+            callback?.Invoke((CurrentSong!, Loop));
             Loop = !Loop;
-            callback?.Invoke(CurrentSong!, Loop);
             return Task.CompletedTask;
         }
 
         public Task ToggleShuffleAsync(Action<IMediaInfo, bool>? callback = null)
         {
+            callback?.Invoke(GetQueue().GetMediaInfo(), Shuffle);
             Shuffle = !Shuffle;
-            callback?.Invoke(GetQueue().ToMediaCollection(), Shuffle);
             return Task.CompletedTask;
         }
 
         public Task StopAsync(bool clearQueue = true)
         {
             Loop = false;
-
             playbackToken?.Cancel();
             playbackThread?.Join();
 
             return clearQueue ? songQueue.ClearAsync() : Task.CompletedTask;
-        }
-
-        private async Task QueueAsync(PlayableMedia media)
-        {
-            if (!File.Exists(media.Meta.MediaPath))
-                throw new Exception("Specified song path to queue is empty.");
-
-            await songQueue.EnqueueAsync(media);
-        }
-
-        private async Task QueueAsync(MediaCollection playlist, int startIndex = 0)
-        {
-            var temp = playlist.ToList();
-            temp.RemoveAt(startIndex);
-            var toQueue = temp.ToArray();
-            await songQueue.UnsafeEnqueueAsync(toQueue);
         }
 
         public async Task ConnectToChannelAsync(IAudioChannel channel)
@@ -181,54 +176,77 @@ namespace Suits.Jukebox
             audioClient = await channel.ConnectAsync();
         }
 
-        public async Task PlayAsync(MediaRequest request, IAudioChannel channel, bool switchingPlayback = false, Action<(IMediaInfo media, bool queued)>? playingCallback = null, int bitrate = DefaultBitrate, int bufferSize = DefaultBufferSize)
+        public struct StatusCallbacks
         {
-            MediaCollection col = await request.GetMediaRequestAsync();
-            PlayableMedia song = col[col.PlaylistIndex];
+            public Action<IMediaInfo> downloadingCallback;
+            public Action<(IMediaInfo info, bool queued)> playingCallback;
+            public Action<(IMediaInfo playlistInfo, IMediaInfo currentSong)> playingPlaylistCallback;
+        }
 
-            if (col.IsPlaylist)
-            {
-                await QueueAsync(col, col.PlaylistIndex);
-
-                playingCallback?.Invoke((col, true));
-                if (Playing && !switchingPlayback)
-                    return;
-            }
-
-            if (Playing && switchingPlayback)
-            {
-                switching = switchingPlayback;
-                Paused = false;
-                await StopAsync(false);
-            }
-
-            if (Playing && !switchingPlayback)
-            {
-                await QueueAsync(song);
-                playingCallback?.Invoke((song, true));
-                return;
-            }
-
-            this.channel = channel;
-
+        // Refactor
+        public async Task PlayAsync(MediaRequest request, IAudioChannel channel, bool switchingPlayback = false, bool loop = false, StatusCallbacks? callbacks = null, int bitrate = DefaultBitrate, int bufferSize = DefaultBufferSize)
+        {
             bool badClient = audioClient == null ||
                              audioClient.ConnectionState == ConnectionState.Disconnected ||
                              audioClient.ConnectionState == ConnectionState.Disconnecting;
             audioClient = badClient ? await channel.ConnectAsync() : audioClient!;
-            discordOut = badClient ? audioClient.CreatePCMStream(AudioApplication.Music, Bitrate, 100, 0) : discordOut;
+            discordOut = badClient ? CreateOutputStream() : discordOut;
+            this.channel = channel;
 
-            CurrentSong = song;
+            bool wasPlaying = Playing;
+
+            Loop = loop;
+            switching = switchingPlayback;
+            var requests = await request.GetRequestsAsync();
+            if (Playing && !switching)
+            {
+                await songQueue.EnqueueAsync(requests);
+                callbacks?.playingCallback?.Invoke((request.GetMediaInfo(), true));
+                return;
+            }
+
+            await songQueue.PutFirst(requests);
 
             if (!Loop)
-                playingCallback?.Invoke((song, false));
+                callbacks?.downloadingCallback?.Invoke(request.GetMediaInfo());
+            try
+            {
+                Playing = true;
+                CurrentSong = await (await songQueue.DequeueAsync()).GetMediaAsync();
+            }
+            catch (Exception ex)
+            {
+                Playing = false;
+                Shuffle = false;
+                throw new Exception("Error while downloading video. " + ex.Message);
+            }
 
-            playbackThread = WriteToChannel(new AudioProcessor(song.Meta.MediaPath, bitrate, bufferSize / 2, song.Meta.Format));
+            if (switching)
+            {
+                Paused = false;
+                if (wasPlaying)
+                    await StopAsync(false);
+                Playing = true;
+            }
+
+            if (!Loop || (Loop && switching))
+            {
+                if (request.IsPlaylist)
+                    callbacks?.playingPlaylistCallback?.Invoke((request.GetMediaInfo(), CurrentSong));
+                else
+                    callbacks?.playingCallback?.Invoke((CurrentSong!, false));
+            }
+
+            
+            playbackThread = WriteToChannel(new AudioProcessor(CurrentSong!.Meta.MediaPath, bitrate, bufferSize / 2, CurrentSong.Meta.FileFormat));
             playbackThread.Start();
             playbackThread.Join();
-
+            Playing = false;
+            
             if (IsAlone())
             {
                 await DismissAsync().ConfigureAwait(false);
+                return;
             }
 
             if (switching)
@@ -237,11 +255,9 @@ namespace Suits.Jukebox
                 return;
             }
 
-            CurrentSong = null;
-
             if (!skip && Loop)
             {
-                await PlayAsync(request, channel, false, playingCallback).ConfigureAwait(false);
+                await PlayAsync(new MediaRequest(CurrentSong), channel, false, loop, callbacks).ConfigureAwait(false);
                 return;
             }
 
@@ -252,7 +268,7 @@ namespace Suits.Jukebox
             }
 
             skip = false;
-            await PlayAsync(new MediaRequest(new MediaCollection(Shuffle ? await songQueue.DequeueRandomAsync() : await songQueue.DequeueAsync())), channel, false, playingCallback).ConfigureAwait(false);
+            await PlayAsync(Shuffle ? await songQueue.DequeueRandomAsync() : await songQueue.DequeueAsync(), channel, false, loop, callbacks).ConfigureAwait(false);
         }
     }
 }

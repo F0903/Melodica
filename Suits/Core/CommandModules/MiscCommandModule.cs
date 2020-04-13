@@ -19,14 +19,19 @@ namespace Suits.Core.CommandModules
 
         private readonly CommandService commandService;
 
-        [Command("Spam"), RequireOwner]
-        public async Task SpamAsync(int? n, string user, [Remainder] string msg)
+        [Command("TTS"), RequireUserPermission(GuildPermission.Administrator)]
+        public async Task TTSAsync([Remainder] string msg)
         {
-            if (n == null)
-                n = 3;
+            var message = await ReplyAsync(msg, true);
+            await message.DeleteAsync();
+            await Context.Message.DeleteAsync();
+        }
 
+        [Command("Spam"), RequireOwner]
+        public async Task SpamAsync(string user, [Remainder] string msg)
+        {
             var dm = await Context.Guild.AutoGetUser(user).GetOrCreateDMChannelAsync();
-            for (int i = 0; i < n; i++)
+            for (int i = 0; i < 3; i++)
             {
                 await Task.Delay(1);
                 await dm.SendMessageAsync(msg);

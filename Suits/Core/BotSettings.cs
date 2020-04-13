@@ -9,12 +9,12 @@ namespace Suits.Core
     [Serializable]
     public class BotSettings
     {
-        public static BotSettings GetOrSetSettings(Func<BotSettings> settingsFactory)
+        public static BotSettings GetOrSet(Func<BotSettings>? custom = null)
         {
             var data = LoadData();
             if (data != null)
                 return data;
-            var val = settingsFactory();
+            var val = custom != null ? custom() : new BotSettings();
             val.SaveData();
             return val;
         }
@@ -24,17 +24,7 @@ namespace Suits.Core
         private const string SettingsPath = "./Settings/Bot" + SettingsExtension;
 
         private static readonly IAsyncSerializer serializer = new BinarySerializer();
-
-        private string token = "NTcxNDAwNTc4MDY0ODQyNzUy.Xbf1bw.ZJnOjpza1owjye-gKi5YWoMrrkE";
-        public string Token
-        {
-            get => token;
-            private set
-            {
-                token = value;
-                SaveData();
-            }
-        }
+        public string Token { get; } = "NTcxNDAwNTc4MDY0ODQyNzUy.Xbf1bw.ZJnOjpza1owjye-gKi5YWoMrrkE";
 
         private LogSeverity logSeverity = LogSeverity.Debug;
         public LogSeverity LogSeverity
@@ -47,6 +37,17 @@ namespace Suits.Core
             }
         }
 
+        private int maxFileCacheInMB = 1000;
+        public int MaxFileCacheInMB
+        {
+            get => maxFileCacheInMB;
+            set
+            {
+                maxFileCacheInMB = value;
+                SaveData();
+            }
+        }
+
         private void SaveData()
         {
             var dirName = Path.GetDirectoryName(SettingsPath);
@@ -54,6 +55,7 @@ namespace Suits.Core
                 Directory.CreateDirectory(dirName);
             serializer.SerializeToFileAsync(SettingsPath, this);
         }
+
         private static BotSettings? LoadData()
         {
             if (!File.Exists(SettingsPath))

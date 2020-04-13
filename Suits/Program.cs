@@ -5,20 +5,19 @@ using Suits.Core.Services;
 using System;
 using System.Threading.Tasks;
 using System.Runtime.InteropServices;
+using System.Diagnostics;
 
 namespace Suits
 {
     public static class Program
     {
-        private static readonly SocketBot currentBot = new SocketBot(BotSettings.GetOrSetSettings(() => new BotSettings() { LogSeverity = Discord.LogSeverity.Debug}), Kernel.Get<IAsyncLoggingService>(), Kernel.Get<SocketCommandHandler>());
+        private static readonly SocketBot currentBot = new SocketBot(BotSettings.GetOrSet(), Kernel.Get<IAsyncLoggingService>(), Kernel.Get<SocketCommandHandler>());
 
         private static async Task Main()
         {
-            Console.WriteLine($"IS WINDOWS: {RuntimeInformation.IsOSPlatform(OSPlatform.Windows)}");
-
-            await currentBot.ConnectAsync(true);
-            await currentBot.SetActivityAsync($"{GuildSettings.DefaultPrefix}play", Discord.ActivityType.Listening);
+            await currentBot.ConnectAsync($"{GuildSettings.DefaultPrefix}play", Discord.ActivityType.Listening, true);
             AppDomain.CurrentDomain.ProcessExit += CurrentDomain_ProcessExit;
+            Process.GetCurrentProcess().PriorityClass = ProcessPriorityClass.High;
 
             await Task.Delay(-1);
         }

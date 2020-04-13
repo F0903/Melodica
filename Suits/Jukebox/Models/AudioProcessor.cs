@@ -16,8 +16,8 @@ namespace Suits.Jukebox.Models
             {
                 StartInfo = new ProcessStartInfo()
                 {
-                    FileName = "ffmpeg32.exe", 
-                    Arguments = $"-hide_banner -loglevel debug -vn {(format != null ? $"-f {format}" : string.Empty)} -i {$"\"{path}\"" ?? "pipe:0"} -f s16le -bufsize {bufferSize} -b:a {bitrate} -ac 2 -ar 48000 -y pipe:1",
+                    FileName = "ffmpeg.exe",
+                    Arguments = $"-hide_banner -loglevel debug -vn {(format != null ? $"-f {format}" : string.Empty)} -i {$"\"{path}\"" ?? "pipe:0"} -f s16le -bufsize {bufferSize} -ab {bitrate} -ac 2 -ar 48000 -y pipe:1",
                     UseShellExecute = false,
                     RedirectStandardError = false,
                     RedirectStandardInput = (inputAvailable = (path == null ? true : false)),
@@ -27,6 +27,7 @@ namespace Suits.Jukebox.Models
             };
 
             playerProcess.Start();
+            playerProcess.PriorityClass = ProcessPriorityClass.AboveNormal;
         }
 
         private readonly Process playerProcess;

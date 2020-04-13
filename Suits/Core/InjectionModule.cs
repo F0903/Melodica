@@ -1,11 +1,11 @@
-﻿namespace Suits
+﻿namespace Suits.Core
 {
-    public class InjectionModule : Ninject.Modules.NinjectModule
+    public partial class InjectionModule : Ninject.Modules.NinjectModule
     {
         public override void Load()
         {
-            Bind<Core.Services.IAsyncLoggingService>().To<Core.Services.ColoredLogger>();
-            Bind<Core.Services.CommandHandlers.IAsyncCommandHandlerService>().To<Core.Services.CommandHandlers.SocketCommandHandler>().InSingletonScope();
+            Bind<Services.IAsyncLoggingService>().To<Services.ColoredLogger>();
+            Bind<Services.CommandHandlers.IAsyncCommandHandlerService>().To<Services.CommandHandlers.SocketCommandHandler>();//.InSingletonScope();
         }
     }
 }

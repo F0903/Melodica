@@ -3,6 +3,7 @@ using System.Linq;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Suits.Utility.Extensions;
+using Suits.Jukebox.Models.Requests;
 
 namespace Suits.Jukebox.Models
 {
@@ -10,57 +11,55 @@ namespace Suits.Jukebox.Models
     {
         private readonly object locker = new object();
 
-        private readonly List<PlayableMedia> list = new List<PlayableMedia>();
+        private readonly List<MediaRequest> list = new List<MediaRequest>();
 
         public bool IsEmpty { get => list.Count == 0; }
 
         public int Length { get => list.Count; }
 
-        public PlayableMedia this[int i]
+        public MediaRequest this[int i]
         {
-            get => list[i]; 
+            get => list[i];
         }
 
-        public TimeSpan GetTotalDuration() => list.Sum(x => x.Meta.Duration);
+        public TimeSpan GetTotalDuration() => list.Sum(x => x.GetMediaInfo().GetDuration());
 
-        public PlayableMedia[] ToArray()
+        public MediaRequest[] ToArray()
         {
             lock (locker)
                 return list.ToArray();
         }
 
-        public MediaCollection ToMediaCollection() => new MediaCollection(list, "Queue");
+        public IMediaInfo GetMediaInfo() => new MediaInfo() { Duration = GetTotalDuration(), Thumbnail = list[0].GetMediaInfo().GetThumbnail(), Title = "Queue" };
 
-        public Task UnsafeEnqueueAsync(PlayableMedia item)
+        public Task EnqueueAsync(MediaRequest item)
         {
             list.Add(item);
             return Task.CompletedTask;
         }
 
-        public Task UnsafeEnqueueAsync(PlayableMedia[] items)
+        public Task EnqueueAsync(IEnumerable<MediaRequest> items)
         {
             list.AddRange(items);
             return Task.CompletedTask;
         }
 
-        public Task EnqueueAsync(PlayableMedia[] items)
+        public Task PutFirst(MediaRequest item)
         {
-            lock (locker)
-                list.AddRange(items);
+            list.Insert(0, item);
             return Task.CompletedTask;
         }
 
-        public Task EnqueueAsync(PlayableMedia item)
+        public Task PutFirst(IEnumerable<MediaRequest> items)
         {
-            lock (locker)
-                list.Add(item);
+            list.InsertRange(0, items);
             return Task.CompletedTask;
         }
 
-        public Task<PlayableMedia> DequeueRandomAsync()
+        public Task<MediaRequest> DequeueRandomAsync()
         {
             var rng = new Random();
-            PlayableMedia item;
+            MediaRequest item;
             lock (locker)
             {
                 item = list[rng.Next(0, list.Count)];
@@ -69,9 +68,9 @@ namespace Suits.Jukebox.Models
             return Task.FromResult(item);
         }
 
-        public Task<PlayableMedia> DequeueAsync()
+        public Task<MediaRequest> DequeueAsync()
         {
-            PlayableMedia item;
+            MediaRequest item;
             lock (locker)
             {
                 item = list[0];
@@ -86,9 +85,9 @@ namespace Suits.Jukebox.Models
             return Task.CompletedTask;
         }
 
-        public Task<PlayableMedia> RemoveAtAsync(int index)
+        public Task<MediaRequest> RemoveAtAsync(int index)
         {
-            PlayableMedia item;
+            MediaRequest item;
             lock (locker)
             {
                 item = list[index];

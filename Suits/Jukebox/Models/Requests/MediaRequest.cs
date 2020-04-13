@@ -9,19 +9,38 @@ namespace Suits.Jukebox.Models.Requests
     {
         public MediaRequest(MediaCollection col)
         {
-            this.col = col;
+            Requests.Add(this);
+            for (int i = 1; i < col.Length; i++)
+            {
+                Requests.Add(new MediaRequest(col[i]));
+            }
         }
 
         public MediaRequest(PlayableMedia media)
         {
-            this.col = new MediaCollection(media);
+            this.col = media;
+            Requests.Add(this);
         }
 
         protected MediaRequest() { }
 
-        private readonly MediaCollection? col;
+        private readonly PlayableMedia? col;
 
-        public virtual Task<MediaCollection> GetMediaRequestAsync()
+        public bool IsPlaylist { get; protected set; } = false; 
+
+        protected List<MediaRequest> Requests { get; set; } = new List<MediaRequest>();
+
+        public virtual Task<IEnumerable<MediaRequest>> GetRequestsAsync()
+        {
+            return Task.FromResult((IEnumerable<MediaRequest>)Requests);
+        }
+
+        public virtual IMediaInfo GetMediaInfo()
+        {
+            return col!;
+        }
+     
+        public virtual Task<PlayableMedia> GetMediaAsync()
         {
             return Task.FromResult(col!);
         }

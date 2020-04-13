@@ -12,28 +12,29 @@ namespace Suits.Jukebox.Models.Requests
 {
     class AttachmentMediaRequest : MediaRequest
     {
-        public AttachmentMediaRequest(Discord.Attachment[] attachments, MediaCache cache)
+        public AttachmentMediaRequest(Discord.Attachment[] attachments)
         {
-            this.cache = cache;
-            this.attachments = attachments;
+            Requests.Add(this);
+            for (int i = 1; i < attachments.Length; i++)
+            {
+                Requests.Add(new AttachmentMediaRequest(attachments[i]));
+            }
         }
 
-        readonly MediaCache cache;
+        private AttachmentMediaRequest(Discord.Attachment attachment)
+        {
+            this.attachment = attachment;
+        }
 
-        readonly Discord.Attachment[] attachments;
+        readonly Discord.Attachment? attachment;
 
-        public override Task<MediaCollection> GetMediaRequestAsync()
+        public override Task<PlayableMedia> GetMediaAsync()
         {
             using var web = new WebClient();
-            List<PlayableMedia> media = new List<PlayableMedia>();
-            foreach (var item in attachments)
-            {
-                var data = web.DownloadData(item.Url);
-                var name = item.Filename;
-                var format = Path.GetExtension(name).Replace(".", "");
-                media.Add(new TempMedia(new Metadata(name, format, new TimeSpan(0)), data, cache));
-            }
-            return Task.FromResult(media.Count > 1 ? new MediaCollection(media, "Attachments") : new MediaCollection(media.First()));
+            var data = web.DownloadData(attachment!.Url);
+            var name = attachment.Filename;
+            var format = Path.GetExtension(name).Replace(".", "");
+            return Task.FromResult((PlayableMedia)new TempMedia(new Metadata(new MediaInfo() { Title = name, Duration = new TimeSpan(0) }, format), data));
         }
     }
 }

@@ -2,22 +2,19 @@
 using Suits.Jukebox.Services.Cache;
 using Suits.Utility.Extensions;
 using System;
-using System.Linq;
-using YoutubeExplode;
-using YoutubeExplode.Models;
-using YoutubeExplode.Exceptions;
-using YoutubeExplode.Models.MediaStreams;
 using System.Collections.Generic;
-using System.Threading.Tasks;
-using System.Threading;
 using System.IO;
+using System.Linq;
+using System.Threading.Tasks;
+using YoutubeExplode;
+using YoutubeExplode.Exceptions;
+using YoutubeExplode.Videos.Streams;
 
 namespace Suits.Jukebox.Services.Downloaders
 {
-    //TODO: REFACTOR REFACTOR REFACTOR
-    public class AsyncYoutubeDownloader : IAsyncDownloadService
+    public class AsyncYoutubeDownloader : IAsyncDownloader
     {
-        private readonly YoutubeClient yt = new YoutubeClient(new System.Net.Http.HttpClient());
+        private static readonly YoutubeClient yt = new YoutubeClient(new System.Net.Http.HttpClient());
 
         public const int MaxCacheAttempts = 5;
 
@@ -25,119 +22,128 @@ namespace Suits.Jukebox.Services.Downloaders
 
         public const int MaxPlaylistVideos = 100;
 
-        private TimeSpan LargeSizeDurationThreshold = new TimeSpan(0, 45, 0);
+        public Action<string>? VideoUnavailableCallback { get; set; }
 
-        public Task<string> GetMediaTitleAsync(string query) =>
-            Task.FromResult(yt.SearchVideosAsync(query, 1).Result[0].Title);
-
-        private async Task<PlayableMedia> InternalDownloadAsync(string query, bool isPreFiltered, Action? largeSizeWarningCallback, Action<string>? videoUnavailableCallback, bool toQueue = false, int attempt = 0)
+        public async Task<bool> IsPlaylistAsync(string url)
         {
-            bool isQueryUrl = query.IsUrl();
-            
-            var vid = isQueryUrl || isPreFiltered ? (await yt.GetVideoAsync(isPreFiltered ? query : YoutubeClient.ParseVideoId(query))) : (await yt.SearchVideosAsync(query, 1))[attempt];
-
-            if (vid.Duration > LargeSizeDurationThreshold)
-                largeSizeWarningCallback?.Invoke();
-
-            MediaStreamInfoSet info;
             try
             {
-                info = await yt.GetVideoMediaStreamInfosAsync(vid.Id);
+                await yt.Playlists.GetAsync(new YoutubeExplode.Playlists.PlaylistId(url));
+                return true;
             }
-            catch (Exception ex) when (ex is VideoUnplayableException || ex is VideoUnavailableException)
+            catch
             {
-                videoUnavailableCallback?.Invoke(vid.Title);
-                return null!;
+                return false;
             }
-
-            var audioStreams = info.Audio.OrderByDescending(x => x.Bitrate).ToArray();
-            if (audioStreams.Length == 0)
-            {
-                if (isQueryUrl)
-                    throw new Exception("This video does not have have available media streams.");
-
-                if (attempt > MaxDownloadAttempts)
-                    throw new Exception($"No videos with available media streams could be found. Attempts: {attempt}/{MaxDownloadAttempts}");
-
-                return await InternalDownloadAsync(query, false, largeSizeWarningCallback!, videoUnavailableCallback, toQueue, ++attempt).ConfigureAwait(false);
-            }
-            var stream = await yt.GetMediaStreamAsync(audioStreams[0]);
-
-            return new PlayableMedia(new Metadata(vid.Title.ReplaceIllegalCharacters(), audioStreams[0].Container.ToString().ToLower(), vid.Duration, vid.Thumbnails.HighResUrl), stream.ToBytes());
         }
 
-        private Task<MediaCollection> CacheAsync(MediaCollection col, MediaCache cache, bool pruneCache = true)
+        public async Task<bool> VerifyURLAsync(string url)
         {
-            return cache.CacheMediaAsync(col, pruneCache || !col.IsPlaylist);
-        }
-
-        public async Task<MediaCollection> DownloadToCacheAsync(MediaCache cache, QueueMode mode, Discord.IGuild guild, string searchQuery, bool pruneCache = true, Action? largeSizeWarningCallback = null, Action<string>? videoUnavailableCallback = null)
-        {
-            // Refactor this whole shite.
-            if (YoutubeClient.TryParsePlaylistId(searchQuery, out var playlistId))
+            bool isPlaylist = await IsPlaylistAsync(url);
+            bool isVideo = false;
+            if (!isPlaylist)
             {
-                var pl = await yt.GetPlaylistAsync(playlistId!, 1);
-                var videos = pl.Videos;
-                
-                var plIndex = await Utility.General.GetURLArgumentIntAsync(searchQuery, "index", false) - 1 ?? 0;
-
-                if (videos.Sum(x => x.Duration) > LargeSizeDurationThreshold)
-                    largeSizeWarningCallback?.Invoke();
-
-                var num = videos.Count > MaxPlaylistVideos ? MaxPlaylistVideos : videos.Count;
-
-                PlayableMedia[] pList = new PlayableMedia[num];
-                switch (mode)
+                try
                 {
-                    case QueueMode.Consistent:
-                        for (int i = 0; i < num; i++)
-                        {
-                            if (cache.Contains(videos[i].Title))
-                            {
-                                pList[i] = await cache.GetAsync(videos[i].Title);
-                                continue;
-                            }
-                            var result = await InternalDownloadAsync(videos[i].Id, true, null, videoUnavailableCallback);
-                            if (result == null)
-                                continue;
-                            pList[i] = result;
-                        }
-                        break;
-
-                    case QueueMode.Fast:
-                        Parallel.For(0, num, new ParallelOptions() { MaxDegreeOfParallelism = Environment.ProcessorCount * 2 }, i =>
-                        {
-                            if (cache.Contains(videos[i].Title))
-                            {
-                                pList[i] = cache.GetAsync(videos[i].Title).Result;
-                                return;
-                            }
-                            var result = InternalDownloadAsync(videos[i].Id, true, null, videoUnavailableCallback).Result;
-                            if (result == null)
-                                return;
-                            pList[i] = result;
-                        });
-                        break;
+                    await yt.Videos.GetAsync(url);
+                    isVideo = true;
                 }
-
-                var pListFilter = pList.ToList();
-                pListFilter.RemoveAll(x => x == null);
-                pList = pListFilter.ToArray();
-
-                var cached = await cache.CacheMediaAsync(new MediaCollection(pList, pl.Title));
-
-                return cached;
+                catch
+                { isVideo = false; }
             }
+            return isPlaylist || isVideo;
+        }
 
-            var title = await GetMediaTitleAsync(searchQuery);
-            if (cache.Contains(title))
+        public async Task<IMediaInfo> DownloadMediaInfoAsync(string query)
+        {
+            YoutubeExplode.Playlists.Playlist? playlist = null;
+            try
             {
-                return await cache.GetAsync(title);
+                playlist = await yt.Playlists.GetAsync(query);
+            }
+            catch
+            { }
+
+            if (playlist != null)
+            {
+                var playlistVideos = yt.Playlists.GetVideosAsync(playlist.Id);
+                if (playlist != null)
+                {
+                    return new MediaInfo() { Duration = await playlist.GetTotalDurationAsync(yt), ID = playlist.Id.Value, Thumbnail = playlistVideos.BufferAsync(1).Result.First().Thumbnails.MediumResUrl, Title = playlist.Title, URL = playlist.Url };
+                }
+            }
+            else
+            {
+                YoutubeExplode.Videos.Video? video = null;
+                try
+                {
+                    video = await yt.Videos.GetAsync(query);
+                }
+                catch
+                { }
+
+                if (video == null)
+                    video = yt.Search.GetVideosAsync(query).BufferAsync(1).Result.First();
+                return new MediaInfo() { Duration = video.Duration, ID = video.Id, Thumbnail = video.Thumbnails.MediumResUrl, Title = video.Title, URL = video.Url };
+            }
+            throw new Exception("Media could not be resolved to neither video nor playlist.");
+        }
+
+        public async Task<(IMediaInfo playlist, IEnumerable<IMediaInfo> videos)> DownloadPlaylistInfoAsync(string url)
+        {
+            var playlist = await yt.Playlists.GetAsync(url);
+            var videos = yt.Playlists.GetVideosAsync(playlist.Id);
+
+            List<MediaInfo> videoInfo = new List<MediaInfo>();
+            await foreach (var item in videos)
+                videoInfo.Add(new MediaInfo() { Duration = item.Duration, ID = item.Id, Thumbnail = item.Thumbnails.MediumResUrl, Title = item.Title, URL = item.Url });
+            return (new MediaInfo() { Duration = await playlist.GetTotalDurationAsync(), ID = playlist.Id, Thumbnail = videoInfo.First().Thumbnail, Title = playlist.Title, URL = playlist.Url },
+                    (IEnumerable<IMediaInfo>)videoInfo.AsEnumerable());
+        }
+
+        public async Task<PlayableMedia> DownloadVideo(string query, bool isPreFiltered, int attempt = 0)
+        {
+            var video = isPreFiltered ? await yt.Videos.GetAsync(query) : yt.Search.GetVideosAsync(query).BufferAsync(MaxDownloadAttempts).Result.ElementAt(attempt);
+
+            var manifest = await yt.Videos.Streams.GetManifestAsync(video.Id);
+
+            async Task Error()
+            {
+                if (isPreFiltered || attempt > MaxDownloadAttempts)
+                    throw new Exception($"{video.Title} could not be downloaded. {(attempt != 0 ? $"(Attempt {attempt} of {MaxDownloadAttempts})" : "")}");
+                await DownloadVideo(query, isPreFiltered, attempt++).ConfigureAwait(false);
             }
 
-            var media = await InternalDownloadAsync(searchQuery, false, largeSizeWarningCallback, videoUnavailableCallback);
+            var streamInfo = manifest.GetAudioOnly().WithHighestBitrate();
+            Stream? stream = null;
+            try
+            {
+                stream = await yt.Videos.Streams.GetAsync(streamInfo ?? throw new Exception("No stream was found."));
+            }
+            catch
+            {
+                await Error().ConfigureAwait(false);
+            }
+            if (stream == null)
+                await Error().ConfigureAwait(false);
 
-            return await CacheAsync(media, cache);
-        }       
+            return new PlayableMedia(new Metadata(
+                                     new MediaInfo() { Duration = video.Duration, ID = video.Id, Thumbnail = video.Thumbnails.MediumResUrl, Title = video.Title, URL = video.Url }, streamInfo!.Container.Name.ToLower()),
+                                     stream!.ToBytes());
+        }
+
+        public Task<MediaCollection> DownloadAsync(string query)
+        {
+            bool preFiltered = false;
+            try
+            {
+                yt.Videos.GetAsync(query);
+                preFiltered = true;
+            }
+            catch
+            { preFiltered = false; }
+
+            return Task.FromResult((MediaCollection)DownloadVideo(query, preFiltered).Result);
+        }
     }
 }
