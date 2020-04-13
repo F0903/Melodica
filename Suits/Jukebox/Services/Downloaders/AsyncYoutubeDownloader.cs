@@ -20,7 +20,7 @@ namespace Suits.Jukebox.Services.Downloaders
 
         public const int MaxDownloadAttempts = 10;
 
-        public const int MaxPlaylistVideos = 100;
+        public const int MaxPlaylistVideos = 999;
 
         public Action<string>? VideoUnavailableCallback { get; set; }
 
@@ -134,7 +134,7 @@ namespace Suits.Jukebox.Services.Downloaders
 
         public Task<MediaCollection> DownloadAsync(string query)
         {
-            bool preFiltered = false;
+            bool preFiltered;
             try
             {
                 yt.Videos.GetAsync(query);
