@@ -106,7 +106,7 @@ namespace Suits.Jukebox.Services.Downloaders
             var video = isPreFiltered ? await yt.Videos.GetAsync(query) : yt.Search.GetVideosAsync(query).BufferAsync(MaxDownloadAttempts).Result.ElementAt(attempt);
 
             var manifest = await yt.Videos.Streams.GetManifestAsync(video.Id);
-
+            
             async Task Error()
             {
                 if (isPreFiltered || attempt > MaxDownloadAttempts)

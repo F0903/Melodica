@@ -24,6 +24,7 @@ namespace Suits.Core
         private const string SettingsPath = "./Settings/Bot" + SettingsExtension;
 
         private static readonly IAsyncSerializer serializer = new BinarySerializer();
+      
         public string Token { get; } = "NTcxNDAwNTc4MDY0ODQyNzUy.XpTs2g.i_xfTw-7cJfByo8gCyIeAffByLE";
 
         private LogSeverity logSeverity = LogSeverity.Debug;

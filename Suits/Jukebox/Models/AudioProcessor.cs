@@ -37,7 +37,9 @@ namespace Suits.Jukebox.Models
                 StartInfo = new ProcessStartInfo()
                 {
                     FileName = "ffmpeg.exe",
+
                     Arguments = $"-y -hide_banner -loglevel debug -vn {(format != null ? $"-f {format}" : string.Empty)} -i {(path != null ? $"\"{path}\"" : "pipe:0")} -f s16le -bufsize {bufferSize} -ac 2 -ar 48000 pipe:1",
+
                     UseShellExecute = false,
                     RedirectStandardError = false,
                     RedirectStandardInput = (inputAvailable = (path == null ? true : false)),

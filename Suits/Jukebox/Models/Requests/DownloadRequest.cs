@@ -55,6 +55,7 @@ namespace Suits.Jukebox.Models.Requests
         private readonly string query;
 
         private IMediaInfo? info;
+
         public override IMediaInfo GetMediaInfo() => info ?? (info = downloader.GetMediaInfoAsync(query).Result);
 
         public async override Task<PlayableMedia> GetMediaAsync()

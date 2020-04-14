@@ -184,19 +184,12 @@ namespace Suits.Jukebox
         }
 
         private async Task Connect(IAudioChannel channel)
-        {
-            bool badClient = audioClient == null ||
-                             audioClient.ConnectionState == ConnectionState.Disconnected ||
-                             audioClient.ConnectionState == ConnectionState.Disconnecting;
-            audioClient = badClient ? await channel.ConnectAsync() : audioClient!;
-            discordOut = badClient ? CreateOutputStream() : discordOut;
-            this.channel = channel;
-        }
 
         // Refactor
         public async Task PlayAsync(MediaRequest request, IAudioChannel channel, bool switchingPlayback = false, bool loop = false, StatusCallbacks? callbacks = null)
         {
             await Connect(channel);
+  
             bool wasPlaying = Playing;
 
             Loop = loop;
