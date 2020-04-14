@@ -291,11 +291,7 @@ namespace Suits.Jukebox
 
             Playing = false;
 
-            if (songQueue.IsEmpty || (playbackToken?.IsCancellationRequested ?? false))
-            {
-                await DismissAsync().ConfigureAwait(false);
-                return;
-            }
+            await DismissAsync().ConfigureAwait(false);
         }
     }
 }
