@@ -14,8 +14,10 @@ namespace Suits.Jukebox.Services.Downloaders
 
         public Task<(IMediaInfo playlist, IEnumerable<IMediaInfo> videos)> DownloadPlaylistInfoAsync(string url);
 
-        public Task<IMediaInfo> DownloadMediaInfoAsync(string url);
+        public Task<IMediaInfo> GetMediaInfoAsync(string url);
 
         public Task<MediaCollection> DownloadAsync(string query);
+
+        public Task<string> GetLivestreamAsync(string streamURL);
     }
 }

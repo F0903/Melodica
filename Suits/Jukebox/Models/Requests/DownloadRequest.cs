@@ -9,12 +9,12 @@ using Suits.Utility.Extensions;
 
 namespace Suits.Jukebox.Models.Requests
 {
-    public class DownloadRequest<Downloader> : MediaRequest where Downloader : IAsyncDownloader, new()
+    public class DownloadRequest<Downloader> : MediaRequest where Downloader : class, IAsyncDownloader, new()
     {
-        public DownloadRequest(string query)
+        public DownloadRequest(string query, Downloader? dl = null)
         {
             this.query = query;
-            downloader = new Downloader();
+            downloader = dl ?? new Downloader();
 
             if (query.IsUrl())
                 if (!downloader.VerifyURLAsync(query).Result)
@@ -33,7 +33,7 @@ namespace Suits.Jukebox.Models.Requests
                         Requests.Add(this);
                         continue;
                     }
-                    Requests.Add(new DownloadRequest<Downloader>(item));
+                    Requests.Add(new DownloadRequest<Downloader>(item, downloader));
                 }
             }
             else
@@ -42,11 +42,12 @@ namespace Suits.Jukebox.Models.Requests
             }
         }
 
-        private DownloadRequest(IMediaInfo info)
+        private DownloadRequest(IMediaInfo info, Downloader dl)
         {
-            downloader = new Downloader();
+            downloader = dl;
             this.info = info;
             query = info.GetID()!;
+            Requests.Add(this);
         }
 
         private readonly Downloader downloader;
@@ -54,7 +55,7 @@ namespace Suits.Jukebox.Models.Requests
         private readonly string query;
 
         private IMediaInfo? info;
-        public override IMediaInfo GetMediaInfo() => info ?? (info = downloader.DownloadMediaInfoAsync(query).Result);
+        public override IMediaInfo GetMediaInfo() => info ?? (info = downloader.GetMediaInfoAsync(query).Result);
 
         public async override Task<PlayableMedia> GetMediaAsync()
         {

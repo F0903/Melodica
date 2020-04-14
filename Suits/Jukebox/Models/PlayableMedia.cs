@@ -39,7 +39,7 @@ namespace Suits.Jukebox.Models
 
         public virtual Metadata Meta { get; protected set; }
 
-        private readonly byte[]? mediaData;
+        private byte[]? mediaData;
 
         protected string? saveDir;
 
@@ -54,6 +54,7 @@ namespace Suits.Jukebox.Models
             var location = Path.Combine(saveDir ?? throw new NullReferenceException("Please set saveDir before saving."), Meta.Info.Title.ReplaceIllegalCharacters() + Meta.FileExtension);
             if (mediaData == null) throw new Exception("Media data was null.");
             File.WriteAllBytes(location, mediaData);
+            mediaData = null;
             Meta.MediaPath = location;
             return Task.CompletedTask;
         }

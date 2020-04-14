@@ -54,7 +54,7 @@ namespace Suits.Jukebox.Services.Downloaders
             return isPlaylist || isVideo;
         }
 
-        public async Task<IMediaInfo> DownloadMediaInfoAsync(string query)
+        public async Task<IMediaInfo> GetMediaInfoAsync(string query)
         {
             YoutubeExplode.Playlists.Playlist? playlist = null;
             try
@@ -98,7 +98,7 @@ namespace Suits.Jukebox.Services.Downloaders
             await foreach (var item in videos)
                 videoInfo.Add(new MediaInfo() { Duration = item.Duration, ID = item.Id, Thumbnail = item.Thumbnails.MediumResUrl, Title = item.Title, URL = item.Url });
             return (new MediaInfo() { Duration = await playlist.GetTotalDurationAsync(), ID = playlist.Id, Thumbnail = videoInfo.First().Thumbnail, Title = playlist.Title, URL = playlist.Url },
-                    (IEnumerable<IMediaInfo>)videoInfo.AsEnumerable());
+                    videoInfo.Convert(x => (IMediaInfo)x));
         }
 
         public async Task<PlayableMedia> DownloadVideo(string query, bool isPreFiltered, int attempt = 0)
@@ -144,6 +144,11 @@ namespace Suits.Jukebox.Services.Downloaders
             { preFiltered = false; }
 
             return Task.FromResult((MediaCollection)DownloadVideo(query, preFiltered).Result);
+        }
+
+        public Task<string> GetLivestreamAsync(string streamURL)
+        {
+            return yt.Videos.Streams.GetHttpLiveStreamUrlAsync(streamURL);
         }
     }
 }

@@ -242,5 +242,16 @@ namespace Suits.Jukebox
 
             await ReplyAsync("Stopped playback.");
         }
+
+        [Command("Livestream"), Alias("Stream"), Summary("Plays a livestream.")]
+        public async Task PlayLivestreamAsync(string url)
+        {
+            var request = new LivestreamRequest<AsyncYoutubeDownloader>(url);
+            var juke = await JukeboxService.GetJukeboxAsync(Context.Guild);
+            await juke.PlayLivestreamAsync(request, GetUserVoiceChannel(), async x =>
+            {
+                await ReplyAsync(null, false, GetMediaEmbed("**Now Streaming**", x, Color.DarkMagenta));
+            });
+        }
     }
 }

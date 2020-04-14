@@ -17,7 +17,7 @@ namespace Suits.Jukebox.Models
                 StartInfo = new ProcessStartInfo()
                 {
                     FileName = "ffmpeg.exe",
-                    Arguments = $"-hide_banner -loglevel debug -vn {(format != null ? $"-f {format}" : string.Empty)} -i {$"\"{path}\"" ?? "pipe:0"} -f s16le -bufsize {bufferSize} -ab {bitrate} -ac 2 -ar 48000 -y pipe:1",
+                    Arguments = $"-y -hide_banner -loglevel debug -vn {(format != null ? $"-f {format}" : string.Empty)} -i {$"\"{path}\"" ?? "pipe:0"} -f s16le -bufsize {bufferSize} -ab {bitrate} -ac 2 -ar 48000 pipe:1",
                     UseShellExecute = false,
                     RedirectStandardError = false,
                     RedirectStandardInput = (inputAvailable = (path == null ? true : false)),
@@ -30,10 +30,38 @@ namespace Suits.Jukebox.Models
             playerProcess.PriorityClass = ProcessPriorityClass.AboveNormal;
         }
 
+        public AudioProcessor(string hlsUrl, int bitrate, int bufferSize)
+        {
+            playerProcess = new Process()
+            {
+                StartInfo = new ProcessStartInfo()
+                {
+                    FileName = "ffmpeg.exe",
+                    Arguments = $"-y -hide_banner -loglevel debug -vn -f hls -i {hlsUrl} -f s16le -bufsize {bufferSize} -ab {bitrate} -ac 2 -ar 48000 pipe:1",  //$"-hide_banner -loglevel debug -vn -f hls -i \"{hlsUrl}\" -f s16le -bufsize {bufferSize} -ab {bitrate} -ac 2 -ar 48000 -y pipe:1",
+                    UseShellExecute = false,
+                    RedirectStandardError = false,  
+                    RedirectStandardInput = (inputAvailable = false),
+                    RedirectStandardOutput = (outputAvailable = true),
+                    CreateNoWindow = false,
+                }
+            };
+
+            isLivestream = true;
+            playerProcess.Start();
+            playerProcess.PriorityClass = ProcessPriorityClass.AboveNormal;
+        }
+
+        ~AudioProcessor()
+        {
+            Dispose();
+        }
+
         private readonly Process playerProcess;
 
         private readonly bool inputAvailable;
         private readonly bool outputAvailable;
+
+        public readonly bool isLivestream;
 
         public Process GetBaseProcess() => playerProcess;
 
