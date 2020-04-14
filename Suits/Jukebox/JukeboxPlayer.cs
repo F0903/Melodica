@@ -241,7 +241,7 @@ namespace Suits.Jukebox
                     callbacks?.playingCallback?.Invoke((CurrentSong!, false));
             }
 
-            playbackThread = WriteToChannel(new AudioProcessor(CurrentSong!.Meta.MediaPath, Bitrate, BufferSize / 2, CurrentSong.Meta.FileFormat));
+            playbackThread = WriteToChannel(new AudioProcessor(CurrentSong!.Meta.MediaPath, BufferSize, CurrentSong.Meta.FileFormat));
             playbackThread.Start();
             playbackThread.Join();
             Playing = false;
@@ -278,21 +278,24 @@ namespace Suits.Jukebox
         {
             await Connect(channel);
             if (Playing)
-            {
-                await StopAsync(false);
-            }
+                await StopAsync(true);
 
             Playing = true;
             startedPlaying?.Invoke(await request.GetInfoAsync());
 
-            playbackThread = WriteToChannel(new AudioProcessor(await request.GetHLSUrlAsync(), Bitrate, BufferSize / 2));
+            playbackThread = WriteToChannel(new AudioProcessor(await request.GetHLSUrlAsync(), BufferSize));
             playbackThread.Start();
             playbackThread.Join();
             if (switching)
                 return;
 
             Playing = false;
-            await DismissAsync();
+
+            if (songQueue.IsEmpty || (playbackToken?.IsCancellationRequested ?? false))
+            {
+                await DismissAsync().ConfigureAwait(false);
+                return;
+            }
         }
     }
 }

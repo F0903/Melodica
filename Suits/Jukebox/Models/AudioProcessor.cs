@@ -8,47 +8,19 @@ namespace Suits.Jukebox.Models
 {
     public sealed class AudioProcessor : IDisposable
     {
-        public AudioProcessor(string? path, int bitrate, int bufferSize, string? format = null)
+        public AudioProcessor(string? path, int bufferSize = 1024, string? format = null)
         {
-            if (path != null && path == string.Empty)
-                throw new Exception("Song path is empty.");
-            playerProcess = new Process()
-            {
-                StartInfo = new ProcessStartInfo()
-                {
-                    FileName = "ffmpeg.exe",
-                    Arguments = $"-y -hide_banner -loglevel debug -vn {(format != null ? $"-f {format}" : string.Empty)} -i {$"\"{path}\"" ?? "pipe:0"} -f s16le -bufsize {bufferSize} -ab {bitrate} -ac 2 -ar 48000 pipe:1",
-                    UseShellExecute = false,
-                    RedirectStandardError = false,
-                    RedirectStandardInput = (inputAvailable = (path == null ? true : false)),
-                    RedirectStandardOutput = (outputAvailable = true),
-                    CreateNoWindow = false,
-                }
-            };
-
+            playerProcess = Construct(path, bufferSize, format);
             playerProcess.Start();
             playerProcess.PriorityClass = ProcessPriorityClass.AboveNormal;
         }
 
-        public AudioProcessor(string hlsUrl, int bitrate, int bufferSize)
+        public AudioProcessor(string hlsUrl, int bufferSize = 1024)
         {
-            playerProcess = new Process()
-            {
-                StartInfo = new ProcessStartInfo()
-                {
-                    FileName = "ffmpeg.exe",
-                    Arguments = $"-y -hide_banner -loglevel debug -vn -f hls -i {hlsUrl} -f s16le -bufsize {bufferSize} -ab {bitrate} -ac 2 -ar 48000 pipe:1",  //$"-hide_banner -loglevel debug -vn -f hls -i \"{hlsUrl}\" -f s16le -bufsize {bufferSize} -ab {bitrate} -ac 2 -ar 48000 -y pipe:1",
-                    UseShellExecute = false,
-                    RedirectStandardError = false,  
-                    RedirectStandardInput = (inputAvailable = false),
-                    RedirectStandardOutput = (outputAvailable = true),
-                    CreateNoWindow = false,
-                }
-            };
-
-            isLivestream = true;
+            playerProcess = Construct(hlsUrl, bufferSize, "hls");
             playerProcess.Start();
             playerProcess.PriorityClass = ProcessPriorityClass.AboveNormal;
+            isLivestream = true;
         }
 
         ~AudioProcessor()
@@ -56,10 +28,29 @@ namespace Suits.Jukebox.Models
             Dispose();
         }
 
+        private Process Construct(string? path, int bufferSize = 1024, string? format = null)
+        {
+            if (path != null && path == string.Empty)
+                throw new Exception("Song path is empty.");
+            return new Process()
+            {
+                StartInfo = new ProcessStartInfo()
+                {
+                    FileName = "ffmpeg.exe",
+                    Arguments = $"-y -hide_banner -loglevel debug -vn {(format != null ? $"-f {format}" : string.Empty)} -i {(path != null ? $"\"{path}\"" : "pipe:0")} -f s16le -bufsize {bufferSize} -ac 2 -ar 48000 pipe:1",
+                    UseShellExecute = false,
+                    RedirectStandardError = false,
+                    RedirectStandardInput = (inputAvailable = (path == null ? true : false)),
+                    RedirectStandardOutput = (outputAvailable = true),
+                    CreateNoWindow = false,
+                }
+            };
+        }
+
         private readonly Process playerProcess;
 
-        private readonly bool inputAvailable;
-        private readonly bool outputAvailable;
+        private bool inputAvailable;
+        private bool outputAvailable;
 
         public readonly bool isLivestream;
 

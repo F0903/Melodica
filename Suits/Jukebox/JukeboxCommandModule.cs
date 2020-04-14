@@ -29,12 +29,12 @@ namespace Suits.Jukebox
 
         private IVoiceChannel GetUserVoiceChannel() => ((SocketGuildUser)Context.User).VoiceChannel;
 
-        private Embed GetMediaEmbed(string embedTitle, IMediaInfo media, Color? color = null, string? description = null)
+        private Embed GetMediaEmbed(string embedTitle, IMediaInfo media, Color? color = null, string? description = null, string? footerText = null)
         {
-            return new EmbedBuilder().WithColor(color ?? Color.DarkGrey)
+            return new EmbedBuilder().WithColor(color ?? Color.Default)
                                      .WithTitle(embedTitle)
                                      .WithDescription(description ?? media.GetTitle())
-                                     .WithFooter(media.GetDuration().ToString())
+                                     .WithFooter(footerText ?? media.GetDuration().ToString())
                                      .WithThumbnailUrl(media.GetThumbnail()).Build();
         }
 
@@ -250,7 +250,7 @@ namespace Suits.Jukebox
             var juke = await JukeboxService.GetJukeboxAsync(Context.Guild);
             await juke.PlayLivestreamAsync(request, GetUserVoiceChannel(), async x =>
             {
-                await ReplyAsync(null, false, GetMediaEmbed("**Now Streaming**", x, Color.DarkMagenta));
+                await ReplyAsync(null, false, GetMediaEmbed("**Now Streaming**", x, Color.Orange, null, '\u221E'.ToString()));
             });
         }
     }
