@@ -240,7 +240,7 @@ namespace Suits.Jukebox
             playbackThread.Start();
             playbackThread.Join();
 
-            if (switching && !(playbackToken?.IsCancellationRequested ?? true))
+            if (switching && !Loop && !(playbackToken?.IsCancellationRequested ?? true))
             {
                 switching = false;
                 return;
