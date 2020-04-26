@@ -68,7 +68,7 @@ namespace Suits.Jukebox
 
         public Metadata RemoveFromQueue(int index) => songQueue.RemoveAtAsync(index).Result.GetMediaInfo();
 
-        private bool IsAlone() => channel!.GetUsersAsync().First().Result.Count == 1;
+        private bool IsAlone() => channel!.GetUsersAsync().FirstAsync().Result.Count == 1;
 
         private AudioOutStream CreateOutputStream() => audioClient!.CreatePCMStream(AudioApplication.Music, Bitrate, 100, 0);
 
@@ -106,6 +106,7 @@ namespace Suits.Jukebox
                 }
                 catch (Exception e)
                 {
+                    // If the playback was stopped, simply ignore the exception that gets thrown.
                     if (e is OperationCanceledException)
                         return;
 
