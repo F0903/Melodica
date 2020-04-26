@@ -12,25 +12,28 @@ namespace Suits.Jukebox.Models
     [Serializable]
     public class Metadata
     {
-        public Metadata(MediaInfo info, string fileFormat)
-        {
-            this.Info = info;
-            FileFormat = fileFormat;
-        }
-
         private static readonly BinarySerializer bs = new BinarySerializer();
-        public static Task<Metadata> LoadMetadataFromFileAsync(string fullPath)
+        public static Metadata LoadFromFile(string fullPath)
         {
-            return bs.DeserializeFileAsync<Metadata>(fullPath);
+            return bs.DeserializeFileAsync<Metadata>(fullPath).GetAwaiter().GetResult();
         }
 
         public const string MetaFileExtension = ".meta";
 
+        public TimeSpan Duration { get; set; }
+
+        public string? Thumbnail { get; set; }
+
+        public string? Title { get; set; }
+
+        public string? URL { get; set; }
+
+        public string? ID { get; set; }
+
+        public string? Format { get; set; }
+
+        public string? FileExtension => Format?.Insert(0, ".");
+
         public string? MediaPath { get; set; }
-
-        public string FileFormat { get; }
-        public string FileExtension => FileFormat.Insert(0, ".");
-
-        public MediaInfo Info { get; }
     }
 }

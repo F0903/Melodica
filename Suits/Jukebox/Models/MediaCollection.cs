@@ -6,16 +6,16 @@ using Suits.Utility.Extensions;
 
 namespace Suits.Jukebox.Models
 {
-    public class MediaCollection : IEnumerable<PlayableMedia>, IMediaInfo
+    public class MediaCollection : IEnumerable<PlayableMedia>
     {
         public MediaCollection(PlayableMedia media)
         {
             IsPlaylist = false;
             playlist = new[] { media };
-            
+            Info = media.Info;
         }
 
-        public MediaCollection(IEnumerable<PlayableMedia> playlist, MediaInfo playlistInfo, int playlistIndex = 0)
+        public MediaCollection(IEnumerable<PlayableMedia> playlist, Metadata playlistInfo, int playlistIndex = 0)
         {
             IsPlaylist = true;
             this.playlist = playlist.ToArray();
@@ -41,21 +41,23 @@ namespace Suits.Jukebox.Models
 
         public int Length { get => playlist.Length; }
 
-        public MediaInfo Info { get; }
+        public Metadata Info { get; }
 
         public bool IsPlaylist { get; }
 
         public int PlaylistIndex { get; }
 
-        public string GetTitle() => Info.Title;
+        public string? GetTitle() => Info.Title;
 
-        public TimeSpan GetDuration() => playlist.Sum(x => x.Meta.Info.Duration);
+        public TimeSpan GetDuration() => Info.Duration;
 
         public string? GetThumbnail() => Info.Thumbnail;
 
         public string? GetID() => Info.ID;
 
-        public string? GetURL() => IsPlaylist ? $"https://www.youtube.com/playlist?list={Info.ID}" : playlist[0].Meta.Info.URL;
+        public string? GetURL() => Info.URL;
+
+        public string? GetFormat() => Info.Format;
 
         IEnumerator<PlayableMedia> IEnumerable<PlayableMedia>.GetEnumerator() => ((IEnumerable<PlayableMedia>)playlist).GetEnumerator();
 

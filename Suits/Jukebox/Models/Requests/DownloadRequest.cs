@@ -16,52 +16,54 @@ namespace Suits.Jukebox.Models.Requests
             this.query = query;
             downloader = dl ?? new Downloader();
 
-            if (query.IsUrl())
-                if (!downloader.VerifyURLAsync(query).Result)
-                    throw new Exception("URL is not valid.");
-
-            if (IsPlaylist = downloader.IsPlaylistAsync(query).Result)
+            Type = downloader.EvaluateMediaTypeAsync(query).Result;
+            if (Type == MediaType.Playlist)
             {
+                Requests.Remove(this);
                 var (pl, videos) = downloader.DownloadPlaylistInfoAsync(query).Result;
+                info = pl;
                 for (int i = 0; i < videos.Count(); i++)
                 {
                     var item = videos.ElementAt(i);
-                    if (i == 0)
-                    {
-                        this.info = pl; // Set first requests info to the playlists info.
-                        this.query = item.GetID()!;
-                        Requests.Add(this);
-                        continue;
-                    }
                     Requests.Add(new DownloadRequest<Downloader>(item, downloader));
                 }
             }
-            else
-            {
-                Requests.Add(this);
-            }
         }
 
-        private DownloadRequest(IMediaInfo info, Downloader dl)
+        private DownloadRequest(Metadata info, Downloader dl)
         {
+            Type = MediaType.Video;
             downloader = dl;
             this.info = info;
-            query = info.GetID()!;
-            Requests.Add(this);
+            query = info.ID!;
         }
 
         private readonly Downloader downloader;
 
         private readonly string query;
 
-        private IMediaInfo? info;
-        public override IMediaInfo GetMediaInfo() => info ?? (info = downloader.GetMediaInfoAsync(query).Result);
+        private Metadata? info;
+        public override Metadata GetMediaInfo() => info ??= downloader.GetMediaInfoAsync(query).Result;
 
         public async override Task<PlayableMedia> GetMediaAsync()
         {
-            var media = await downloader.DownloadAsync(query);
-            info ??= media;
-            return (await MediaCache.CacheMediaAsync(media)).First();
+            async Task<PlayableMedia> GetVideoAsync(string? id = null) => MediaCache.Contains(id ?? GetMediaInfo().ID!) ? await MediaCache.GetAsync(id ?? GetMediaInfo().ID!) : await MediaCache.CacheMediaAsync((await downloader.DownloadAsync(query)).First());
+
+            switch (Type)
+            {
+                case MediaType.Video:
+                    return await GetVideoAsync();               
+                case MediaType.Playlist:
+                    return await GetVideoAsync(Requests.First().GetMediaInfo().ID);
+                case MediaType.Livestream:
+                    var hlsUrl = await downloader.GetLivestreamAsync(query);
+                    var info = GetMediaInfo();
+                    info.MediaPath = hlsUrl;
+                    info.Format = "hls";
+                    return new PlayableMedia(info, null);
+                default:
+                    throw new Exception("Unknown error occured in GetMediaAsync(). (Type has probably not been set)");
+            }
         }
     }
 }

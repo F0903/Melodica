@@ -42,6 +42,8 @@ namespace Suits.Jukebox
 
         private bool skip = false;
 
+        private volatile bool switching = false;
+
         private AudioOutStream? discordOut;
 
         private CancellationTokenSource? playbackToken;
@@ -64,11 +66,9 @@ namespace Suits.Jukebox
 
         public Task ClearQueueAsync() => songQueue.ClearAsync();
 
-        public IMediaInfo RemoveFromQueue(int index) => songQueue.RemoveAtAsync(index).Result.GetMediaInfo();
+        public Metadata RemoveFromQueue(int index) => songQueue.RemoveAtAsync(index).Result.GetMediaInfo();
 
         private bool IsAlone() => channel!.GetUsersAsync().First().Result.Count == 1;
-
-        private volatile bool switching = false;
 
         private AudioOutStream CreateOutputStream() => audioClient!.CreatePCMStream(AudioApplication.Music, Bitrate, 100, 0);
 
@@ -88,6 +88,7 @@ namespace Suits.Jukebox
                 int bytesRead;
                 try
                 {
+                    Playing = true;
                     while ((bytesRead = inS!.Read(buffer, 0, buffer.Length)) != 0 || audio.isLivestream)
                     {
                         var shouldBreak = BreakConditions();
@@ -100,33 +101,20 @@ namespace Suits.Jukebox
                         if (shouldBreak)
                             break;
 
-                        if (discordOut == null)
-                            throw new NullReferenceException("Unknown error occured during playback.");
-                        try
-                        {
-                            discordOut!.Write(buffer, 0, bytesRead);
-                        }
-                        catch
-                        {
-                            discordOut = CreateOutputStream();
-                        }
+                        discordOut!.Write(buffer, 0, bytesRead);
                     }
                 }
-                catch (Exception e) when (e is OperationCanceledException ||  // Catch exception when stopping playback
-                                          e is System.Net.WebSockets.WebSocketException)
+                catch (Exception e)
                 {
                     if (e is OperationCanceledException)
                         return;
-                    // Attempt to reconnect if the WebSocket expires.
-                    if (e is System.Net.WebSockets.WebSocketException)
-                    {
-                        discordOut = CreateOutputStream();
-                        Write();
-                    }
-                    throw e;
+
+                    discordOut = CreateOutputStream();
+                    Write();
                 }
                 finally
                 {
+                    Playing = false;
                     audio.Dispose();
                     discordOut!.Flush();
                 }
@@ -147,14 +135,20 @@ namespace Suits.Jukebox
             await Task.Run(audioClient.Dispose);
         }
 
-        public Task ToggleLoopAsync(Action<(IMediaInfo info, bool wasLooping)>? callback = null)
+        public Task ToggleLoopAsync(Action<(Metadata info, bool wasLooping)>? callback = null)
         {
-            callback?.Invoke((CurrentSong!, Loop));
+            if (CurrentSong == null)
+                throw new Exception("No song is playing.");
+
+            if (CurrentSong!.Info.Format == "hls")
+                throw new Exception("Can't loop a livestream.");
+
+            callback?.Invoke((CurrentSong!.Info, Loop));
             Loop = !Loop;
             return Task.CompletedTask;
         }
 
-        public Task ToggleShuffleAsync(Action<IMediaInfo, bool>? callback = null)
+        public Task ToggleShuffleAsync(Action<Metadata, bool>? callback = null)
         {
             callback?.Invoke(GetQueue().GetMediaInfo(), Shuffle);
             Shuffle = !Shuffle;
@@ -164,6 +158,7 @@ namespace Suits.Jukebox
         public Task StopAsync(bool clearQueue = true)
         {
             Loop = false;
+            Paused = false;
             playbackToken?.Cancel();
             playbackThread?.Join();
 
@@ -176,13 +171,6 @@ namespace Suits.Jukebox
             audioClient = await channel.ConnectAsync();
         }
 
-        public struct StatusCallbacks
-        {
-            public Action<IMediaInfo> downloadingCallback;
-            public Action<(IMediaInfo info, bool queued)> playingCallback;
-            public Action<(IMediaInfo playlistInfo, IMediaInfo currentSong)> playingPlaylistCallback;
-        }
-
         private async Task Connect(IAudioChannel channel)
         {
             bool badClient = audioClient == null ||
@@ -193,29 +181,39 @@ namespace Suits.Jukebox
             this.channel = channel;
         }
 
-        // Refactor
-        public async Task PlayAsync(MediaRequest request, IAudioChannel channel, bool switchingPlayback = false, bool loop = false, StatusCallbacks? callbacks = null)
+        public struct StatusCallbacks
         {
-            await Connect(channel);
-            bool wasPlaying = Playing;
+            public Action<(Metadata info, bool finished)> downloadingCallback;
+            public Action<((Metadata songInfo, Metadata? playlistInfo)? infoSet, MediaType type, (bool queued, bool downloaded) state)> playingCallback;
+        }
+
+        public async Task PlayAsync(MediaRequest request, IAudioChannel channel, bool switchSong = false, bool loop = false, StatusCallbacks? callbacks = null)
+        {
+            if (loop && request.Type == MediaType.Livestream)
+                throw new Exception("Can't loop a livestream.");
 
             Loop = loop;
-            switching = switchingPlayback;
+            switching = switchSong;
+
+            await Connect(channel);
+            bool wasPlaying = Playing;
+          
             var requests = await request.GetRequestsAsync();
             if (Playing && !switching)
             {
                 await songQueue.EnqueueAsync(requests);
-                callbacks?.playingCallback?.Invoke((request.GetMediaInfo(), true));
+                callbacks?.playingCallback?.Invoke(((request.GetMediaInfo(), null), request.Type, (true, false)));
                 return;
             }
 
             await songQueue.PutFirst(requests);
 
-            if (!Loop)
-                callbacks?.downloadingCallback?.Invoke(request.GetMediaInfo());
+            //TODO: Fix "downloading" message.
+            //if (!Loop && request.Type != MediaType.Livestream)
+            //    callbacks?.playingCallback?.Invoke((null, request.Type, (false, false)));
             try
             {
-                Playing = true;
+                Playing = true; // Set playing to true so nobody is able to switch while a song is downloading.
                 CurrentSong = await (await songQueue.DequeueAsync()).GetMediaAsync();
             }
             catch (Exception ex)
@@ -225,36 +223,31 @@ namespace Suits.Jukebox
                 throw new Exception("Error while downloading video. " + ex.Message);
             }
 
-            if (switching)
-            {
-                Paused = false;
-                if (wasPlaying)
-                    await StopAsync(false);
-                Playing = true;
-            }
+            if (!Loop && request.Type == MediaType.Playlist)
+                callbacks?.playingCallback?.Invoke(((CurrentSong.Info, request.Type == MediaType.Playlist ? request.GetMediaInfo() : null), request.Type, (false, true)));           
 
             if (!Loop || (Loop && switching))
-            {
-                if (request.IsPlaylist)
-                    callbacks?.playingPlaylistCallback?.Invoke((request.GetMediaInfo(), CurrentSong));
-                else
-                    callbacks?.playingCallback?.Invoke((CurrentSong!, false));
-            }
+                callbacks?.playingCallback?.Invoke(((CurrentSong!.Info, request.Type == MediaType.Playlist ? request.GetMediaInfo() : null), request.Type, (false, true)));
 
-            playbackThread = WriteToChannel(new AudioProcessor(CurrentSong!.Meta.MediaPath, BufferSize, CurrentSong.Meta.FileFormat));
+            if (switching)
+            {
+                await StopAsync(false);
+                Loop = loop;                
+            }
+            
+            playbackThread = WriteToChannel(new AudioProcessor(CurrentSong!.Info.MediaPath, BufferSize, CurrentSong.Info.Format));
             playbackThread.Start();
             playbackThread.Join();
-            Playing = false;
+
+            if (switching && !(playbackToken?.IsCancellationRequested ?? true))
+            {
+                switching = false;
+                return;
+            }
 
             if (IsAlone())
             {
                 await DismissAsync().ConfigureAwait(false);
-                return;
-            }
-
-            if (switching)
-            {
-                switching = false;
                 return;
             }
 
@@ -264,34 +257,15 @@ namespace Suits.Jukebox
                 return;
             }
 
-            if (songQueue.IsEmpty || (playbackToken?.IsCancellationRequested ?? false))
+            if (songQueue.IsEmpty || (playbackToken?.IsCancellationRequested ?? true))
             {
+                Loop = false;
                 await DismissAsync().ConfigureAwait(false);
                 return;
             }
 
             skip = false;
             await PlayAsync(Shuffle ? await songQueue.DequeueRandomAsync() : await songQueue.DequeueAsync(), channel, false, loop, callbacks).ConfigureAwait(false);
-        }
-
-        public async Task PlayLivestreamAsync(BaseLivestreamRequest request, IAudioChannel channel, Action<IMediaInfo>? startedPlaying = null)
-        {
-            await Connect(channel);
-            if (Playing)
-                await StopAsync(true);
-
-            Playing = true;
-            startedPlaying?.Invoke(await request.GetInfoAsync());
-
-            playbackThread = WriteToChannel(new AudioProcessor(await request.GetHLSUrlAsync(), BufferSize));
-            playbackThread.Start();
-            playbackThread.Join();
-            if (switching)
-                return;
-
-            Playing = false;
-
-            await DismissAsync().ConfigureAwait(false);
         }
     }
 }

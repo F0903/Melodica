@@ -24,7 +24,7 @@ namespace Suits.Jukebox.Models
         {
             await base.SaveDataAsync();
             
-            await bs.SerializeToFileAsync(Path.Combine(saveDir!, Meta.Info.Title.ReplaceIllegalCharacters() + Metadata.MetaFileExtension), Meta);
+            await bs.SerializeToFileAsync(Path.Combine(saveDir!, (Info.ID ?? throw new NullReferenceException("Tried to save media with empty ID.")).ReplaceIllegalCharacters() + Metadata.MetaFileExtension), Info);
         }
     }
 }

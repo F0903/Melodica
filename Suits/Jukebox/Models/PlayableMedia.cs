@@ -6,57 +6,64 @@ using Suits.Utility.Extensions;
 
 namespace Suits.Jukebox.Models
 {
-    public class PlayableMedia : IMediaInfo
+    public class PlayableMedia
     {
-        public PlayableMedia(Metadata meta, byte[] data)
+        public PlayableMedia(Metadata meta, byte[]? data)
         {
-            this.Meta = meta;
+            this.Info = meta;
             this.mediaData = data;
+            saveable = data != null;
         }
 
         public PlayableMedia(PlayableMedia toCopy)
         {
-            Meta = toCopy.Meta;
+            Info = toCopy.Info;
             mediaData = toCopy.mediaData;
         }
 
         private PlayableMedia(Metadata meta)
         {
-            Meta = meta;
+            Info = meta;
         }
 
-        public static async Task<PlayableMedia> LoadFromFileAsync(string songPath)
+        public static Task<PlayableMedia> LoadFromFileAsync(string songPath)
         {
             songPath = Path.ChangeExtension(songPath, Metadata.MetaFileExtension);
             if (!File.Exists(songPath))
                 throw new FileNotFoundException($"Metadata file was not found.");
 
-            var meta = await Metadata.LoadMetadataFromFileAsync(songPath);
+            var meta = Metadata.LoadFromFile(songPath);
             if (!File.Exists(meta.MediaPath))
                 throw new FileNotFoundException("The associated media file of this metadata does not exist.");
-            return new PlayableMedia(meta);
+
+            return Task.FromResult(new PlayableMedia(meta));
         }
 
-        public virtual Metadata Meta { get; protected set; }
+        public virtual Metadata Info { get; protected set; }
 
         private byte[]? mediaData;
 
         protected string? saveDir;
 
-        public TimeSpan GetDuration() => Meta.Info.Duration;
-        public string GetTitle() => Meta.Info.Title;
-        public string? GetThumbnail() => Meta.Info.Thumbnail;
-        public string GetID() => throw new NotImplementedException();
-        public string GetURL() => throw new NotImplementedException();
+        private readonly bool saveable = true;
 
         protected virtual Task SaveDataAsync()
         {
-            var location = Path.Combine(saveDir ?? throw new NullReferenceException("Please set saveDir before saving."), Meta.Info.Title.ReplaceIllegalCharacters() + Meta.FileExtension);
+            if (!saveable)
+                return Task.CompletedTask;
+            var location = Path.Combine(saveDir ?? throw new NullReferenceException("Please set saveDir before saving."), (Info.ID ?? throw new Exception("Tried to save media with empty ID.")).ReplaceIllegalCharacters() + Info.FileExtension);
             if (mediaData == null) throw new Exception("Media data was null.");
             File.WriteAllBytes(location, mediaData);
             mediaData = null;
-            Meta.MediaPath = location;
+            Info.MediaPath = location;
             return Task.CompletedTask;
         }
+
+        public string? GetThumbnail() => Info.Thumbnail;
+        public string? GetID() => Info.ID;
+        public string? GetTitle() => Info.Title;
+        public string? GetURL() => Info.URL;
+        public TimeSpan GetDuration() => Info.Duration;
+        public string? GetFormat() => Info.Format;
     }
 }

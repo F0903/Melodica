@@ -8,13 +8,13 @@ namespace Suits.Jukebox.Services.Downloaders
 {
     public interface IAsyncDownloader
     {
-        public Task<bool> IsPlaylistAsync(string url);
+        public Task<MediaType> EvaluateMediaTypeAsync(string url);
 
         public Task<bool> VerifyURLAsync(string url);
 
-        public Task<(IMediaInfo playlist, IEnumerable<IMediaInfo> videos)> DownloadPlaylistInfoAsync(string url);
+        public Task<(Metadata playlist, IEnumerable<Metadata> videos)> DownloadPlaylistInfoAsync(string url);
 
-        public Task<IMediaInfo> GetMediaInfoAsync(string url);
+        public Task<Metadata> GetMediaInfoAsync(string url);
 
         public Task<MediaCollection> DownloadAsync(string query);
 

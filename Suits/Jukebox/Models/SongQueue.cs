@@ -22,7 +22,7 @@ namespace Suits.Jukebox.Models
             get => list[i];
         }
 
-        public TimeSpan GetTotalDuration() => list.Sum(x => x.GetMediaInfo().GetDuration());
+        public TimeSpan GetTotalDuration() => list.Sum(x => x.GetMediaInfo().Duration);
 
         public MediaRequest[] ToArray()
         {
@@ -30,7 +30,7 @@ namespace Suits.Jukebox.Models
                 return list.ToArray();
         }
 
-        public IMediaInfo GetMediaInfo() => new MediaInfo() { Duration = GetTotalDuration(), Thumbnail = list[0].GetMediaInfo().GetThumbnail(), Title = "Queue" };
+        public Metadata GetMediaInfo() => new Metadata() { Duration = GetTotalDuration(), Thumbnail = list[0].GetMediaInfo().Thumbnail, Title = "Queue" };
 
         public Task EnqueueAsync(MediaRequest item)
         {

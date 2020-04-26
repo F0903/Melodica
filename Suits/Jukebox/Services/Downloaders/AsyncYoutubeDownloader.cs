@@ -24,37 +24,48 @@ namespace Suits.Jukebox.Services.Downloaders
 
         public Action<string>? VideoUnavailableCallback { get; set; }
 
-        public async Task<bool> IsPlaylistAsync(string url)
+        public async Task<MediaType> EvaluateMediaTypeAsync(string input)
         {
+            if (!input.IsUrl())
+                return MediaType.Video;
+
             try
             {
-                await yt.Playlists.GetAsync(new YoutubeExplode.Playlists.PlaylistId(url));
-                return true;
+                await yt.Playlists.GetAsync(input);
+                return MediaType.Playlist;
             }
-            catch
+            catch { }
+
+            try
             {
-                return false;
+                await yt.Videos.Streams.GetHttpLiveStreamUrlAsync(input);
+                return MediaType.Livestream;
             }
+            catch { }
+
+            try
+            {
+                await yt.Videos.GetAsync(input);
+                return MediaType.Video;
+            }
+            catch { }
+
+            throw new Exception("Url is invalid.");
         }
 
         public async Task<bool> VerifyURLAsync(string url)
         {
-            bool isPlaylist = await IsPlaylistAsync(url);
-            bool isVideo = false;
-            if (!isPlaylist)
+            bool result;
+            try
             {
-                try
-                {
-                    await yt.Videos.GetAsync(url);
-                    isVideo = true;
-                }
-                catch
-                { isVideo = false; }
+                await EvaluateMediaTypeAsync(url);
+                result = true;
             }
-            return isPlaylist || isVideo;
+            catch { result = false; }
+            return result;
         }
 
-        public async Task<IMediaInfo> GetMediaInfoAsync(string query)
+        public async Task<Metadata> GetMediaInfoAsync(string query)
         {
             YoutubeExplode.Playlists.Playlist? playlist = null;
             try
@@ -69,7 +80,7 @@ namespace Suits.Jukebox.Services.Downloaders
                 var playlistVideos = yt.Playlists.GetVideosAsync(playlist.Id);
                 if (playlist != null)
                 {
-                    return new MediaInfo() { Duration = await playlist.GetTotalDurationAsync(yt), ID = playlist.Id.Value, Thumbnail = playlistVideos.BufferAsync(1).Result.First().Thumbnails.MediumResUrl, Title = playlist.Title, URL = playlist.Url };
+                    return new Metadata() { Duration = await playlist.GetTotalDurationAsync(yt), ID = playlist.Id.Value, Thumbnail = playlistVideos.BufferAsync(1).Result.First().Thumbnails.MediumResUrl, Title = playlist.Title, URL = playlist.Url };
                 }
             }
             else
@@ -84,21 +95,20 @@ namespace Suits.Jukebox.Services.Downloaders
 
                 if (video == null)
                     video = yt.Search.GetVideosAsync(query).BufferAsync(1).Result.First();
-                return new MediaInfo() { Duration = video.Duration, ID = video.Id, Thumbnail = video.Thumbnails.MediumResUrl, Title = video.Title, URL = video.Url };
+                return new Metadata() { Duration = video.Duration, ID = video.Id, Thumbnail = video.Thumbnails.MediumResUrl, Title = video.Title, URL = video.Url };
             }
             throw new Exception("Media could not be resolved to neither video nor playlist.");
         }
 
-        public async Task<(IMediaInfo playlist, IEnumerable<IMediaInfo> videos)> DownloadPlaylistInfoAsync(string url)
+        public async Task<(Metadata playlist, IEnumerable<Metadata> videos)> DownloadPlaylistInfoAsync(string url)
         {
             var playlist = await yt.Playlists.GetAsync(url);
             var videos = yt.Playlists.GetVideosAsync(playlist.Id);
 
-            List<MediaInfo> videoInfo = new List<MediaInfo>();
+            List<Metadata> videoInfo = new List<Metadata>();
             await foreach (var item in videos)
-                videoInfo.Add(new MediaInfo() { Duration = item.Duration, ID = item.Id, Thumbnail = item.Thumbnails.MediumResUrl, Title = item.Title, URL = item.Url });
-            return (new MediaInfo() { Duration = await playlist.GetTotalDurationAsync(), ID = playlist.Id, Thumbnail = videoInfo.First().Thumbnail, Title = playlist.Title, URL = playlist.Url },
-                    videoInfo.Convert(x => (IMediaInfo)x));
+                videoInfo.Add(new Metadata() { Duration = item.Duration, ID = item.Id, Thumbnail = item.Thumbnails.MediumResUrl, Title = item.Title, URL = item.Url });
+            return (new Metadata() { Duration = await playlist.GetTotalDurationAsync(), ID = playlist.Id, Thumbnail = videoInfo.First().Thumbnail, Title = playlist.Title, URL = playlist.Url }, videoInfo);
         }
 
         public async Task<PlayableMedia> DownloadVideo(string query, bool isPreFiltered, int attempt = 0)
@@ -127,9 +137,7 @@ namespace Suits.Jukebox.Services.Downloaders
             if (stream == null)
                 await Error().ConfigureAwait(false);
 
-            return new PlayableMedia(new Metadata(
-                                     new MediaInfo() { Duration = video.Duration, ID = video.Id, Thumbnail = video.Thumbnails.MediumResUrl, Title = video.Title, URL = video.Url }, streamInfo!.Container.Name.ToLower()),
-                                     stream!.ToBytes());
+            return new PlayableMedia(new Metadata() { Duration = video.Duration, ID = video.Id, Thumbnail = video.Thumbnails.MediumResUrl, Title = video.Title, URL = video.Url, Format = streamInfo!.Container.Name.ToLower() }, stream!.ToBytes());
         }
 
         public Task<MediaCollection> DownloadAsync(string query)

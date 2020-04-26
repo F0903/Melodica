@@ -32,12 +32,13 @@ namespace Suits.Jukebox.Services.Cache
 
         public static event Action? OnCacheClear;
 
-        private static async Task LoadPreexistingFilesAsync()
+        private static Task LoadPreexistingFilesAsync()
         {
             foreach (FileInfo metaFile in Directory.EnumerateFileSystemEntries(CacheLocation, $"*{Metadata.MetaFileExtension}", SearchOption.AllDirectories).Convert(x => new FileInfo(x)))
             {
-                cache.Add(await Metadata.LoadMetadataFromFileAsync(metaFile.FullName));
+                cache.Add(Metadata.LoadFromFile(metaFile.FullName));
             }
+            return Task.CompletedTask;
         }
 
         public static Task<long> GetCacheSizeAsync()
@@ -48,9 +49,7 @@ namespace Suits.Jukebox.Services.Cache
             return Task.FromResult(files.AsParallel().Convert(x => new FileInfo(x)).Sum(f => f.Length));
         }
 
-        public static bool Contains(PlayableMedia med) => cache.Any(x => x.Info.Title == med.GetTitle()); // Contains does not work correctly, so this is used instead.
-
-        public static bool Contains(string title) => cache.Any(x => x.Info.Title == title);
+        public static bool Contains(string id) => cache.Any(x => x.ID == id);
 
         public static async Task<(int deletedFiles, int filesInUse, long msDuration)> PruneCacheAsync(bool forceClear = false)
         {
@@ -70,7 +69,7 @@ namespace Suits.Jukebox.Services.Cache
                 {
                     file.Delete();
                     File.Delete(Path.ChangeExtension(file.FullName, Metadata.MetaFileExtension));
-                    cache.Remove(cache.Single(x => x.Info.Title == Path.ChangeExtension(file.Name, null)));
+                    cache.Remove(cache.Single(x => x.ID == Path.ChangeExtension(file.Name, null)));
                     deletedFiles++;
                 }
                 catch
@@ -84,12 +83,12 @@ namespace Suits.Jukebox.Services.Cache
             return (deletedFiles, filesInUse, sw.ElapsedMilliseconds);
         }
 
-        public static async Task<PlayableMedia> GetAsync(string title)
+        public static async Task<PlayableMedia> GetAsync(string id)
         {
             PlayableMedia media;
             try
             {
-                media = await PlayableMedia.LoadFromFileAsync(cache.Single(x => x.Info.Title == title).MediaPath!);
+                media = await PlayableMedia.LoadFromFileAsync(cache.Single(x => x.ID == id).MediaPath!);
             }
             catch (FileNotFoundException)
             {
@@ -100,15 +99,15 @@ namespace Suits.Jukebox.Services.Cache
             return media;
         }
 
-        public static async Task<PlayableMedia> CacheMediaAsync(PlayableMedia med, bool pruneCache = true)
+        public static async Task<CachedMedia> CacheMediaAsync(PlayableMedia med, bool pruneCache = true)
         {
             if (pruneCache)
                 await PruneCacheAsync();
 
-            if (Contains(med))
-                return med;
+            if (Contains(med.Info.ID ?? throw new NullReferenceException("Medias ID was null.")))
+                return (CachedMedia)med;
 
-            cache.Add(med.Meta);
+            cache.Add(med.Info);
 
             return new CachedMedia(med, CacheLocation);
         }
@@ -122,15 +121,16 @@ namespace Suits.Jukebox.Services.Cache
             var playlist = new List<PlayableMedia>();
             foreach (var med in col)
             {
-                if (Contains(med))
+                var medID = med.Info.ID ?? throw new NullReferenceException("Medias ID was null.");
+                if (Contains(medID))
                 {
-                    playlist.Add(await GetAsync(med.GetTitle()));
+                    playlist.Add(await GetAsync(medID));
                     continue;
                 }
 
                 CachedMedia ca = new CachedMedia(med, CacheLocation);
                 playlist.Add(ca);
-                cache.Add(ca.Meta);
+                cache.Add(ca.Info);
             }
             return pl ? new MediaCollection(playlist, col.Info, col.PlaylistIndex) : new MediaCollection(playlist.First());
         }
