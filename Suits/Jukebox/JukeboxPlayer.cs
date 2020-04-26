@@ -166,13 +166,7 @@ namespace Suits.Jukebox
             return clearQueue ? songQueue.ClearAsync() : Task.CompletedTask;
         }
 
-        public async Task ConnectToChannelAsync(IAudioChannel channel)
-        {
-            this.channel = channel;
-            audioClient = await channel.ConnectAsync();
-        }
-
-        private async Task Connect(IAudioChannel channel)
+        private async Task ConnectAsync(IAudioChannel channel)
         {
             bool badClient = audioClient == null ||
                              audioClient.ConnectionState == ConnectionState.Disconnected ||
@@ -196,7 +190,7 @@ namespace Suits.Jukebox
             Loop = loop;
             switching = switchSong;
 
-            await Connect(channel);
+            await ConnectAsync(channel);
             bool wasPlaying = Playing;
           
             var requests = await request.GetRequestsAsync();
