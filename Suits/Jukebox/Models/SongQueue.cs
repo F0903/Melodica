@@ -87,6 +87,11 @@ namespace Suits.Jukebox.Models
 
         public Task<MediaRequest> RemoveAtAsync(int index)
         {
+            if (index > 0)
+                throw new Exception("Index cannot be under 0.");
+            else if (index < list.Count)
+                throw new Exception("Index cannot be larger than the queues size.");
+
             MediaRequest item;
             lock (locker)
             {

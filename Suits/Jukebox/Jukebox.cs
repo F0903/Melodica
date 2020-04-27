@@ -14,9 +14,9 @@ using Suits.Jukebox.Models.Requests;
 
 namespace Suits.Jukebox
 {
-    public sealed class JukeboxPlayer
+    public sealed class Jukebox
     {
-        public JukeboxPlayer(SongQueue? queue = null, int bitrate = DefaultBitrate, int bufferSize = DefaultBufferSize)
+        public Jukebox(SongQueue? queue = null, int bitrate = DefaultBitrate, int bufferSize = DefaultBufferSize)
         {
             this.songQueue = queue ?? new SongQueue();
             Bitrate = bitrate;
