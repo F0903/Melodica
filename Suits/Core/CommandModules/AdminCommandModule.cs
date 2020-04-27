@@ -18,7 +18,7 @@ namespace Suits.Core.CommandModules
         [Command("Prefix"), Summary("Changes the prefix.")]
         public async Task ChangePrefixAsync(string newPrefix)
         {
-            var settings = GuildSettings.GetOrCreateSettings(Context.Guild, () => new GuildSettings(Context.Guild));
+            var settings = GuildSettings.Get(Context.Guild);
             settings.Prefix = newPrefix;
             settings.SaveData();
             await ReplyAsync($"Prefix for {Context.Guild.Name} is now {newPrefix}.");

@@ -9,22 +9,36 @@ namespace Suits.Core
     [Serializable]
     public class BotSettings
     {
-        public static BotSettings GetOrSet(Func<BotSettings>? custom = null)
+        private BotSettings() { }
+
+        public static BotSettings Get(bool overrideOld = false)
         {
-            var data = LoadData();
-            if (data != null)
-                return data;
-            var val = custom != null ? custom() : new BotSettings();
-            val.SaveData();
-            return val;
+            var loadedData = LoadData();
+            var data = overrideOld ? new BotSettings() : loadedData ?? new BotSettings();
+            if (overrideOld || loadedData == null)
+                data.SaveData();
+            return data;
+        }
+
+        private const string settingsDir = "./Settings/";
+        public static string SettingsDir 
+        {
+            get
+            {
+                if (!Directory.Exists(settingsDir))
+                    Directory.CreateDirectory(settingsDir);
+                return settingsDir;
+            } 
         }
 
         public const string SettingsExtension = ".ss";
 
-        private const string SettingsPath = "./Settings/Bot" + SettingsExtension;
+        private static readonly string BotSettingsPath = SettingsDir + "Bot" + SettingsExtension;
 
         private static readonly IAsyncSerializer serializer = new BinarySerializer();
-        public string Token { get; } = "NTcxNDAwNTc4MDY0ODQyNzUy.XpTs2g.i_xfTw-7cJfByo8gCyIeAffByLE";
+
+        // For safety reasons, this should probably not be set here.
+        public string Token { get; } = "NzA0Mjg3MjM0NTEzMzA1NzAw.Xqa-lg.5uK_cMps1lH9MQELZyj4dM25hpc";
 
         private LogSeverity logSeverity = LogSeverity.Debug;
         public LogSeverity LogSeverity
@@ -49,18 +63,15 @@ namespace Suits.Core
         }
 
         private void SaveData()
-        {
-            var dirName = Path.GetDirectoryName(SettingsPath);
-            if (!Directory.Exists(dirName))
-                Directory.CreateDirectory(dirName);
-            serializer.SerializeToFileAsync(SettingsPath, this);
+        {          
+            serializer.SerializeToFileAsync(BotSettingsPath, this);
         }
 
         private static BotSettings? LoadData()
         {
-            if (!File.Exists(SettingsPath))
+            if (!File.Exists(BotSettingsPath))
                 return null;
-            return serializer.DeserializeFileAsync<BotSettings>(SettingsPath).Result;
+            return serializer.DeserializeFileAsync<BotSettings>(BotSettingsPath).Result;
         }
     }
 }

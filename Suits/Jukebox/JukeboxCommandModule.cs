@@ -26,10 +26,10 @@ namespace Suits.Jukebox
         }
 
         private readonly AsyncYoutubeDownloader downloader; // Temp until a better solution is figured out for more platforms
-       
+
         //TODO: Reimplement the downloading message.
         private JukeboxPlayer.StatusCallbacks StatusCallbacks(bool looping = false)
-        {                       
+        {
             return new JukeboxPlayer.StatusCallbacks()
             {
                 playingCallback = async (ctx) =>
@@ -82,6 +82,30 @@ namespace Suits.Jukebox
             {
                 return Task.FromResult(new DownloadRequest<AsyncYoutubeDownloader>(query!) as MediaRequest);
             }
+        }
+
+        private void CheckForPermissions(IVoiceChannel voice)
+        {
+            var botRoles = Context.Guild.GetUser(Context.Client.CurrentUser.Id).Roles;
+            foreach (var role in botRoles) // Check through all roles.
+            {
+                if (role.Permissions.Administrator)
+                    return;
+                var perms = voice.GetPermissionOverwrite(role);
+                if (perms == null)
+                    continue;
+                var allowedPerms = perms!.Value.ToAllowList();
+                if (allowedPerms.Contains(ChannelPermission.Connect) && allowedPerms.Contains(ChannelPermission.Speak))
+                    return;
+            }
+
+            // Check for user role.
+            var userPerms = voice.GetPermissionOverwrite(Context.Client.CurrentUser);
+            var allowedUserPerms = userPerms!.Value.ToAllowList();
+            if (allowedUserPerms.Contains(ChannelPermission.Connect) && allowedUserPerms.Contains(ChannelPermission.Speak))
+                return;
+
+            throw new Exception("I'm not allowed to connect or speak in this channel :(");
         }
 
         [Command("ClearCache"), Summary("Clears cache."), RequireOwner]
@@ -167,8 +191,8 @@ namespace Suits.Jukebox
 
             EmbedBuilder eb = new EmbedBuilder()
             .WithTitle("**Queue**")
-            .WithThumbnailUrl(queue.GetMediaInfo().Thumbnail);
-            //.WithFooter($"Duration - {queue.GetTotalDuration()} | Shuffle - {(juke.Shuffle ? "On" : "Off")}");
+            .WithThumbnailUrl(queue.GetMediaInfo().Thumbnail)
+            .WithFooter($"Duration - {queue.GetTotalDuration()} | Shuffle - {(juke.Shuffle ? "On" : "Off")}");
 
             int maxElems = 20;
             for (int i = 1; i <= maxElems; i++)
@@ -181,30 +205,20 @@ namespace Suits.Jukebox
             await Context.Channel.SendMessageAsync(null, false, eb.Build());
         }
 
-        [Command("Switch"), Alias("Change"), Summary("Changes the current song.")]
-        public async Task SwitchAsync([Remainder] string mediaQuery)
+        // Move this to a service.
+        private async Task PlayMediaAsync(string? query, bool switchPlayback)
         {
-            if (GetUserVoiceChannel() == null)
+            var userVoice = GetUserVoiceChannel();
+            if (userVoice == null)
             {
                 await ReplyAsync("You need to be in a voice channel!");
                 return;
             }
 
-            var juke = await JukeboxService.GetJukeboxAsync(Context.Guild);
+            // Check if we are able to connect.
+            CheckForPermissions(userVoice);
 
-            await juke.PlayAsync(await GetRequestAsync(mediaQuery!), GetUserVoiceChannel(), true, false, StatusCallbacks());
-        }
-
-        [Command("Play"), Alias("P"), Summary("Plays the specified song.")]
-        public async Task PlayAsync([Remainder] string? mediaQuery = null)
-        {
-            if (GetUserVoiceChannel() == null)
-            {
-                await ReplyAsync("You need to be in a voice channel!");
-                return;
-            }
-
-            if (mediaQuery == null && Context.Message.Attachments.Count == 0)
+            if (query == null && Context.Message.Attachments.Count == 0)
             {
                 await ReplyAsync("You need to specify a url, search query or upload a file.");
                 return;
@@ -212,18 +226,31 @@ namespace Suits.Jukebox
 
             var juke = await JukeboxService.GetJukeboxAsync(Context.Guild);
 
-            await juke.PlayAsync(await GetRequestAsync(mediaQuery!), GetUserVoiceChannel(), false, false, StatusCallbacks());
+            await juke.PlayAsync(await GetRequestAsync(query!), userVoice, switchPlayback, false, StatusCallbacks());
+        }
+
+        [Command("Switch"), Alias("Change"), Summary("Changes the current song.")]
+        public Task SwitchAsync([Remainder] string? mediaQuery = null)
+        {
+            return PlayMediaAsync(mediaQuery, true);
+        }
+
+        [Command("Play"), Alias("P"), Summary("Plays the specified song.")]
+        public Task PlayAsync([Remainder] string? mediaQuery = null)
+        {
+            return PlayMediaAsync(mediaQuery, false);
         }
 
         [Command("Stop"), Summary("Stops playback.")]
         public async Task StopAsync()
         {
-            if (!(await JukeboxService.GetJukeboxAsync(Context.Guild)).Playing)
+            var juke = await JukeboxService.GetJukeboxAsync(Context.Guild);
+            if (!juke.Playing)
             {
                 await ReplyAsync("No song is playing.");
                 return;
             }
-            await (await JukeboxService.GetJukeboxAsync(Context.Guild)).StopAsync();
+            await juke.StopAsync();
 
             await ReplyAsync("Stopped playback.");
         }

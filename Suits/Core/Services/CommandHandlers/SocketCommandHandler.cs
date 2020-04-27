@@ -79,7 +79,7 @@ namespace Suits.Core.Services.CommandHandlers
 
             int argPos = 0;
 
-            if (!context.Message.HasStringPrefix(GuildSettings.GetOrCreateSettings(context.Guild, () => new GuildSettings(context.Guild)).Prefix, ref argPos))
+            if (!context.Message.HasStringPrefix(GuildSettings.Get(context.Guild).Prefix, ref argPos))
                 return;
 
             await cmdService!.ExecuteAsync(context, argPos, Suits.IoC.Kernel.GetRawKernel());

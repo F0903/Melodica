@@ -11,7 +11,7 @@ namespace Suits
 {
     public static class Program
     {
-        private static readonly SocketBot currentBot = new SocketBot(BotSettings.GetOrSet(), Kernel.Get<IAsyncLoggingService>(), Kernel.Get<SocketCommandHandler>());
+        private static readonly SocketBot currentBot = new SocketBot(BotSettings.Get(true), Kernel.Get<IAsyncLoggingService>(), Kernel.Get<SocketCommandHandler>());
 
         private static async Task Main()
         {

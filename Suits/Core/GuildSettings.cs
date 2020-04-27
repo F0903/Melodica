@@ -8,7 +8,7 @@ namespace Suits.Core
     [Serializable]
     public class GuildSettings
     {
-        public GuildSettings(IGuild guild, IAsyncSerializer? serial = null)
+        private GuildSettings(IGuild guild, IAsyncSerializer? serial = null)
         {
             serializer = serial ?? serializer;
             connectedGuild = guild;
@@ -16,17 +16,16 @@ namespace Suits.Core
 
         private static IAsyncSerializer serializer = new BinarySerializer();
 
-        private static string GetGuildSettingsPath(IGuild guild) => $"./Settings/{guild?.Id}{SettingsExtension}";
+        private static string GetGuildSettingsPath(IGuild guild) => $"{BotSettings.SettingsDir}{guild.Id}{SettingsExtension}";
 
-        public static GuildSettings GetOrCreateSettings(IGuild guild, Func<GuildSettings> settingsFactory)
+        public static GuildSettings Get(IGuild guild)
         {
-            if (!File.Exists(GetGuildSettingsPath(guild)))
+            var guildSettingsPath = GetGuildSettingsPath(guild);
+            if (!File.Exists(guildSettingsPath))
             {
-                var newSettings = settingsFactory();
-                newSettings.SaveData();
-                return newSettings;
+                return new GuildSettings(guild);
             }
-            return serializer!.DeserializeFileAsync<GuildSettings>(GetGuildSettingsPath(guild)).Result;
+            return serializer!.DeserializeFileAsync<GuildSettings>(guildSettingsPath).Result;
         }
       
         public const string DefaultPrefix = "p!";
