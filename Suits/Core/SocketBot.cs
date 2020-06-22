@@ -13,6 +13,7 @@ namespace Suits.Core
             this.settings = settings;
             this.client = new DiscordSocketClient(new DiscordSocketConfig() 
             { 
+                MessageCacheSize = 1,
                 LogLevel = settings.LogSeverity
             });
             this.logger = logger;

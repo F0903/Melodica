@@ -10,6 +10,7 @@ using System.Runtime.Serialization;
 using System.Threading.Tasks;
 using System.Diagnostics;
 using Suits.Core;
+using Suits.Jukebox.Models.Exceptions;
 
 namespace Suits.Jukebox.Services.Cache
 {
@@ -26,19 +27,42 @@ namespace Suits.Jukebox.Services.Cache
 
         public const int MaxFilesInCache = 25;
 
-        public const string CacheLocation = @"./mediacache/";
+        public const string CacheLocation = @"./Mediacache/";
 
-        private static readonly List<Metadata> cache = new List<Metadata>(MaxFilesInCache);
+        private static readonly List<MediaMetadata> cache = new List<MediaMetadata>(MaxFilesInCache);
 
         public static event Action? OnCacheClear;
 
         private static Task LoadPreexistingFilesAsync()
         {
-            foreach (FileInfo metaFile in Directory.EnumerateFileSystemEntries(CacheLocation, $"*{Metadata.MetaFileExtension}", SearchOption.AllDirectories).Convert(x => new FileInfo(x)))
+            foreach (FileInfo metaFile in Directory.EnumerateFileSystemEntries(CacheLocation, $"*{MediaMetadata.MetaFileExtension}", SearchOption.AllDirectories).Convert(x => new FileInfo(x)))
             {
-                cache.Add(Metadata.LoadFromFile(metaFile.FullName));
+                try
+                {
+                    cache.Add(MediaMetadata.LoadFromFile(metaFile.FullName));
+                }
+                catch (Exception)
+                {
+                    DeleteMediaFile(metaFile);
+                }
             }
             return Task.CompletedTask;
+        }
+
+        private static void DeleteMediaFile(FileInfo file)
+        {
+            // If the file specified is a metadata file.
+            if (file.Extension == MediaMetadata.MetaFileExtension)
+            {
+                file.Delete();
+                foreach (var dirFile in Directory.EnumerateFiles(file.DirectoryName, $"{Path.ChangeExtension(file.Name, null)}.*"))
+                {
+                    File.Delete(dirFile);
+                }
+            }
+
+            file.Delete();
+            File.Delete(Path.ChangeExtension(file.FullName, MediaMetadata.MetaFileExtension));
         }
 
         public static Task<long> GetCacheSizeAsync()
@@ -58,18 +82,19 @@ namespace Suits.Jukebox.Services.Cache
 
             int deletedFiles = 0;
             int filesInUse = 0;
+
             var files = Directory.EnumerateFiles(CacheLocation).Convert(x => new FileInfo(x));
             Stopwatch sw = new Stopwatch();
             sw.Start();
             Parallel.ForEach<FileInfo>(files, (file, loop) =>
             {
-                if (file.Extension == Metadata.MetaFileExtension)
+                if (file.Extension == MediaMetadata.MetaFileExtension)
                     return;
                 try
                 {
-                    file.Delete();
-                    File.Delete(Path.ChangeExtension(file.FullName, Metadata.MetaFileExtension));
-                    cache.Remove(cache.Single(x => x.ID == Path.ChangeExtension(file.Name, null)));
+                    DeleteMediaFile(file);
+                    var cacheElement = cache.SingleOrDefault(x => x.ID == Path.ChangeExtension(file.Name, null));
+                    if(cacheElement != null) cache.Remove(cacheElement);
                     deletedFiles++;
                 }
                 catch
@@ -78,8 +103,8 @@ namespace Suits.Jukebox.Services.Cache
                 }
             });
             sw.Stop();
-            OnCacheClear?.Invoke();
 
+            OnCacheClear?.Invoke();
             return (deletedFiles, filesInUse, sw.ElapsedMilliseconds);
         }
 
@@ -88,13 +113,13 @@ namespace Suits.Jukebox.Services.Cache
             PlayableMedia media;
             try
             {
-                media = await PlayableMedia.LoadFromFileAsync(cache.Single(x => x.ID == id).MediaPath!);
+                media = await PlayableMedia.LoadFromFileAsync(cache.Single(x => x.ID == id).DataInformation.MediaPath!);
             }
             catch (FileNotFoundException)
             {
                 cache.Clear();
                 await LoadPreexistingFilesAsync();
-                throw new Exception("The metadata file for this media was deleted externally... Please try again.");
+                throw new MissingMetadataException("The metadata file for this media was deleted externally... Please try again.");
             }
             return media;
         }
@@ -104,35 +129,12 @@ namespace Suits.Jukebox.Services.Cache
             if (pruneCache)
                 await PruneCacheAsync();
 
-            if (Contains(med.Info.ID ?? throw new NullReferenceException("Medias ID was null.")))
+            if (Contains(med.Info.ID ?? throw new NullReferenceException("Media ID was null.")))
                 return (CachedMedia)med;
 
             cache.Add(med.Info);
 
             return new CachedMedia(med, CacheLocation);
-        }
-
-        public static async Task<MediaCollection> CacheMediaAsync(MediaCollection col, bool pruneCache = true)
-        {
-            if (pruneCache)
-                await PruneCacheAsync();
-
-            var pl = col.IsPlaylist;
-            var playlist = new List<PlayableMedia>();
-            foreach (var med in col)
-            {
-                var medID = med.Info.ID ?? throw new NullReferenceException("Medias ID was null.");
-                if (Contains(medID))
-                {
-                    playlist.Add(await GetAsync(medID));
-                    continue;
-                }
-
-                CachedMedia ca = new CachedMedia(med, CacheLocation);
-                playlist.Add(ca);
-                cache.Add(ca.Info);
-            }
-            return pl ? new MediaCollection(playlist, col.Info, col.PlaylistIndex) : new MediaCollection(playlist.First());
         }
     }
 }

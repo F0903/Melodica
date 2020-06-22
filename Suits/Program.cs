@@ -22,6 +22,7 @@ namespace Suits
             await Task.Delay(-1);
         }
 
+        // Simply disconnect the bot automatically when the process is requested to close.
         private static void CurrentDomain_ProcessExit(object? sender, EventArgs e)
         {
             currentBot.StopAsync().Wait();

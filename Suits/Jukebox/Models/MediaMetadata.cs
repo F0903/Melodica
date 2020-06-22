@@ -10,15 +10,30 @@ using Suits.Core.Services;
 namespace Suits.Jukebox.Models
 {
     [Serializable]
-    public class Metadata
+    public class MediaMetadata
     {
-        private static readonly BinarySerializer bs = new BinarySerializer();
-        public static Metadata LoadFromFile(string fullPath)
+        [Serializable]
+        public struct DataInfo
         {
-            return bs.DeserializeFileAsync<Metadata>(fullPath).GetAwaiter().GetResult();
+            public string? Format { get; set; }
+
+            public string? FileExtension => Format?.Insert(0, ".");
+
+            public string? MediaPath { get; set; }
+        }
+
+        private static readonly BinarySerializer bs = new BinarySerializer();
+
+        public static MediaMetadata LoadFromFile(string fullPath)
+        {
+            return bs.DeserializeFileAsync<MediaMetadata>(fullPath).GetAwaiter().GetResult();
         }
 
         public const string MetaFileExtension = ".meta";
+
+        public MediaOrigin? MediaOrigin { get; set; }
+
+        public MediaType MediaType { get; set; }
 
         public TimeSpan Duration { get; set; }
 
@@ -30,10 +45,6 @@ namespace Suits.Jukebox.Models
 
         public string? ID { get; set; }
 
-        public string? Format { get; set; }
-
-        public string? FileExtension => Format?.Insert(0, ".");
-
-        public string? MediaPath { get; set; }
+        public DataInfo DataInformation = new DataInfo();
     }
 }

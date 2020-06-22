@@ -7,40 +7,32 @@ namespace Suits.Jukebox.Models.Requests
 {
     public class MediaRequest
     {
-        public MediaRequest(MediaCollection col)
-        {
-            Type = MediaType.Playlist;
-            for (int i = 0; i < col.Length; i++)
-            {
-                Requests.Add(new MediaRequest(col[i]));
-            }
-        }
-
         public MediaRequest(PlayableMedia media)
         {
-            Type = MediaType.Video;
+            MediaType = MediaType.Video;
             this.media = media;
-            Requests.Add(this);
+            SubRequests.Add(this);
         }
 
-        protected MediaRequest(bool addToRequests = true)
-        {
-            if (addToRequests)
-                Requests.Add(this);
-        }
+        protected MediaRequest()
+        {}
 
-        public MediaType Type { get; protected set; }
+        public MediaType MediaType { get; protected set; }
 
-        protected List<MediaRequest> Requests { get; set; } = new List<MediaRequest>();
+        protected List<MediaRequest> SubRequests { get; set; } = new List<MediaRequest>();
 
         private readonly PlayableMedia? media;
 
-        public virtual Task<IEnumerable<MediaRequest>> GetRequestsAsync()
+        /// <summary>
+        /// Get the subrequests tied to this request. Will be more than one if a playlist is requested.
+        /// </summary>
+        /// <returns> Subrequests tied to the request. </returns>
+        public virtual Task<IEnumerable<MediaRequest>> GetSubRequestsAsync()
         {
-            return Task.FromResult((IEnumerable<MediaRequest>)Requests);
+            return Task.FromResult((IEnumerable<MediaRequest>)SubRequests);
         }
 
-        public virtual Metadata GetMediaInfo()
+        public virtual MediaMetadata GetInfo()
         {
             return media!.Info;
         }

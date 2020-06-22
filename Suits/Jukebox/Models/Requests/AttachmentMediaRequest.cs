@@ -17,7 +17,7 @@ namespace Suits.Jukebox.Models.Requests
             attachment = attachments[0];
             for (int i = 1; i < attachments.Length; i++)
             {
-                Requests.Add(new AttachmentMediaRequest(attachments[i]));
+                SubRequests.Add(new AttachmentMediaRequest(attachments[i]));
             }
         }
 
@@ -28,15 +28,21 @@ namespace Suits.Jukebox.Models.Requests
 
         readonly Discord.Attachment? attachment;
 
-        private Metadata? info;
-        public override Metadata GetMediaInfo() => info ??= new Metadata() { Duration = TimeSpan.Zero, ID = null, Thumbnail = null, Title = attachment!.Filename, Format = Path.GetExtension(attachment.Filename).Replace(".", "") };
+        private MediaMetadata? info;
+
+        public override MediaMetadata GetInfo()
+        {
+            info ??= new MediaMetadata() { Duration = TimeSpan.Zero, ID = null, Thumbnail = null, Title = attachment!.Filename };
+            info.DataInformation.Format = Path.GetExtension(attachment!.Filename).Replace(".", "");
+            return info;
+        }
 
         public override Task<PlayableMedia> GetMediaAsync()
         {
             using var web = new WebClient();
             var data = web.DownloadData(attachment!.Url);
-            
-            return Task.FromResult((PlayableMedia)new TempMedia(GetMediaInfo(), data));
+
+            return Task.FromResult((PlayableMedia)new TempMedia(GetInfo(), new MemoryStream(data)));
         }
     }
 }

@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace Suits.Jukebox.Models
 {
-    public sealed class AudioProcessor : IDisposable
+    public class AudioProcessor : IDisposable
     {
         public AudioProcessor(string? path, int bufferSize = 1024, string? format = null)
         {
@@ -28,7 +28,7 @@ namespace Suits.Jukebox.Models
             Dispose();
         }
 
-        private Process Construct(string? path, int bufferSize = 1024, string? format = null)
+        protected virtual Process Construct(string? path, int bufferSize = 1024, string? format = null)
         {
             if (path != null && path == string.Empty)
                 throw new Exception("Song path is empty.");
@@ -40,7 +40,7 @@ namespace Suits.Jukebox.Models
                     Arguments = $"-y -hide_banner -loglevel debug -vn {(format != null ? $"-f {format}" : string.Empty)} -i {(path != null ? $"\"{path}\"" : "pipe:0")} -f s16le -bufsize {bufferSize} -ac 2 -ar 48000 pipe:1",
                     UseShellExecute = false,
                     RedirectStandardError = false,
-                    RedirectStandardInput = (inputAvailable = (path == null ? true : false)),
+                    RedirectStandardInput = (inputAvailable = (path == null)),
                     RedirectStandardOutput = (outputAvailable = true),
                     CreateNoWindow = false,
                 }
@@ -49,12 +49,12 @@ namespace Suits.Jukebox.Models
 
         private readonly Process playerProcess;
 
-        private bool inputAvailable;
-        private bool outputAvailable;
+        protected bool inputAvailable;
+        protected bool outputAvailable;
 
         public readonly bool isLivestream;
 
-        public Process GetBaseProcess() => playerProcess;
+        public virtual Process GetBaseProcess() => playerProcess;
 
         public Stream? GetInput() => inputAvailable ? playerProcess.StandardInput.BaseStream : null;
 
@@ -64,7 +64,7 @@ namespace Suits.Jukebox.Models
 
         public Task DisposeAsync() => Task.Run(Dispose);
 
-        public void Dispose()
+        public virtual void Dispose()
         {
             if (inputAvailable)
                 playerProcess.StandardInput.Dispose();

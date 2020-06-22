@@ -4,6 +4,7 @@ using System.Text;
 using System.Net;
 using System.Threading.Tasks;
 using Suits.Jukebox.Services.Cache;
+using System.IO;
 
 namespace Suits.Jukebox.Models.Requests
 {
@@ -28,7 +29,10 @@ namespace Suits.Jukebox.Models.Requests
 
             var data = web.DownloadData(mediaUrl);
 
-            return Task.FromResult((PlayableMedia)MediaCache.CacheMediaAsync(new PlayableMedia(new Metadata() { Title = mediaName, Duration = new TimeSpan(0), Format = mediaFormat }, data)).Result);
+            var meta = new MediaMetadata() { Title = mediaName, Duration = new TimeSpan(0) };
+            meta.DataInformation.Format = mediaFormat;
+
+            return Task.FromResult((PlayableMedia)MediaCache.CacheMediaAsync(new PlayableMedia(meta, new MemoryStream(data))).Result);
         }
     }
 }

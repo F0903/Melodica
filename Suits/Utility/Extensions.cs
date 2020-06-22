@@ -1,4 +1,5 @@
-﻿using Discord;
+﻿using AngleSharp.Text;
+using Discord;
 using Discord.WebSocket;
 using System;
 using System.Collections.Generic;
@@ -6,6 +7,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using YoutubeExplode;
 
 namespace Suits.Utility.Extensions
 {
@@ -28,6 +30,13 @@ namespace Suits.Utility.Extensions
             return ts;
         }
 
+        public async static Task<string> GetPlaylistThumbnail(this YoutubeExplode.Playlists.Playlist pl, YoutubeExplode.YoutubeClient? client = null)
+        {
+            client ??= new YoutubeExplode.YoutubeClient();
+            var video = (await client.Playlists.GetVideosAsync(pl.Id).BufferAsync(1)).First();
+            return video.Thumbnails.MediumResUrl;
+        }
+
         public static string Unfold<T>(this IEnumerable<T> str, char? seperatorChar = null)
         {
             if (str.Count() == 0)
@@ -40,18 +49,6 @@ namespace Suits.Utility.Extensions
             var removeNum = seperatorChar != null ? 2 : 1;
             sb.Remove(sb.Length - removeNum, removeNum);
             return sb.ToString();
-        }
-
-        public static byte[] ToBytes(this Stream stream, uint bufferSize = 16 * 1024)
-        {
-            byte[] buffer = new byte[bufferSize];
-            using var mem = new MemoryStream();
-            int count = 0;
-            while ((count = stream.Read(buffer, 0, buffer.Length)) != 0) 
-            {
-                mem.Write(buffer, 0, count);
-            }
-            return mem.ToArray();
         }
 
         public static TimeSpan Sum<T>(this IEnumerable<T> input, Func<T, TimeSpan> selector)
@@ -89,5 +86,22 @@ namespace Suits.Utility.Extensions
              Uri.TryCreate(str, UriKind.Absolute, out var uri)
                 && (uri.Scheme == Uri.UriSchemeHttp
                 || uri.Scheme == Uri.UriSchemeHttps);
+
+        public static bool LikeYouTubeId(this string str)
+        {
+            if (str.Length > 34)
+                return false;
+
+            int numOfSmall = 0;
+            int numOfLarge = 0;
+            foreach (var letter in str)
+            {
+                if (letter == ' ')
+                    return false;
+                if (letter.IsLowercaseAscii()) numOfSmall++;
+                else numOfLarge++;
+            }
+            return numOfSmall > 3 && numOfLarge > 2; // Might need tweaking over time.
+        }
     }
 }

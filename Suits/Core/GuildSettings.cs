@@ -1,4 +1,5 @@
 ﻿using Discord;
+using Discord.Rest;
 using Suits.Core.Services;
 using System;
 using System.IO;
@@ -8,37 +9,37 @@ namespace Suits.Core
     [Serializable]
     public class GuildSettings
     {
-        private GuildSettings(IGuild guild, IAsyncSerializer? serial = null)
+        private GuildSettings(IGuild guild)
         {
-            serializer = serial ?? serializer;
-            connectedGuild = guild;
+            connectedGuild = guild.Id;
         }
 
-        private static IAsyncSerializer serializer = new BinarySerializer();
+        public const string DefaultPrefix = "dev."; // suits.
 
-        private static string GetGuildSettingsPath(IGuild guild) => $"{BotSettings.SettingsDir}{guild.Id}{SettingsExtension}";
+        public const string SettingsExtension = ".ss";
+
+        public static IAsyncSerializer Serializer { get; set; } = new BinarySerializer();
+
+        public string Prefix { get; set; } = DefaultPrefix;
+
+        private readonly ulong connectedGuild;
+
+        private static string GetGuildSettingsPath(ulong guildId) => BotSettings.SettingsDir + guildId.ToString() + SettingsExtension;
 
         public static GuildSettings Get(IGuild guild)
         {
-            var guildSettingsPath = GetGuildSettingsPath(guild);
+            var guildSettingsPath = GetGuildSettingsPath(guild.Id);
+
             if (!File.Exists(guildSettingsPath))
             {
                 return new GuildSettings(guild);
             }
-            return serializer!.DeserializeFileAsync<GuildSettings>(guildSettingsPath).Result;
+            return Serializer!.DeserializeFileAsync<GuildSettings>(guildSettingsPath).Result;
         }
-      
-        public const string DefaultPrefix = "p!";
-
-        public const string SettingsExtension = ".ss";
-
-        public static IGuild? connectedGuild;
-
-        public string Prefix { get; set; } = DefaultPrefix;
 
         public void SaveData()
         {
-            serializer.SerializeToFileAsync(GetGuildSettingsPath(connectedGuild!), this);
+            Serializer.SerializeToFileAsync(GetGuildSettingsPath(connectedGuild!), this);
         }
     }
 }

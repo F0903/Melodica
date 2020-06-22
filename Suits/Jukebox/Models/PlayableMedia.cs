@@ -8,55 +8,60 @@ namespace Suits.Jukebox.Models
 {
     public class PlayableMedia
     {
-        public PlayableMedia(Metadata meta, byte[]? data)
+        public PlayableMedia(MediaMetadata meta, Stream? data)
         {
             this.Info = meta;
-            this.mediaData = data;
+            this.rawMediaData = data;
             saveable = data != null;
         }
 
         public PlayableMedia(PlayableMedia toCopy)
         {
             Info = toCopy.Info;
-            mediaData = toCopy.mediaData;
+            rawMediaData = toCopy.rawMediaData;
         }
 
-        private PlayableMedia(Metadata meta)
+        private PlayableMedia(MediaMetadata meta)
         {
             Info = meta;
         }
 
         public static Task<PlayableMedia> LoadFromFileAsync(string songPath)
         {
-            songPath = Path.ChangeExtension(songPath, Metadata.MetaFileExtension);
+            songPath = Path.ChangeExtension(songPath, MediaMetadata.MetaFileExtension);
             if (!File.Exists(songPath))
                 throw new FileNotFoundException($"Metadata file was not found.");
 
-            var meta = Metadata.LoadFromFile(songPath);
-            if (!File.Exists(meta.MediaPath))
+            var meta = MediaMetadata.LoadFromFile(songPath);
+            if (!File.Exists(meta.DataInformation.MediaPath))
                 throw new FileNotFoundException("The associated media file of this metadata does not exist.");
 
             return Task.FromResult(new PlayableMedia(meta));
         }
 
-        public virtual Metadata Info { get; protected set; }
+        public virtual MediaMetadata Info { get; protected set; }
 
-        private byte[]? mediaData;
+        private Stream? rawMediaData;
 
         protected string? saveDir;
 
         private readonly bool saveable = true;
 
-        protected virtual Task SaveDataAsync()
+        protected virtual async Task SaveDataAsync()
         {
             if (!saveable)
-                return Task.CompletedTask;
-            var location = Path.Combine(saveDir ?? throw new NullReferenceException("Please set saveDir before saving."), (Info.ID ?? throw new Exception("Tried to save media with empty ID.")).ReplaceIllegalCharacters() + Info.FileExtension);
-            if (mediaData == null) throw new Exception("Media data was null.");
-            File.WriteAllBytes(location, mediaData);
-            mediaData = null;
-            Info.MediaPath = location;
-            return Task.CompletedTask;
+                return;
+
+            var location = Path.Combine(saveDir ?? throw new NullReferenceException("SaveDir was not set."), (Info.ID ?? throw new Exception("Tried to save media with empty ID.")).ReplaceIllegalCharacters() + Info.DataInformation.FileExtension);
+            if (rawMediaData == null) throw new Exception("Media data was null.");
+
+            using var fs = File.OpenWrite(location);
+            await rawMediaData.CopyToAsync(fs);
+
+            await fs.FlushAsync();
+            rawMediaData = null;
+
+            Info.DataInformation.MediaPath = location;
         }
 
         public string? GetThumbnail() => Info.Thumbnail;
@@ -64,6 +69,6 @@ namespace Suits.Jukebox.Models
         public string? GetTitle() => Info.Title;
         public string? GetURL() => Info.URL;
         public TimeSpan GetDuration() => Info.Duration;
-        public string? GetFormat() => Info.Format;
+        public string? GetFormat() => Info.DataInformation.Format;
     }
 }

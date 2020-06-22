@@ -21,7 +21,7 @@ namespace Suits.Core.CommandModules
             var settings = GuildSettings.Get(Context.Guild);
             settings.Prefix = newPrefix;
             settings.SaveData();
-            await ReplyAsync($"Prefix for {Context.Guild.Name} is now {newPrefix}.");
+            await ReplyAsync($"Prefix for {Context.Guild.Name} is now {newPrefix}");
         }
     }
 }

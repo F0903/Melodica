@@ -22,7 +22,7 @@ namespace Suits.Jukebox.Models
             get => list[i];
         }
 
-        public TimeSpan GetTotalDuration() => list.Sum(x => x.GetMediaInfo().Duration);
+        public TimeSpan GetTotalDuration() => list.Sum(x => x.GetInfo().Duration);
 
         public MediaRequest[] ToArray()
         {
@@ -30,7 +30,7 @@ namespace Suits.Jukebox.Models
                 return list.ToArray();
         }
 
-        public Metadata GetMediaInfo() => new Metadata() { Duration = GetTotalDuration(), Thumbnail = list[0].GetMediaInfo().Thumbnail, Title = "Queue" };
+        public MediaMetadata GetMediaInfo() => new MediaMetadata() { Duration = GetTotalDuration(), Thumbnail = list[0].GetInfo().Thumbnail };
 
         public Task EnqueueAsync(MediaRequest item)
         {
@@ -87,9 +87,9 @@ namespace Suits.Jukebox.Models
 
         public Task<MediaRequest> RemoveAtAsync(int index)
         {
-            if (index > 0)
+            if (index < 0)
                 throw new Exception("Index cannot be under 0.");
-            else if (index < list.Count)
+            else if (index > list.Count)
                 throw new Exception("Index cannot be larger than the queues size.");
 
             MediaRequest item;
