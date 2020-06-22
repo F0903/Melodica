@@ -5,13 +5,10 @@
     <OutputType>Exe</OutputType>
     <TargetFramework>netcoreapp3.1</TargetFramework>
     <Platforms>AnyCPU;x64</Platforms>
-<<<<<<< HEAD
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <DefineConstants>DEBUG;TRACE</DefineConstants>
-=======
->>>>>>> discord-net-2.3.0-dev
   </PropertyGroup>
 
   <ItemGroup>
