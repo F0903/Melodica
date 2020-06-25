@@ -9,6 +9,9 @@ using System.Linq;
 using AngleSharp.Html.Dom;
 using System.Runtime.CompilerServices;
 using Suits.Utility.Extensions;
+using Suits.Jukebox.Services.Cache;
+using YoutubeExplode.Videos;
+using System.Security.Cryptography;
 
 namespace Suits.Jukebox.Services.Downloaders
 {
@@ -37,20 +40,18 @@ namespace Suits.Jukebox.Services.Downloaders
             return Task.FromResult(id);
         }
 
-        private Task<PlayableMedia> DownloadVideo(string id)
+        private Task<PlayableMedia> DownloadVideo(MediaMetadata info)
         {
-            var track = spotify.Tracks.Get(id).Result;
-            return dlHelper.DownloadAsync($"{track.Artists[0].Name} {track.Name}");
+            var vidMeta = dlHelper.GetMediaInfoAsync(info.Title!).Result;
+
+            return dlHelper.DownloadAsync(vidMeta);
         }
 
-        public Task<PlayableMedia> DownloadAsync(string query) // Query is URL.
+        public Task<PlayableMedia> DownloadAsync(MediaMetadata info)
         {
-            var mType = EvaluateMediaTypeAsync(query).Result;
-
-            var id = ParseURL(query).Result;
-            return mType switch
+            return info.MediaType switch
             {
-                MediaType.Video => DownloadVideo(id),
+                MediaType.Video => DownloadVideo(info),
                 MediaType.Playlist => throw new NotSupportedException(), // Playlist is not specified here due to the interface.
                 MediaType.Livestream => throw new NotSupportedException(),
                 _ => throw new NotSupportedException(),
@@ -159,18 +160,24 @@ namespace Suits.Jukebox.Services.Downloaders
         {
             var id = await ParseURL(url);
             var track = await spotify.Tracks.Get(id);
-            var ytTrack = await dlHelper.GetMediaInfoAsync($"{track.Artists[0].Name} {track.Name}");
 
             return new MediaMetadata()
             {
                 MediaOrigin = MediaOrigin.Spotify,
                 MediaType = MediaType.Video,
-                Title = ytTrack.Title,
-                Duration = ytTrack.Duration,
-                ID = ytTrack.ID,
-                URL = ytTrack.URL,
-                Thumbnail = ytTrack.Thumbnail
+                Title = track.Name,
+                Duration = TimeSpan.FromSeconds(track.DurationMs / 1000),
+                ID = track.Id,
+                URL = track.PreviewUrl,
+                Thumbnail = track.Album.Images.FirstOrDefault().Url
             };
+        }
+
+        public bool IsUrlSupported(string url)
+        {
+            if (url.Contains("https://open.spotify.com/"))
+                return true;
+            else return false;
         }
 
         public Task<MediaType> EvaluateMediaTypeAsync(string url)

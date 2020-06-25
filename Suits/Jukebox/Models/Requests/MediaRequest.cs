@@ -5,28 +5,31 @@ using System.Threading.Tasks;
 
 namespace Suits.Jukebox.Models.Requests
 {
+    public struct SubRequestInfo
+    {
+        public bool IsSubRequest { get; set; }
+        public MediaMetadata? ParentRequestInfo { get; set; }
+    }
+
     public class MediaRequest
     {
         public MediaRequest(PlayableMedia media)
         {
-            MediaType = MediaType.Video;
+            RequestMediaType = MediaType.Video;
             this.media = media;
-            SubRequests.Add(this);
         }
 
         protected MediaRequest()
         {}
 
-        public MediaType MediaType { get; protected set; }
+        public MediaType RequestMediaType { get; protected set; }
+
+        public SubRequestInfo SubRequestInfo { get; protected set; }
 
         protected List<MediaRequest> SubRequests { get; set; } = new List<MediaRequest>();
 
         private readonly PlayableMedia? media;
 
-        /// <summary>
-        /// Get the subrequests tied to this request. Will be more than one if a playlist is requested.
-        /// </summary>
-        /// <returns> Subrequests tied to the request. </returns>
         public virtual Task<IEnumerable<MediaRequest>> GetSubRequestsAsync()
         {
             return Task.FromResult((IEnumerable<MediaRequest>)SubRequests);

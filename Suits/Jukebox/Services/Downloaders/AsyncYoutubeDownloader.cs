@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Suits.Jukebox.Models;
 using Suits.Jukebox.Models.Exceptions;
+using Suits.Jukebox.Services.Cache;
 using Suits.Utility;
 using Suits.Utility.Extensions;
 using YoutubeExplode;
@@ -17,6 +18,8 @@ namespace Suits.Jukebox.Services.Downloaders
     {
         readonly YoutubeClient yt = new YoutubeClient();
 
+        readonly MediaCache cache = new MediaCache("YouTube");
+
         private async Task<PlayableMedia> DownloadVideo(Video video)
         {
             var vidStreams = await yt.Videos.Streams.GetManifestAsync(video.Id);
@@ -24,8 +27,6 @@ namespace Suits.Jukebox.Services.Downloaders
             Assert.NotNull(vidAudioStream);
 
             var rawStream = await yt.Videos.Streams.GetAsync(vidAudioStream!);
-
-            GC.Collect();
 
             var meta = new MediaMetadata()
             {
@@ -59,18 +60,17 @@ namespace Suits.Jukebox.Services.Downloaders
             }
         }
 
-        public Task<PlayableMedia> DownloadAsync(string query)
+        // Expects that GetMediaInfoAsync has been called prior. Thus the parameter.
+        public Task<PlayableMedia> DownloadAsync(MediaMetadata meta)
         {
-            var url = SearchOrGetVideo(query).Result;
-            var (mType, typeObj) = InternalEvaluateMediaType(url).Result;
-
+            bool inCache = cache.Contains(meta.ID!);
             try
             {
-                return mType switch
+                return inCache ? cache.GetAsync(meta.ID!) : meta.MediaType switch
                 {
-                    MediaType.Video => DownloadVideo((Video)typeObj),
+                    MediaType.Video => Task.FromResult(cache.CacheMediaAsync(DownloadVideo(yt.Videos.GetAsync(meta.ID!).Result).Result).Result as PlayableMedia),
                     MediaType.Playlist => throw new NotSupportedException(),
-                    MediaType.Livestream => Task.FromResult(new PlayableMedia((MediaMetadata)typeObj, null)),
+                    MediaType.Livestream => Task.FromResult(new PlayableMedia(meta, null)),
                     _ => throw new NotSupportedException(),
                 };
             }
@@ -99,51 +99,12 @@ namespace Suits.Jukebox.Services.Downloaders
             return (plMeta, plVideoMeta);
         }
 
-        private async Task<(MediaType type, object obj)> InternalEvaluateMediaType(string url)
+        public bool IsUrlSupported(string url)
         {
-            // if it is id, count the letters to determine
-            if (!url.IsUrl())
-                throw new CriticalException("Non url got passed into a url accepting function. Something went very wrong here... (int)");
-
-            if (url.Contains(@"https://www.youtube.com/watch?v="))
-            {
-                try
-                {
-                    var vid = await yt.Videos.GetAsync(url);
-                    bool isLive = vid.Duration == TimeSpan.Zero;
-                    return (isLive ? MediaType.Livestream : MediaType.Video, vid);
-                }
-                catch (Exception) { throw new CriticalException("ID might not be valid."); }
-            }
-
-            if (url.Contains(@"https://www.youtube.com/playlist?list="))            
-                return (MediaType.Playlist, yt.Playlists.GetAsync(url));
-            
-            throw new CriticalException("The mediatype could not be evaluated. Something has gone very wrong here... (int)");
-        }
-
-        public Task<MediaType> EvaluateMediaTypeAsync(string input)
-        {
-            // if it is id, count the letters to determine
-            if (!input.IsUrl())
-            {
-                if (input.LikeYouTubeId()) // If input looks like an ID
-                    return Task.FromResult(input.Length == 11 ?
-                        MediaType.Video :
-                        input.Length == 34 ?
-                        MediaType.Playlist :
-                        MediaType.Video); // If input was mistaken for an ID.
-                else return Task.FromResult(MediaType.Video);
-            }
-
-            if (input.Contains(@"https://www.youtube.com/watch?v="))
-                return Task.FromResult(MediaType.Video);
-
-            if (input.Contains(@"https://www.youtube.com/playlist?list="))
-                return Task.FromResult(MediaType.Playlist);
-
-            throw new CriticalException("MediaType could not be evaluated. (YT)");
-        }
+            if (url.Contains("https://www.youtube.com/"))
+                return true;
+            else return false;
+        }     
 
         public Task<string> GetLivestreamAsync(string streamURL)
         {
@@ -178,16 +139,74 @@ namespace Suits.Jukebox.Services.Downloaders
             });
         }
 
-        public Task<MediaMetadata> GetMediaInfoAsync(string url)
+        private Task<MediaType> EvaluateMediaTypeAsync(string input)
         {
-            url = SearchOrGetVideo(url).Result;
-            var (mType, obj) = InternalEvaluateMediaType(url).Result;
+            // if it is id, count the letters to determine
+            if (!input.IsUrl())
+            {
+                if (input.LikeYouTubeId()) // If input looks like an ID
+                    return Task.FromResult(input.Length == 11 ?
+                        MediaType.Video :
+                        input.Length == 34 ?
+                        MediaType.Playlist :
+                        MediaType.Video); // If input was mistaken for an ID.
+                else return Task.FromResult(MediaType.Video);
+            }
+
+            if (input.Contains(@"https://www.youtube.com/watch?v="))
+            {
+                try
+                {
+                    var vid = yt.Videos.GetAsync(input).Result;
+                    bool isLive = vid.Duration == TimeSpan.Zero;
+                    return Task.FromResult(isLive ? MediaType.Livestream : MediaType.Video);
+                }
+                catch (Exception) { throw new CriticalException("ID might not be valid."); }
+            }
+
+            if (input.Contains(@"https://www.youtube.com/playlist?list="))
+                return Task.FromResult(MediaType.Playlist);
+
+            throw new CriticalException("MediaType could not be evaluated. (YT)");
+        }
+
+        public Task<MediaMetadata> GetMediaInfoAsync(string input)
+        {
+            input = SearchOrGetVideo(input).Result;
+            var mType = EvaluateMediaTypeAsync(input).Result;
+
+            MediaMetadata GetLivestream()
+            {
+                var vidInfo = yt.Videos.GetAsync(input).Result;
+
+                var meta = new MediaMetadata()
+                {
+                    Duration = vidInfo.Duration,
+                    ID = vidInfo.Id,
+                    MediaOrigin = MediaOrigin.YouTube,
+                    MediaType = MediaType.Livestream,
+                    Thumbnail = vidInfo.Thumbnails.MediumResUrl,
+                    Title = vidInfo.Title,
+                    URL = vidInfo.Url
+                };
+                meta.DataInformation.Format = "hls";
+                meta.DataInformation.MediaPath = yt.Videos.Streams.GetHttpLiveStreamUrlAsync(vidInfo.Id).Result;
+                return meta;
+            }
+
+            object mediaObj = mType switch
+            {
+                MediaType.Video => yt.Videos.GetAsync(input).Result,
+                MediaType.Playlist => yt.Playlists.GetAsync(input).Result,
+                MediaType.Livestream => GetLivestream(),
+                _ => throw new NotImplementedException(),
+            };
 
             return mType switch
             {
-                MediaType.Video => GetVideoMetadataAsync((Video)obj),
-                MediaType.Playlist => GetPlaylistMetadataAsync((Playlist)obj),
-                MediaType.Livestream => Task.FromResult((MediaMetadata)obj),
+                MediaType.Video => GetVideoMetadataAsync((Video)mediaObj),
+                MediaType.Playlist => GetPlaylistMetadataAsync((Playlist)mediaObj),
+                MediaType.Livestream => Task.FromResult((MediaMetadata)mediaObj),
                 _ => throw new NotImplementedException(),
             };
         }

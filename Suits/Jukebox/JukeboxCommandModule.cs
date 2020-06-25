@@ -27,36 +27,36 @@ namespace Suits.Jukebox
         Embed? playbackEmbed;
         IUserMessage? playbackMessage;
         IUserMessage? playbackPlaylistMessage;
-        readonly SemaphoreSlim playbackSem = new SemaphoreSlim(1);
+        readonly SemaphoreSlim playbackLock = new SemaphoreSlim(1);
 
-        private async void PlaybackCallback((MediaMetadata info, MediaState state) ctx)
+        private async void PlaybackCallback((MediaMetadata info, SubRequestInfo subInfo, MediaState state) ctx)
         {
-            await playbackSem.WaitAsync(); // Use a this to make sure no threads send multiple messages at the same time.    
+            await playbackLock.WaitAsync(); // Use a this to make sure no threads send multiple messages at the same time.    
 
             bool reset = false;
 
             Embed OnDone()
             {
                 reset = true;
-                return GetMediaEmbed("Done", ctx.info, Color.LighterGrey);
+                return CreateMediaEmbed("Done", ctx.info, ctx.subInfo, Color.LighterGrey);
             }
 
             Embed OnUnavailable()
             {
                 reset = true;
-                return GetMediaEmbed("**Unavailable**", ctx.info!, Color.Red);
+                return CreateMediaEmbed("**Unavailable**", ctx.info, ctx.subInfo, Color.Red);
             }
 
             playbackEmbed = ctx.state switch
             {
                 MediaState.Error => OnUnavailable(),
-                MediaState.Downloading => GetMediaEmbed("**Downloading**", ctx.info!, Color.Blue),
-                MediaState.Queued => GetMediaEmbed("**Queued**", ctx.info!, null, null, ctx.info.MediaType == MediaType.Livestream ? '\u221E'.ToString() : null),
+                MediaState.Downloading => CreateMediaEmbed("**Downloading**", ctx.info!, ctx.subInfo, Color.Blue),
+                MediaState.Queued => CreateMediaEmbed("**Queued**", ctx.info!, null, null, ctx.info.MediaType == MediaType.Livestream ? '\u221E'.ToString() : null),
                 MediaState.Playing => ctx.info.MediaType switch
                 {
-                    MediaType.Video => GetMediaEmbed("**Playing**", ctx.info!, Color.Green),
-                    MediaType.Playlist => GetMediaEmbed("**Playing**", ctx.info!, Color.Green),
-                    MediaType.Livestream => GetMediaEmbed("**Streaming**", ctx.info!, Color.DarkGreen, null, '\u221E'.ToString()),
+                    MediaType.Video => CreateMediaEmbed("**Playing**", ctx.info!, ctx.subInfo, Color.Green),
+                    MediaType.Playlist => CreateMediaEmbed("**Playing**", ctx.info!, ctx.subInfo, Color.Green),
+                    MediaType.Livestream => CreateMediaEmbed("**Streaming**", ctx.info!, ctx.subInfo, Color.DarkGreen, null, '\u221E'.ToString()),
                     _ => throw new Exception("Unknown error in PlaybackCallback switch expression"),
                 },
                 MediaState.Finished => OnDone(),
@@ -86,17 +86,17 @@ namespace Suits.Jukebox
                 reset = false;
             }
 
-            playbackSem.Release();
+            playbackLock.Release();
         }
 
         private IVoiceChannel GetUserVoiceChannel() => ((SocketGuildUser)Context.User).VoiceChannel;
 
-        private Embed GetMediaEmbed(string embedTitle, MediaMetadata mediaInfo, Color? color = null, string? description = null, string? footerText = null)
+        private Embed CreateMediaEmbed(string embedTitle, MediaMetadata mediaInfo, SubRequestInfo? subInfo = null, Color? color = null, string? description = null, string? footerText = null)
         {
             return new EmbedBuilder().WithColor(color ?? Color.DarkGrey)
                                      .WithTitle(embedTitle)
-                                     .WithDescription(description ?? mediaInfo.Title)
-                                     .WithFooter(footerText ?? mediaInfo.Duration.ToString())
+                                     .WithDescription(subInfo!.Value.IsSubRequest ? $"__{description ?? mediaInfo.Title}__\n{subInfo!.Value.ParentRequestInfo!.Title}" : description ?? mediaInfo.Title)
+                                     .WithFooter(subInfo!.Value.IsSubRequest ? $"{mediaInfo.Duration} | {subInfo!.Value.ParentRequestInfo!.Duration}" : footerText ?? mediaInfo.Duration.ToString())
                                      .WithThumbnailUrl(mediaInfo.Thumbnail).Build();
         }
 
@@ -138,10 +138,19 @@ namespace Suits.Jukebox
             throw new Exception("I'm not allowed to connect or speak in this channel :(");
         }
 
+        [Command("Direct")]
+        public async Task TestDirectPlay(string directUrl)
+        {
+            var juke = await JukeboxManager.GetJukeboxAsync(Context.Guild);
+            var req = new URLMediaRequest("Direct Media", ".mp3", directUrl);
+            await juke.PlayAsync(req, GetUserVoiceChannel());
+        }
+
+
         [Command("ClearCache"), Summary("Clears cache."), RequireOwner]
         public async Task ClearCacheAsync()
         {
-            var (deletedFiles, filesInUse, ms) = await MediaCache.PruneCacheAsync(true);
+            var (deletedFiles, filesInUse, ms) = await MediaCache.PruneAllCachesAsync();
             await ReplyAsync($"Deleted {deletedFiles} files. ({filesInUse} files in use) [{ms}ms]");
         }
 
@@ -149,7 +158,9 @@ namespace Suits.Jukebox
         public async Task ShuffleAsync()
         {
             var juke = await JukeboxManager.GetJukeboxAsync(Context.Guild);
-            await juke.ToggleShuffleAsync(async (info, wasShuffling) => await ReplyAsync(null, false, GetMediaEmbed(wasShuffling ? "**Stopped Shuffling**" : "**Shuffling**", info)));
+            if (!juke.Playing)
+                await ReplyAsync("Can't shuffle when nothing is playing");
+            await juke.ToggleShuffleAsync(async (info, wasShuffling) => await ReplyAsync(null, false, CreateMediaEmbed(wasShuffling ? "**Stopped Shuffling**" : "**Shuffling**", info)));
         }
 
         [Command("Loop"), Summary("Toggles loop on the current song.")]
@@ -160,19 +171,19 @@ namespace Suits.Jukebox
             if (!string.IsNullOrEmpty(query))
                 await juke.PlayAsync(await GetRequestAsync(query), GetUserVoiceChannel(), true, true, PlaybackCallback);
             else
-                await juke.ToggleLoopAsync(async ctx => await ReplyAsync(null, false, GetMediaEmbed(ctx.wasLooping ? "**Stopped Looping**" : "**Looping**", ctx.info)));
+                await juke.ToggleLoopAsync(async ctx => await ReplyAsync(null, false, CreateMediaEmbed(ctx.wasLooping ? "**Stopped Looping**" : "**Looping**", ctx.info)));
         }
 
         [Command("Song"), Alias("Info", "SongInfo"), Summary("Gets info about the current song.")]
         public async Task GetSongAsync()
         {
-            var song = (await JukeboxManager.GetJukeboxAsync(Context.Guild)).CurrentSong;
+            var song = (await JukeboxManager.GetJukeboxAsync(Context.Guild)).GetSong();
             if (song == null)
             {
                 await ReplyAsync("No song is playing.");
                 return;
             }
-            await ReplyAsync(null, false, GetMediaEmbed("**Playing**", song.Info));
+            await ReplyAsync(null, false, CreateMediaEmbed("**Playing**", song));
         }
 
         [Command("Resume"), Summary("Resumes playback.")]
@@ -210,7 +221,7 @@ namespace Suits.Jukebox
             }
 
             var removed = (await JukeboxManager.GetJukeboxAsync(Context.Guild)).RemoveFromQueue(index - 1);
-            await ReplyAsync(null, false, GetMediaEmbed("Removed", removed));
+            await ReplyAsync(null, false, CreateMediaEmbed("Removed", removed));
         }
 
         [Command("Queue"), Summary("Shows current queue.")]
@@ -255,7 +266,6 @@ namespace Suits.Jukebox
                 return;
             }
 
-            // Check if we are able to connect.
             CheckForPermissions(userVoice);
 
             if (query == null && Context.Message.Attachments.Count == 0)

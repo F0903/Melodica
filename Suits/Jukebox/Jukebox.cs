@@ -15,6 +15,7 @@ using AngleSharp.Io;
 using Discord.WebSocket;
 using Suits.Jukebox.Models.Exceptions;
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 
 namespace Suits.Jukebox
 {
@@ -31,15 +32,13 @@ namespace Suits.Jukebox
     {
         public Jukebox(SongQueue? queue = null)
         {
-            this.songQueue = queue ?? new SongQueue();
+            this.queue = queue ?? new SongQueue();
         }
 
         public int Bitrate { get; set; } = 96 * 1024;
         private readonly bool alwaysUseMaxBitrate = true;
 
-        public int BufferSize { get; set; } = 1024 / 2;
-
-        public PlayableMedia? CurrentSong { get; private set; }
+        public int BufferSize { get; set; } = 1024 / 2;        
 
         public bool Playing { get; private set; }
 
@@ -59,11 +58,17 @@ namespace Suits.Jukebox
 
         private Thread? playbackThread;
 
-        private readonly SongQueue songQueue;
+        private readonly SongQueue queue;
 
         private IAudioChannel? channel;
 
         private IAudioClient? audioClient;
+
+        private MediaRequest? currentRequest;
+
+        private readonly SemaphoreSlim writeLock = new SemaphoreSlim(1);
+
+        public MediaMetadata? GetSong() => currentRequest?.GetInfo();
 
         public string GetChannelName() => channel!.Name;
 
@@ -71,13 +76,14 @@ namespace Suits.Jukebox
 
         public void Skip() => skip = true;
 
-        public SongQueue GetQueue() => songQueue;
+        public SongQueue GetQueue() => queue;
 
-        public Task ClearQueueAsync() => songQueue.ClearAsync();
+        public Task ClearQueueAsync() => queue.ClearAsync();
 
-        public MediaMetadata RemoveFromQueue(int index) => songQueue.RemoveAtAsync(index).Result.GetInfo();
+        public MediaMetadata RemoveFromQueue(int index) => queue.RemoveAtAsync(index).Result.GetInfo();
 
         private bool IsAlone() => false; // The old method currently throws a FileNotFoundException. Therefore this will first be reimplemented when Discord.Net gets updated on NuGet.
+
 
         private AudioOutStream CreateOutputStream()
         {
@@ -133,9 +139,7 @@ namespace Suits.Jukebox
                     // If the playback was stopped, simply ignore the exception that gets thrown.
                     if (e is OperationCanceledException)
                         return;
-
-                    discordOut = CreateOutputStream();
-                    Write();
+                    else throw new CriticalException(null, e);
                 }
                 finally
                 {
@@ -154,7 +158,7 @@ namespace Suits.Jukebox
 
         private async Task DismissAsync()
         {
-            CurrentSong = null;
+            currentRequest = null;
             await channel!.DisconnectAsync();
             await discordOut!.DisposeAsync();
             await audioClient!.StopAsync();
@@ -163,13 +167,13 @@ namespace Suits.Jukebox
 
         public Task ToggleLoopAsync(Action<(MediaMetadata info, bool wasLooping)>? callback = null)
         {
-            if (CurrentSong == null)
+            if (currentRequest == null)
                 throw new Exception("No song is playing.");
 
-            if (CurrentSong!.Info.DataInformation.Format == "hls")
+            if (GetSong()!.DataInformation.Format == "hls")
                 throw new Exception("Can't loop a livestream.");
 
-            callback?.Invoke((CurrentSong!.Info, Loop));
+            callback?.Invoke((GetSong()!, Loop));
             Loop = !Loop;
             return Task.CompletedTask;
         }
@@ -186,7 +190,7 @@ namespace Suits.Jukebox
             Loop = false;
             Paused = false;
             if (clearQueue)
-                songQueue.ClearAsync();
+                queue.ClearAsync();
             playbackToken?.Cancel();
             playbackThread?.Join();
 
@@ -212,7 +216,7 @@ namespace Suits.Jukebox
         /// <param name="loop"> Should this media be put on loop? </param>
         /// <param name="callbacks"> Callbacks for different states. </param>
         /// <returns></returns>
-        public async Task PlayAsync(MediaRequest request, IAudioChannel channel, bool switchSong = false, bool loop = false, Action<(MediaMetadata info, MediaState state)>? callback = null)
+        public async Task PlayAsync(MediaRequest request, IAudioChannel channel, bool switchSong = false, bool loop = false, Action<(MediaMetadata info, SubRequestInfo subInfo, MediaState state)>? callback = null)
         {
             switching = switchSong;
 
@@ -220,7 +224,7 @@ namespace Suits.Jukebox
             bool wasPlaying = Playing;
             bool wasShuffling = Shuffle;
 
-            var requestType = request.MediaType;
+            var requestType = request.RequestMediaType;
             var subRequests = await request.GetSubRequestsAsync();
 
             bool error = false;
@@ -230,10 +234,10 @@ namespace Suits.Jukebox
                 switch (requestType)
                 {
                     case MediaType.Video:
-                        await songQueue.EnqueueAsync(request);
+                        await queue.EnqueueAsync(request);
                         break;
                     case MediaType.Playlist:
-                        await songQueue.EnqueueAsync(subRequests);
+                        await queue.EnqueueAsync(subRequests);
                         break;
                     case MediaType.Livestream:
                         goto case MediaType.Video;
@@ -241,17 +245,17 @@ namespace Suits.Jukebox
                         throw new CriticalException("Unknown error happened in RequestType switch.");
                 }
 
-                callback?.Invoke((request.GetInfo(), MediaState.Queued));
+                callback?.Invoke((request.GetInfo(), request.SubRequestInfo, MediaState.Queued));
                 return;
             }
 
             switch (requestType)
             {
                 case MediaType.Video:
-                    await songQueue.PutFirst(request);
+                    await queue.PutFirst(request);
                     break;
                 case MediaType.Playlist:
-                    await songQueue.PutFirst(subRequests);
+                    await queue.PutFirst(subRequests);
                     break;
                 case MediaType.Livestream:
                     goto case MediaType.Video;
@@ -259,23 +263,28 @@ namespace Suits.Jukebox
                     throw new CriticalException("Unknown error happened in RequestType switch.");
             }
 
+            await writeLock.WaitAsync();
+            currentRequest = await queue.DequeueAsync();
+            PlayableMedia? song = null;
             try
             {
                 Playing = true; // Set playing to true so nobody is able to switch while a song is downloading.
-                if (request.MediaType != MediaType.Livestream && !Loop)
-                    callback?.Invoke((request.GetInfo(), MediaState.Downloading));
+                
+                if (request.RequestMediaType != MediaType.Livestream && !Loop)
+                    callback?.Invoke((currentRequest.GetInfo(), currentRequest.SubRequestInfo, MediaState.Downloading));
 
-                CurrentSong = await (await songQueue.DequeueAsync()).GetMediaAsync();
+                song = await currentRequest.GetMediaAsync();
             }
             catch (Exception ex)
             {
+                writeLock.Release();
                 Playing = wasPlaying;
-                Shuffle = wasShuffling;
-                CurrentSong = null;
+                Shuffle = wasShuffling;              
 
-                callback?.Invoke((request.GetInfo(), MediaState.Error));
+                callback?.Invoke((currentRequest.GetInfo(), currentRequest.SubRequestInfo, MediaState.Error));
+                currentRequest = null;
 
-                if (ex is CriticalException)
+                if (ex is CriticalException || queue.IsEmpty)
                 {
                     await DismissAsync();
                     throw ex;
@@ -285,27 +294,26 @@ namespace Suits.Jukebox
             finally
             {
                 GC.Collect();
-            }
-
-            if (!error && !Loop && request.MediaType == MediaType.Playlist)
-                callback?.Invoke((request.GetInfo(), MediaState.Playing));
+            }           
 
             if (!error && !Loop || (Loop && switching))
-                callback?.Invoke((CurrentSong!.Info, MediaState.Playing));
+                callback?.Invoke((GetSong()!, currentRequest!.SubRequestInfo, MediaState.Playing));
 
-            Loop = loop && !skip && request.MediaType != MediaType.Livestream;
+            Loop = loop && !skip && currentRequest!.RequestMediaType != MediaType.Livestream;
             switching = false;
             skip = false;
 
             if (!error)
-            {
-                playbackThread = BeginWrite(new AudioProcessor(CurrentSong!.Info.DataInformation.MediaPath, BufferSize, CurrentSong.Info.DataInformation.Format));
+            {              
+                playbackThread = BeginWrite(new AudioProcessor(song!.Info.DataInformation.MediaPath, BufferSize, song!.Info.DataInformation.Format));
                 playbackThread.Start();
                 playbackThread.Join();
             }
 
             if (!error && !Loop)
-                callback?.Invoke((CurrentSong!.Info, MediaState.Finished));
+                callback?.Invoke((song!.Info, currentRequest!.SubRequestInfo, MediaState.Finished));
+
+            writeLock.Release();
 
             if (switching)
             {
@@ -319,16 +327,15 @@ namespace Suits.Jukebox
                 return;
             }
 
-            if (songQueue.IsEmpty && !Loop)
+            if (queue.IsEmpty && !Loop)
             {
                 Loop = false;
                 Shuffle = false;
                 await DismissAsync().ConfigureAwait(false);
                 return;
             }
-
-            var nextSong = Loop ? new MediaRequest(CurrentSong!) :
-                           Shuffle ? await songQueue.DequeueRandomAsync() : await songQueue.DequeueAsync();
+            var nextSong = Loop ? currentRequest! :
+                           Shuffle ? await queue.DequeueRandomAsync() : await queue.DequeueAsync();
             await PlayAsync(nextSong, channel, false, Loop, callback!);
         }
     }

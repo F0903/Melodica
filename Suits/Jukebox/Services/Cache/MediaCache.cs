@@ -14,28 +14,50 @@ using Suits.Jukebox.Models.Exceptions;
 
 namespace Suits.Jukebox.Services.Cache
 {
-    public static class MediaCache
+    public class MediaCache
     {
-        static MediaCache()
+        public MediaCache(string dirName)
         {
-            bool exists = Directory.Exists(CacheLocation);
-            if (!exists) Directory.CreateDirectory(CacheLocation);
+            cacheLocation = Path.Combine(RootCacheLocation, dirName);
+            bool exists = Directory.Exists(cacheLocation);
+            if (!exists) Directory.CreateDirectory(cacheLocation);
             else LoadPreexistingFilesAsync().Wait();
+
+            cacheInstances.Add(this);
         }
 
         public const int MaxClearAttempt = 5;
 
         public const int MaxFilesInCache = 25;
 
-        public const string CacheLocation = @"./Mediacache/";
+        public const string RootCacheLocation = @"./Mediacache/";
 
-        private static readonly List<MediaMetadata> cache = new List<MediaMetadata>(MaxFilesInCache);
+        private readonly static List<MediaCache> cacheInstances = new List<MediaCache>(); // Keep track of all instances so we can clear all cache.
 
-        public static event Action? OnCacheClear;
 
-        private static Task LoadPreexistingFilesAsync()
+        private readonly string cacheLocation;
+
+        private readonly List<MediaMetadata> cache = new List<MediaMetadata>(MaxFilesInCache);
+
+
+        public static async Task<(int deletedFiles, int filesInUse, long msDuration)> PruneAllCachesAsync()
         {
-            foreach (FileInfo metaFile in Directory.EnumerateFileSystemEntries(CacheLocation, $"*{MediaMetadata.MetaFileExtension}", SearchOption.AllDirectories).Convert(x => new FileInfo(x)))
+            int deletedFiles = 0, filesInUse = 0;
+            long msDuration = 0;
+            foreach (var cache in cacheInstances)
+            {
+                var result = await cache.PruneCacheAsync(true);
+                deletedFiles += result.deletedFiles;
+                filesInUse += result.filesInUse;
+                msDuration += result.msDuration;
+            }
+            return (deletedFiles, filesInUse, msDuration);
+        }
+
+
+        private Task LoadPreexistingFilesAsync()
+        {
+            foreach (FileInfo metaFile in Directory.EnumerateFileSystemEntries(cacheLocation, $"*{MediaMetadata.MetaFileExtension}", SearchOption.AllDirectories).Convert(x => new FileInfo(x)))
             {
                 try
                 {
@@ -49,7 +71,7 @@ namespace Suits.Jukebox.Services.Cache
             return Task.CompletedTask;
         }
 
-        private static void DeleteMediaFile(FileInfo file)
+        private void DeleteMediaFile(FileInfo file)
         {
             // If the file specified is a metadata file.
             if (file.Extension == MediaMetadata.MetaFileExtension)
@@ -65,17 +87,17 @@ namespace Suits.Jukebox.Services.Cache
             File.Delete(Path.ChangeExtension(file.FullName, MediaMetadata.MetaFileExtension));
         }
 
-        public static Task<long> GetCacheSizeAsync()
+        public Task<long> GetCacheSizeAsync()
         {
-            var files = Directory.EnumerateFiles(CacheLocation);
+            var files = Directory.EnumerateFiles(cacheLocation);
             if (files.Count() == 0)
                 return Task.FromResult((long)0);
             return Task.FromResult(files.AsParallel().Convert(x => new FileInfo(x)).Sum(f => f.Length));
         }
 
-        public static bool Contains(string id) => cache.Any(x => x.ID == id);
+        public bool Contains(string id) => cache.Any(x => x.ID == id);     
 
-        public static async Task<(int deletedFiles, int filesInUse, long msDuration)> PruneCacheAsync(bool forceClear = false)
+        public async Task<(int deletedFiles, int filesInUse, long msDuration)> PruneCacheAsync(bool forceClear = false)
         {
             if (!forceClear && await GetCacheSizeAsync() < BotSettings.Get().MaxFileCacheInMB * 1024 * 1024)
                 return (0, 0, 0);
@@ -83,7 +105,7 @@ namespace Suits.Jukebox.Services.Cache
             int deletedFiles = 0;
             int filesInUse = 0;
 
-            var files = Directory.EnumerateFiles(CacheLocation).Convert(x => new FileInfo(x));
+            var files = Directory.EnumerateFiles(cacheLocation).Convert(x => new FileInfo(x));
             Stopwatch sw = new Stopwatch();
             sw.Start();
             Parallel.ForEach<FileInfo>(files, (file, loop) =>
@@ -104,11 +126,13 @@ namespace Suits.Jukebox.Services.Cache
             });
             sw.Stop();
 
-            OnCacheClear?.Invoke();
+            if (cache.Count > deletedFiles + filesInUse)
+                cache.Clear();
+
             return (deletedFiles, filesInUse, sw.ElapsedMilliseconds);
         }
 
-        public static async Task<PlayableMedia> GetAsync(string id)
+        public async Task<PlayableMedia> GetAsync(string id)
         {
             PlayableMedia media;
             try
@@ -124,7 +148,7 @@ namespace Suits.Jukebox.Services.Cache
             return media;
         }
 
-        public static async Task<CachedMedia> CacheMediaAsync(PlayableMedia med, bool pruneCache = true)
+        public async Task<CachedMedia> CacheMediaAsync(PlayableMedia med, bool pruneCache = true)
         {
             if (pruneCache)
                 await PruneCacheAsync();
@@ -134,7 +158,7 @@ namespace Suits.Jukebox.Services.Cache
 
             cache.Add(med.Info);
 
-            return new CachedMedia(med, CacheLocation);
+            return new CachedMedia(med, cacheLocation);
         }
     }
 }

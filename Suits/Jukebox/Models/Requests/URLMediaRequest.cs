@@ -5,6 +5,8 @@ using System.Net;
 using System.Threading.Tasks;
 using Suits.Jukebox.Services.Cache;
 using System.IO;
+using System.Threading;
+using Suits.Jukebox.Models.Exceptions;
 
 namespace Suits.Jukebox.Models.Requests
 {
@@ -23,16 +25,20 @@ namespace Suits.Jukebox.Models.Requests
 
         private readonly string mediaUrl;
 
-        public override Task<PlayableMedia> GetMediaAsync()
+        public override async Task<PlayableMedia> GetMediaAsync()
         {
             using var web = new WebClient();
 
-            var data = web.DownloadData(mediaUrl);
+            var tSrc = new CancellationTokenSource(20000);
+
+            var data = await Task.Run(() => web.DownloadData(mediaUrl), tSrc.Token);
+            if (tSrc.IsCancellationRequested)
+                throw new CriticalException("Direct media could not be downloaded. (Timer exceeded 20 seconds)");
 
             var meta = new MediaMetadata() { Title = mediaName, Duration = new TimeSpan(0) };
             meta.DataInformation.Format = mediaFormat;
 
-            return Task.FromResult((PlayableMedia)MediaCache.CacheMediaAsync(new PlayableMedia(meta, new MemoryStream(data))).Result);
+            return new PlayableMedia(meta, new MemoryStream(data));
         }
     }
 }

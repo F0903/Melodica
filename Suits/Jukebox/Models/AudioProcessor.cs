@@ -15,14 +15,6 @@ namespace Suits.Jukebox.Models
             playerProcess.PriorityClass = ProcessPriorityClass.AboveNormal;
         }
 
-        public AudioProcessor(string hlsUrl, int bufferSize = 1024)
-        {
-            playerProcess = Construct(hlsUrl, bufferSize, "hls");
-            playerProcess.Start();
-            playerProcess.PriorityClass = ProcessPriorityClass.AboveNormal;
-            isLivestream = true;
-        }
-
         ~AudioProcessor()
         {
             Dispose();
@@ -51,8 +43,6 @@ namespace Suits.Jukebox.Models
 
         protected bool inputAvailable;
         protected bool outputAvailable;
-
-        public readonly bool isLivestream;
 
         public virtual Process GetBaseProcess() => playerProcess;
 

@@ -11,7 +11,7 @@ namespace Suits.Jukebox.Models
     {
         public TempMedia(MediaMetadata meta, Stream data) : base(meta, data)
         {
-            var toSave = Path.Combine(MediaCache.CacheLocation, "temp/");
+            var toSave = Path.Combine(MediaCache.RootCacheLocation, "temp/");
             if (!Directory.Exists(toSave))
                 Directory.CreateDirectory(toSave);
             saveDir = toSave;

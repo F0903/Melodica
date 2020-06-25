@@ -7,36 +7,53 @@ using System.Text;
 using System.Threading.Tasks;
 using Suits.Utility.Extensions;
 using Suits.Jukebox.Models.Exceptions;
+using System.Threading;
+using System.ComponentModel;
+using Ninject.Activation.Caching;
 
 namespace Suits.Jukebox.Models.Requests
 {
     public class DownloadRequest : MediaRequest
     {
-        public DownloadRequest(string query, IAsyncDownloader downloader)
+        public DownloadRequest(string query, IAsyncDownloader dl)
         {
-            this.query = query;
-            this.downloader = downloader;
-            
-            // Make this check more efficient, possibly by using regex instead of querying
-            MediaType = this.downloader.EvaluateMediaTypeAsync(query).Result;
-            if (MediaType == MediaType.Playlist)
+            downloader = dl;
+
+            info = downloader.GetMediaInfoAsync(query).Result;
+            RequestMediaType = info.MediaType;
+
+            SubRequestInfo = new SubRequestInfo()
+            {
+                IsSubRequest = false,
+                ParentRequestInfo = null
+            };
+
+            if (RequestMediaType == MediaType.Playlist)
             {
                 var (pl, videos) = this.downloader.DownloadPlaylistInfoAsync(query).Result;
-                cachedInfo = pl;
+                info = pl;
                 for (int i = 0; i < videos.Count(); i++)
                 {
                     var item = videos.ElementAt(i);
                     if (item.MediaOrigin == null) throw new CriticalException("MediaOrigin is not specified.");
-                    SubRequests.Add(new DownloadRequest(item, item.MediaOrigin!.SupportsDirectDownload ? this.downloader : IAsyncDownloader.Default));
+                    SubRequests.Add(new DownloadRequest(item, info, item.MediaOrigin!.SupportsDirectDownload ? this.downloader : IAsyncDownloader.Default));
                 }
             }
         }
 
-        private DownloadRequest(MediaMetadata info, IAsyncDownloader dl)
+        private DownloadRequest(MediaMetadata info, MediaMetadata parentRequestInfo, IAsyncDownloader dl)
         {
+            this.info = info;
+            RequestMediaType = info.MediaType;
+
+            SubRequestInfo = new SubRequestInfo()
+            {
+                IsSubRequest = true,
+                ParentRequestInfo = parentRequestInfo
+            };
+
             downloader = dl;
-            this.cachedInfo = info;
-            query = info.ID!;
+            this.info = info;
         }
 
         public const int MaxExceptionRetries = 3;
@@ -44,10 +61,9 @@ namespace Suits.Jukebox.Models.Requests
 
         private readonly IAsyncDownloader downloader;
 
-        private readonly string query;
+        private readonly MediaMetadata info;
 
-        private MediaMetadata? cachedInfo;
-        public override MediaMetadata GetInfo() => cachedInfo ??= downloader.GetMediaInfoAsync(query).Result;
+        public override MediaMetadata GetInfo() => info;
 
         public async override Task<PlayableMedia> GetMediaAsync()
         {
@@ -56,11 +72,7 @@ namespace Suits.Jukebox.Models.Requests
                 PlayableMedia media;
                 try
                 {
-                    media = GetInfo().MediaType == MediaType.Livestream     ?
-                            downloader.DownloadAsync(query).Result          :
-                            MediaCache.Contains(id ?? GetInfo().ID!)        ?
-                            MediaCache.GetAsync(id ?? GetInfo().ID!).Result :                       
-                            MediaCache.CacheMediaAsync(downloader.DownloadAsync(query).Result).Result;
+                    media = downloader.DownloadAsync(info).Result;
                 }
                 catch (Exception ex)
                 {
@@ -76,7 +88,7 @@ namespace Suits.Jukebox.Models.Requests
             return GetInfo().MediaType switch
             {
                 MediaType.Video => await GetVideoAsync(),
-                MediaType.Playlist => await GetVideoAsync(SubRequests.First().GetInfo().ID),
+                MediaType.Playlist => throw new CriticalException("Cannot directly play a playlist. Something very wrong happened here..."),
                 MediaType.Livestream => await GetVideoAsync(),
                 _ => throw new Exception("Unknown error occured in GetMediaAsync(). (MediaType has probably not been set)"),
             };
