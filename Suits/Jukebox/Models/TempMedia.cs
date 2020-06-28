@@ -11,10 +11,15 @@ namespace Suits.Jukebox.Models
     {
         public TempMedia(MediaMetadata meta, Stream data) : base(meta, data)
         {
-            var toSave = Path.Combine(MediaCache.RootCacheLocation, "temp/");
-            if (!Directory.Exists(toSave))
-                Directory.CreateDirectory(toSave);
-            saveDir = toSave;
+            var toSave = Path.Combine(MediaCache.RootCacheLocation, $"temp/{meta.Title}");
+            var toSaveDir = Path.GetDirectoryName(toSave);
+
+            if (!Directory.Exists(toSaveDir))
+                Directory.CreateDirectory(toSaveDir);
+
+            saveLocation = toSave;
+            saveDir = toSaveDir;
+
             SaveDataAsync().Wait();
         }
 
@@ -23,9 +28,11 @@ namespace Suits.Jukebox.Models
             Destroy();
         }
 
+        readonly string saveLocation;
+
         private void Destroy()
         {
-            File.Delete(saveDir);
+            File.Delete(saveLocation);
         }
 
         protected override Task SaveDataAsync()

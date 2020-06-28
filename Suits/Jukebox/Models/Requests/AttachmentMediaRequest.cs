@@ -15,15 +15,6 @@ namespace Suits.Jukebox.Models.Requests
         public AttachmentMediaRequest(Discord.Attachment[] attachments)
         {
             attachment = attachments[0];
-            for (int i = 1; i < attachments.Length; i++)
-            {
-                SubRequests.Add(new AttachmentMediaRequest(attachments[i]));
-            }
-        }
-
-        private AttachmentMediaRequest(Discord.Attachment attachment)
-        {
-            this.attachment = attachment;
         }
 
         readonly Discord.Attachment? attachment;
@@ -32,7 +23,7 @@ namespace Suits.Jukebox.Models.Requests
 
         public override MediaMetadata GetInfo()
         {
-            info ??= new MediaMetadata() { Duration = TimeSpan.Zero, ID = null, Thumbnail = null, Title = attachment!.Filename };
+            info ??= new MediaMetadata() { Duration = TimeSpan.Zero, ID = Path.ChangeExtension(attachment!.Filename, null), Thumbnail = null, Title = attachment!.Filename };
             info.DataInformation.Format = Path.GetExtension(attachment!.Filename).Replace(".", "");
             return info;
         }

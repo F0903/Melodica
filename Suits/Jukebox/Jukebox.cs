@@ -163,6 +163,7 @@ namespace Suits.Jukebox
             await discordOut!.DisposeAsync();
             await audioClient!.StopAsync();
             await Task.Run(audioClient.Dispose);
+            GC.Collect();
         }
 
         public Task ToggleLoopAsync(Action<(MediaMetadata info, bool wasLooping)>? callback = null)

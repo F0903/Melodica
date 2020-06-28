@@ -12,7 +12,6 @@ namespace Suits.Jukebox.Models
         {
             this.Info = meta;
             this.rawMediaData = data;
-            saveable = data != null;
         }
 
         public PlayableMedia(PlayableMedia toCopy)
@@ -45,11 +44,9 @@ namespace Suits.Jukebox.Models
 
         protected string? saveDir;
 
-        private readonly bool saveable = true;
-
         protected virtual async Task SaveDataAsync()
         {
-            if (!saveable)
+            if (rawMediaData == null)
                 return;
 
             var location = Path.Combine(saveDir ?? throw new NullReferenceException("SaveDir was not set."), (Info.ID ?? throw new Exception("Tried to save media with empty ID.")).ReplaceIllegalCharacters() + Info.DataInformation.FileExtension);
