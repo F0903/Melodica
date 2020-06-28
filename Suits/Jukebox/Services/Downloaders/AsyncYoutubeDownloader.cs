@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using AngleSharp.Common;
 using Suits.Jukebox.Models;
 using Suits.Jukebox.Models.Exceptions;
 using Suits.Jukebox.Services.Cache;
@@ -47,17 +48,27 @@ namespace Suits.Jukebox.Services.Downloaders
             ex is YoutubeExplode.Exceptions.VideoUnavailableException ||
             ex is YoutubeExplode.Exceptions.VideoRequiresPurchaseException;
 
-        private Task<string> SearchOrGetVideo(string input, int attempt = 0)
+        private Task<string> SearchOrGetVideo(string input)
         {
-            try
+            string GetVideo(int attempt = 0)
             {
-                return Task.FromResult(input.IsUrl() ? input : yt.Search.GetVideosAsync(input).BufferAsync(1).Result.ElementAt(attempt).Url);
+                if (attempt > 3) throw new MediaUnavailableException();
+
+                string? video;
+                try
+                {
+                    var videos = yt.Search.GetVideosAsync(input);
+                    var bufVideos = videos.BufferAsync(attempt).Result;
+                    video = bufVideos.ElementAtOrDefault(attempt)?.Url;
+                }
+                catch (Exception ex) when (IsUnavailable(ex))
+                {
+                    throw new MediaUnavailableException();
+                }
+
+                return video ?? GetVideo(++attempt);
             }
-            catch (Exception ex) when (IsUnavailable(ex))
-            {
-                if (attempt > 4) throw new MediaUnavailableException();
-                return SearchOrGetVideo(input, ++attempt);
-            }
+            return Task.FromResult(input.IsUrl() ? input : GetVideo());
         }
 
         // Expects that GetMediaInfoAsync has been called prior. Thus the parameter.
@@ -104,7 +115,7 @@ namespace Suits.Jukebox.Services.Downloaders
             if (url.Contains("https://www.youtube.com/"))
                 return true;
             else return false;
-        }     
+        }
 
         public Task<string> GetLivestreamAsync(string streamURL)
         {

@@ -14,6 +14,7 @@ using Suits.Utility.Extensions;
 using Suits.Jukebox.Models;
 using System.Collections.Generic;
 using System.Threading;
+using Suits.Jukebox.Models.Exceptions;
 
 namespace Suits.Jukebox
 {
@@ -51,7 +52,7 @@ namespace Suits.Jukebox
             {
                 MediaState.Error => OnUnavailable(),
                 MediaState.Downloading => CreateMediaEmbed("**Downloading**", ctx.info!, ctx.subInfo, Color.Blue),
-                MediaState.Queued => CreateMediaEmbed("**Queued**", ctx.info!, null, null, ctx.info.MediaType == MediaType.Livestream ? '\u221E'.ToString() : null),
+                MediaState.Queued => CreateMediaEmbed("**Queued**", ctx.info!, ctx.subInfo, null, ctx.info.MediaType == MediaType.Livestream ? '\u221E'.ToString() : null),
                 MediaState.Playing => ctx.info.MediaType switch
                 {
                     MediaType.Video => CreateMediaEmbed("**Playing**", ctx.info!, ctx.subInfo, Color.Green),
@@ -93,6 +94,7 @@ namespace Suits.Jukebox
 
         private Embed CreateMediaEmbed(string embedTitle, MediaMetadata mediaInfo, SubRequestInfo? subInfo = null, Color? color = null, string? description = null, string? footerText = null)
         {
+            if (subInfo == null) throw new CriticalException("SubInfo was null. Something wrong happened here...");
             return new EmbedBuilder().WithColor(color ?? Color.DarkGrey)
                                      .WithTitle(embedTitle)
                                      .WithDescription(subInfo!.Value.IsSubRequest ? $"__{description ?? mediaInfo.Title}__\n{subInfo!.Value.ParentRequestInfo!.Title}" : description ?? mediaInfo.Title)
