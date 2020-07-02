@@ -56,14 +56,14 @@ namespace Suits.Jukebox.Models
             return Task.CompletedTask;
         }
 
-        public Task<MediaRequest> DequeueRandomAsync()
+        public Task<MediaRequest> DequeueRandomAsync(bool keep = false)
         {
             var rng = new Random();
             MediaRequest item;
             lock (locker)
             {
                 item = list[rng.Next(0, list.Count)];
-                list.Remove(item);
+                if(!keep) list.Remove(item);
             }
             return Task.FromResult(item);
         }

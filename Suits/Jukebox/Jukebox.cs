@@ -80,16 +80,9 @@ namespace Suits.Jukebox
 
         public bool Playing { get; private set; }
 
-        private bool shuffle;
-        public bool Shuffle
-        {
-            get => shuffle;
-            set
-            {
-                if (!Playing) return;
-                shuffle = value;
-            }
-        }
+        public bool Shuffle { get; set; }
+
+        public bool Repeat { get; set; }
 
         private bool loop;
         public bool Loop
@@ -100,18 +93,7 @@ namespace Suits.Jukebox
                 if (!Playing) return;
                 loop = value;
             }
-        }
-
-        private bool repeat;
-        public bool Repeat
-        {
-            get => repeat;
-            set
-            {
-                if (!Playing) return;
-                repeat = value;
-            }
-        }
+        }       
 
         private bool paused;
         public bool Paused
@@ -360,7 +342,7 @@ namespace Suits.Jukebox
                 return;
             }
             var nextSong = Loop ? currentRequest! :
-                           Shuffle ? await queue.DequeueRandomAsync() : await queue.DequeueAsync(Repeat);
+                           Shuffle ? await queue.DequeueRandomAsync(Repeat) : await queue.DequeueAsync(Repeat);
             await PlayAsync(nextSong, channel, false, Loop, callback!);
         }
     }

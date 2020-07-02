@@ -153,10 +153,16 @@ namespace Suits.Jukebox
         public async Task ShuffleAsync()
         {
             var juke = await JukeboxManager.GetJukeboxAsync(Context.Guild);
-            if (!juke.Playing)
-                await ReplyAsync("Can't shuffle when nothing is playing!");
             bool state = juke.Shuffle = !juke.Shuffle;
             await ReplyAsync($"Shuffle {(state ? "On" : "Off")}");
+        }
+
+        [Command("Repeat"), Summary("Toggles repeat of the queue.")]
+        public async Task ToggleRepeatAsync()
+        {
+            var juke = await JukeboxManager.GetJukeboxAsync(Context.Guild);
+            bool state = juke.Repeat = !juke.Repeat;
+            await ReplyAsync($"Repeat {(state ? "On" : "Off")}");
         }
 
         [Command("Loop"), Summary("Toggles loop on the current song.")]
@@ -172,15 +178,7 @@ namespace Suits.Jukebox
 
             bool state = juke.Loop = !juke.Loop;
             await ReplyAsync($"Loop {(state ? "On" : "Off")}");
-        }
-
-        [Command("Repeat"), Summary("Toggles repeat of the queue.")]
-        public async Task ToggleRepeatAsync()
-        {
-            var juke = await JukeboxManager.GetJukeboxAsync(Context.Guild);
-            bool state = juke.Repeat = !juke.Repeat;
-            await ReplyAsync($"Repeat {(state ? "On" : "Off")}");
-        }
+        }      
 
         [Command("Song"), Alias("Info", "SongInfo"), Summary("Gets info about the current song.")]
         public async Task GetSongAsync()
