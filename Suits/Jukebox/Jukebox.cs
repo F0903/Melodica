@@ -16,6 +16,7 @@ using Discord.WebSocket;
 using Suits.Jukebox.Models.Exceptions;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using YoutubeExplode.Playlists;
 
 namespace Suits.Jukebox
 {
@@ -38,15 +39,7 @@ namespace Suits.Jukebox
         public int Bitrate { get; set; } = 96 * 1024;
         private readonly bool alwaysUseMaxBitrate = true;
 
-        public int BufferSize { get; set; } = 1024 / 2;        
-
-        public bool Playing { get; private set; }
-
-        public bool Shuffle { get; private set; }
-
-        public bool Loop { get; private set; }
-
-        public bool Paused { get; set; }
+        public int BufferSize { get; set; } = 1024 / 2;
 
         private bool skip = false;
 
@@ -68,7 +61,7 @@ namespace Suits.Jukebox
 
         private readonly SemaphoreSlim writeLock = new SemaphoreSlim(1);
 
-        public MediaMetadata? GetSong() => currentRequest?.GetInfo();
+        public (MediaMetadata info, SubRequestInfo subInfo) GetSong() => ((currentRequest ?? throw new Exception("No song is playing")).GetInfo(), currentRequest.SubRequestInfo);
 
         public string GetChannelName() => channel!.Name;
 
@@ -84,6 +77,52 @@ namespace Suits.Jukebox
 
         private bool IsAlone() => false; // The old method currently throws a FileNotFoundException. Therefore this will first be reimplemented when Discord.Net gets updated on NuGet.
 
+
+        public bool Playing { get; private set; }
+
+        private bool shuffle;
+        public bool Shuffle
+        {
+            get => shuffle;
+            set
+            {
+                if (!Playing) return;
+                shuffle = value;
+            }
+        }
+
+        private bool loop;
+        public bool Loop
+        {
+            get => loop;
+            set
+            {
+                if (!Playing) return;
+                loop = value;
+            }
+        }
+
+        private bool repeat;
+        public bool Repeat
+        {
+            get => repeat;
+            set
+            {
+                if (!Playing) return;
+                repeat = value;
+            }
+        }
+
+        private bool paused;
+        public bool Paused
+        {
+            get => paused;
+            set
+            {
+                if (!Playing) return;
+                paused = value;
+            }
+        }
 
         private AudioOutStream CreateOutputStream()
         {
@@ -166,26 +205,6 @@ namespace Suits.Jukebox
             GC.Collect();
         }
 
-        public Task ToggleLoopAsync(Action<(MediaMetadata info, bool wasLooping)>? callback = null)
-        {
-            if (currentRequest == null)
-                throw new Exception("No song is playing.");
-
-            if (GetSong()!.DataInformation.Format == "hls")
-                throw new Exception("Can't loop a livestream.");
-
-            callback?.Invoke((GetSong()!, Loop));
-            Loop = !Loop;
-            return Task.CompletedTask;
-        }
-
-        public Task ToggleShuffleAsync(Action<MediaMetadata, bool>? callback = null)
-        {
-            callback?.Invoke(GetQueue().GetMediaInfo(), Shuffle);
-            Shuffle = !Shuffle;
-            return Task.CompletedTask;
-        }
-
         public Task StopAsync(bool clearQueue = true)
         {
             Loop = false;
@@ -264,14 +283,16 @@ namespace Suits.Jukebox
                     throw new CriticalException("Unknown error happened in RequestType switch.");
             }
 
+            bool IsRequestDownloadable() => !(request is LocalMediaRequest) && !(request is AttachmentMediaRequest) && request.RequestMediaType != MediaType.Livestream;
+
             await writeLock.WaitAsync();
             currentRequest = await queue.DequeueAsync();
             PlayableMedia? song = null;
             try
             {
-                Playing = true; // Set playing to true so nobody is able to switch while a song is downloading.
-                
-                if (request.RequestMediaType != MediaType.Livestream && !Loop)
+                Playing = true;
+
+                if (IsRequestDownloadable() && !Loop)
                     callback?.Invoke((currentRequest.GetInfo(), currentRequest.SubRequestInfo, MediaState.Downloading));
 
                 song = await currentRequest.GetMediaAsync();
@@ -280,7 +301,7 @@ namespace Suits.Jukebox
             {
                 writeLock.Release();
                 Playing = wasPlaying;
-                Shuffle = wasShuffling;              
+                Shuffle = wasShuffling;
 
                 callback?.Invoke((currentRequest.GetInfo(), currentRequest.SubRequestInfo, MediaState.Error));
                 currentRequest = null;
@@ -295,17 +316,20 @@ namespace Suits.Jukebox
             finally
             {
                 GC.Collect();
-            }           
+            }
 
             if (!error && !Loop || (Loop && switching))
-                callback?.Invoke((GetSong()!, currentRequest!.SubRequestInfo, MediaState.Playing));
+            {
+                var (info, subInfo) = GetSong();
+                callback?.Invoke((info, subInfo, MediaState.Playing));
+            }
 
             Loop = loop && !skip && currentRequest!.RequestMediaType != MediaType.Livestream;
             switching = false;
             skip = false;
 
             if (!error)
-            {              
+            {
                 playbackThread = BeginWrite(new AudioProcessor(song!.Info.DataInformation.MediaPath, BufferSize, song!.Info.DataInformation.Format));
                 playbackThread.Start();
                 playbackThread.Join();
@@ -336,7 +360,7 @@ namespace Suits.Jukebox
                 return;
             }
             var nextSong = Loop ? currentRequest! :
-                           Shuffle ? await queue.DequeueRandomAsync() : await queue.DequeueAsync();
+                           Shuffle ? await queue.DequeueRandomAsync() : await queue.DequeueAsync(Repeat);
             await PlayAsync(nextSong, channel, false, Loop, callback!);
         }
     }

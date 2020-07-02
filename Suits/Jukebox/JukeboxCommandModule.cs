@@ -92,13 +92,15 @@ namespace Suits.Jukebox
 
         private IVoiceChannel GetUserVoiceChannel() => ((SocketGuildUser)Context.User).VoiceChannel;
 
-        private Embed CreateMediaEmbed(string embedTitle, MediaMetadata mediaInfo, SubRequestInfo? subInfo = null, Color? color = null, string? description = null, string? footerText = null)
+        private Embed CreateMediaEmbed(string embedTitle, MediaMetadata mediaInfo, SubRequestInfo? subInfo, Color? color = null, string? description = null, string? footerText = null)
         {
-            if (subInfo == null) throw new CriticalException("SubInfo was null. Something wrong happened here...");
             return new EmbedBuilder().WithColor(color ?? Color.DarkGrey)
                                      .WithTitle(embedTitle)
-                                     .WithDescription(subInfo!.Value.IsSubRequest ? $"__{description ?? mediaInfo.Title}__\n{subInfo!.Value.ParentRequestInfo!.Title}" : description ?? mediaInfo.Title)
-                                     .WithFooter(subInfo!.Value.IsSubRequest ? $"{mediaInfo.Duration} | {subInfo!.Value.ParentRequestInfo!.Duration}" : footerText ?? mediaInfo.Duration.ToString())
+                                     .WithDescription(subInfo.HasValue && subInfo.Value.IsSubRequest ? $"__{description ?? mediaInfo.Title}__\n{subInfo.Value.ParentRequestInfo!.Title}" : description ?? mediaInfo.Title)
+                                     .WithFooter(mediaInfo.Duration != TimeSpan.Zero ?
+                                                 subInfo.HasValue && subInfo!.Value.IsSubRequest ?
+                                                 $"{mediaInfo.Duration} | {subInfo.Value.ParentRequestInfo!.Duration}" :
+                                                 footerText ?? mediaInfo.Duration.ToString() : "")
                                      .WithThumbnailUrl(mediaInfo.Thumbnail).Build();
         }
 
@@ -140,15 +142,6 @@ namespace Suits.Jukebox
             throw new Exception("I'm not allowed to connect or speak in this channel :(");
         }
 
-        [Command("Direct")]
-        public async Task TestDirectPlay(string directUrl)
-        {
-            var juke = await JukeboxManager.GetJukeboxAsync(Context.Guild);
-            var req = new URLMediaRequest("Direct Media", ".mp3", directUrl);
-            await juke.PlayAsync(req, GetUserVoiceChannel());
-        }
-
-
         [Command("ClearCache"), Summary("Clears cache."), RequireOwner]
         public async Task ClearCacheAsync()
         {
@@ -161,8 +154,9 @@ namespace Suits.Jukebox
         {
             var juke = await JukeboxManager.GetJukeboxAsync(Context.Guild);
             if (!juke.Playing)
-                await ReplyAsync("Can't shuffle when nothing is playing");
-            await juke.ToggleShuffleAsync(async (info, wasShuffling) => await ReplyAsync(null, false, CreateMediaEmbed(wasShuffling ? "**Stopped Shuffling**" : "**Shuffling**", info)));
+                await ReplyAsync("Can't shuffle when nothing is playing!");
+            bool state = juke.Shuffle = !juke.Shuffle;
+            await ReplyAsync($"Shuffle {(state ? "On" : "Off")}");
         }
 
         [Command("Loop"), Summary("Toggles loop on the current song.")]
@@ -171,21 +165,34 @@ namespace Suits.Jukebox
             var juke = await JukeboxManager.GetJukeboxAsync(Context.Guild);
 
             if (!string.IsNullOrEmpty(query))
+            {
                 await juke.PlayAsync(await GetRequestAsync(query), GetUserVoiceChannel(), true, true, PlaybackCallback);
-            else
-                await juke.ToggleLoopAsync(async ctx => await ReplyAsync(null, false, CreateMediaEmbed(ctx.wasLooping ? "**Stopped Looping**" : "**Looping**", ctx.info)));
+                return;
+            }
+
+            bool state = juke.Loop = !juke.Loop;
+            await ReplyAsync($"Loop {(state ? "On" : "Off")}");
+        }
+
+        [Command("Repeat"), Summary("Toggles repeat of the queue.")]
+        public async Task ToggleRepeatAsync()
+        {
+            var juke = await JukeboxManager.GetJukeboxAsync(Context.Guild);
+            bool state = juke.Repeat = !juke.Repeat;
+            await ReplyAsync($"Repeat {(state ? "On" : "Off")}");
         }
 
         [Command("Song"), Alias("Info", "SongInfo"), Summary("Gets info about the current song.")]
         public async Task GetSongAsync()
         {
-            var song = (await JukeboxManager.GetJukeboxAsync(Context.Guild)).GetSong();
-            if (song == null)
+            var juke = await JukeboxManager.GetJukeboxAsync(Context.Guild);
+            if (!juke.Playing)
             {
                 await ReplyAsync("No song is playing.");
                 return;
             }
-            await ReplyAsync(null, false, CreateMediaEmbed("**Playing**", song));
+            var (info, subInfo) = juke.GetSong();
+            await ReplyAsync(null, false, CreateMediaEmbed("**Playing**", info, subInfo));
         }
 
         [Command("Resume"), Summary("Resumes playback.")]
@@ -223,7 +230,7 @@ namespace Suits.Jukebox
             }
 
             var removed = (await JukeboxManager.GetJukeboxAsync(Context.Guild)).RemoveFromQueue(index - 1);
-            await ReplyAsync(null, false, CreateMediaEmbed("Removed", removed));
+            await ReplyAsync(null, false, CreateMediaEmbed("Removed", removed, null));
         }
 
         [Command("Queue"), Summary("Shows current queue.")]
@@ -281,16 +288,24 @@ namespace Suits.Jukebox
             await juke.PlayAsync(await GetRequestAsync(query!), userVoice, switchPlayback, false, PlaybackCallback);
         }
 
-        [Command("Switch"), Alias("Change"), Summary("Changes the current song.")]
+        [Command("Switch"), Summary("Changes the current song.")]
         public Task SwitchAsync([Remainder] string? mediaQuery = null)
         {
             return InternalPlayAsync(mediaQuery, true);
         }
 
-        [Command("Play"), Alias("P"), Summary("Plays the specified song.")]
+        [Command("Play"), Summary("Plays the specified song.")]
         public Task PlayAsync([Remainder] string? mediaQuery = null)
         {
             return InternalPlayAsync(mediaQuery, false);
+        }
+
+        [Command("PlayLocal"), RequireOwner]
+        public async Task PlayLocalMedia([Remainder] string directUrl)
+        {
+            var juke = await JukeboxManager.GetJukeboxAsync(Context.Guild);
+            var req = new LocalMediaRequest(directUrl);
+            await juke.PlayAsync(req, GetUserVoiceChannel(), true, false, PlaybackCallback);
         }
 
         [Command("Stop"), Summary("Stops playback.")]

@@ -68,13 +68,13 @@ namespace Suits.Jukebox.Models
             return Task.FromResult(item);
         }
 
-        public Task<MediaRequest> DequeueAsync()
+        public Task<MediaRequest> DequeueAsync(bool keep = false)
         {
             MediaRequest item;
             lock (locker)
             {
                 item = list[0];
-                list.Remove(item);
+                if(!keep) list.Remove(item);
             }
             return Task.FromResult(item);
         }
