@@ -96,13 +96,13 @@ namespace Suits.Jukebox.Services.Downloaders
 
             var itemImages = isAlbum ? spotifyAlbum!.Images : spotifyPlaylist!.Images;
             TimeSpan totalDuration = TimeSpan.Zero;
-            var playlistTracks = new MediaMetadata[isAlbum ? spotifyAlbum!.Tracks.Items.Count : spotifyPlaylist!.Tracks.Items.Count];
+            var playlistTracks = new MediaMetadata[isAlbum ? spotifyAlbum!.Tracks.Items!.Count : spotifyPlaylist!.Tracks!.Items!.Count];
 
             if (isAlbum)
             {
                 var items = spotifyAlbum!.Tracks.Items;
                 
-                for (int i = 0; i < items.Count; i++)
+                for (int i = 0; i < items!.Count; i++)
                 {
                     var trackTitle = $"{items[i].Artists[0].Name} {items[i].Name}";
 
@@ -123,7 +123,7 @@ namespace Suits.Jukebox.Services.Downloaders
             }
             else // Stupid but neccesary due to API
             {
-                var items = ToTrackList(spotifyPlaylist!.Tracks.Items);
+                var items = ToTrackList(spotifyPlaylist!.Tracks!.Items!);
                 for (int i = 0; i < items.Count; i++)
                 {
                     var trackTitle = $"{items[i].Artists[0].Name} {items[i].Name}";
@@ -150,7 +150,7 @@ namespace Suits.Jukebox.Services.Downloaders
                 Duration = totalDuration,
                 MediaOrigin = MediaOrigin.Spotify,
                 MediaType = MediaType.Playlist,
-                Thumbnail = itemImages[0].Url
+                Thumbnail = itemImages![0].Url
             };
 
             return (playlistInfo, playlistTracks);
