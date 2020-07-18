@@ -12,11 +12,25 @@ namespace Suits.Jukebox.Models.Requests
 {
     public class URLMediaRequest : MediaRequest
     {
-        public URLMediaRequest(string mediaName, string mediaFormat, string mediaUrl)
+        public URLMediaRequest(string? mediaName, string mediaUrl, bool directStream)
         {
-            this.mediaName = mediaName;
-            this.mediaFormat = mediaFormat;
+            this.mediaFormat = Utility.General.GetUrlResourceFormat(mediaUrl);
+            this.mediaName = mediaName ?? $"External {mediaFormat.ToUpper()} {(directStream ? "Stream" : "File")}";
             this.mediaUrl = mediaUrl;
+            this.directStream = directStream;
+
+            RequestMediaType = directStream ? MediaType.Livestream : MediaType.Video;
+            info = new MediaMetadata()
+            {
+                MediaType = MediaType.Livestream,
+                URL = this.mediaUrl,
+                Title = this.mediaName,
+                DataInformation = new MediaMetadata.DataInfo()
+                {
+                    Format = mediaFormat,
+                    MediaPath = this.mediaUrl
+                }
+            };
         }
 
         private readonly string mediaName;
@@ -25,7 +39,11 @@ namespace Suits.Jukebox.Models.Requests
 
         private readonly string mediaUrl;
 
-        public override async Task<PlayableMedia> GetMediaAsync()
+        private readonly bool directStream;
+
+        private readonly MediaMetadata info;
+
+        private async Task<PlayableMedia> DownloadMediaAsync()
         {
             using var web = new WebClient();
 
@@ -40,5 +58,19 @@ namespace Suits.Jukebox.Models.Requests
 
             return new PlayableMedia(meta, new MemoryStream(data));
         }
+
+        public override Task<PlayableMedia> GetMediaAsync()
+        {
+            if (directStream)
+            {
+                return Task.FromResult(new PlayableMedia(info, null));
+            }
+            else
+            {
+                return DownloadMediaAsync();
+            }
+        }
+
+        public override MediaMetadata GetInfo() => info;
     }
 }

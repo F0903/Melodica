@@ -38,5 +38,17 @@ namespace Suits.Utility
             }
             throw new Exception($"Unexpected parse of url argument '{argName}'");
         }
+
+        public static string GetUrlResourceFormat(string url)
+        {
+            string format = "";
+            var start = url.LastIndexOf('.') + 1;
+            foreach (var ch in url[start..])
+            {
+                if (ch == '?' || ch == '/' || ch == '\\') break;
+                format += ch;
+            }
+            return format;
+        }
     }
 }

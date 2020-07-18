@@ -113,8 +113,8 @@ namespace Suits.Jukebox
             }
             else
             {
-                var downloader = IAsyncDownloader.GetDownloaderFromURL(query) ?? IAsyncDownloader.Default;
-                return Task.FromResult(new DownloadRequest(query!, downloader) as MediaRequest);
+                var downloader = IAsyncDownloader.GetDownloaderFromURL(query) ?? (query.IsUrl() ? null : IAsyncDownloader.Default);
+                return Task.FromResult(downloader == null ? new URLMediaRequest(null, query, true) : new DownloadRequest(query!, downloader) as MediaRequest);
             }
         }
 
@@ -172,7 +172,7 @@ namespace Suits.Jukebox
 
             if (!string.IsNullOrEmpty(query))
             {
-                await juke.PlayAsync(await GetRequestAsync(query), GetUserVoiceChannel(), true, true, PlaybackCallback);
+                await InternalPlayAsync(query, true, true);
                 return;
             }
 
@@ -264,7 +264,7 @@ namespace Suits.Jukebox
             await Context.Channel.SendMessageAsync(null, false, eb.Build());
         }
 
-        private async Task InternalPlayAsync(string? query, bool switchPlayback)
+        private async Task InternalPlayAsync(string? query, bool switchPlayback, bool loop)
         {
             var userVoice = GetUserVoiceChannel();
             if (userVoice == null)
@@ -283,21 +283,23 @@ namespace Suits.Jukebox
 
             var juke = await JukeboxManager.GetJukeboxAsync(Context.Guild);
 
-            await juke.PlayAsync(await GetRequestAsync(query!), userVoice, switchPlayback, false, PlaybackCallback);
+            try { await juke.PlayAsync(await GetRequestAsync(query!), userVoice, switchPlayback, loop, PlaybackCallback); }
+            catch (EmptyChannelException) { await ReplyAsync("All users have left the channel. Disconnecting..."); }
         }
 
         [Command("Switch"), Summary("Changes the current song.")]
         public Task SwitchAsync([Remainder] string? mediaQuery = null)
         {
-            return InternalPlayAsync(mediaQuery, true);
+            return InternalPlayAsync(mediaQuery, true, false);
         }
 
         [Command("Play"), Summary("Plays the specified song.")]
         public Task PlayAsync([Remainder] string? mediaQuery = null)
         {
-            return InternalPlayAsync(mediaQuery, false);
+            return InternalPlayAsync(mediaQuery, false, false);
         }
 
+        // Used to play an audio file on the server. Mainly used when youtube is down.
         [Command("PlayLocal"), RequireOwner]
         public async Task PlayLocalMedia([Remainder] string directUrl)
         {

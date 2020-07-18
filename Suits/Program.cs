@@ -18,7 +18,7 @@ namespace Suits
             await currentBot.ConnectAsync($"{GuildSettings.DefaultPrefix}play", Discord.ActivityType.Listening, true);
             AppDomain.CurrentDomain.ProcessExit += CurrentDomain_ProcessExit;
             Process.GetCurrentProcess().PriorityClass = ProcessPriorityClass.High;
-
+            
             await Task.Delay(-1);
         }
 

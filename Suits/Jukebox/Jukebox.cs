@@ -29,6 +29,9 @@ namespace Suits.Jukebox
         Finished
     }
 
+    public class EmptyChannelException : Exception
+    { }
+
     public sealed class Jukebox
     {
         public Jukebox(SongQueue? queue = null)
@@ -61,11 +64,10 @@ namespace Suits.Jukebox
 
         private readonly SemaphoreSlim writeLock = new SemaphoreSlim(1);
 
+
         public (MediaMetadata info, SubRequestInfo subInfo) GetSong() => ((currentRequest ?? throw new Exception("No song is playing")).GetInfo(), currentRequest.SubRequestInfo);
 
         public string GetChannelName() => channel!.Name;
-
-        public bool IsInChannel() => GetChannelName() != null;
 
         public void Skip() => skip = true;
 
@@ -75,7 +77,7 @@ namespace Suits.Jukebox
 
         public MediaMetadata RemoveFromQueue(int index) => queue.RemoveAtAsync(index).Result.GetInfo();
 
-        private bool IsAlone() => false; // The old method currently throws a FileNotFoundException. Therefore this will first be reimplemented when Discord.Net gets updated on NuGet.
+        private bool IsAlone() => channel!.GetUsersAsync().FirstAsync().Result.Count < 2;
 
 
         public bool Playing { get; private set; }
@@ -93,7 +95,7 @@ namespace Suits.Jukebox
                 if (!Playing) return;
                 loop = value;
             }
-        }       
+        }
 
         private bool paused;
         public bool Paused
@@ -130,9 +132,9 @@ namespace Suits.Jukebox
 
             playbackToken = new CancellationTokenSource();
 
-            bool BreakConditions() => IsAlone() || skip || switching || playbackToken!.IsCancellationRequested;
+            bool BreakConditions() => skip || switching || playbackToken!.IsCancellationRequested;
 
-            void Write() // Refactor
+            void Write()
             {
                 var inS = audio.GetOutput();
                 byte[] buffer = new byte[BufferSize];
@@ -143,6 +145,7 @@ namespace Suits.Jukebox
                     while ((bytesRead = inS!.Read(buffer, 0, buffer.Length)) != 0)
                     {
                         var shouldBreak = BreakConditions();
+                        if (IsAlone()) throw new EmptyChannelException();
 
                         while (Paused && !shouldBreak)
                         {
@@ -155,12 +158,10 @@ namespace Suits.Jukebox
                         discordOut!.Write(buffer, 0, bytesRead);
                     }
                 }
-                catch (Exception e)
+                catch (Exception)
                 {
-                    // If the playback was stopped, simply ignore the exception that gets thrown.
-                    if (e is OperationCanceledException)
-                        return;
-                    else throw new CriticalException(null, e);
+                    // Just swallow all exceptions for now due to this being another thread, so any exceptions will crash the program.
+                    // This could be a good candidate for use in some file logging.
                 }
                 finally
                 {
@@ -225,6 +226,7 @@ namespace Suits.Jukebox
             await ConnectAsync(channel);
             bool wasPlaying = Playing;
             bool wasShuffling = Shuffle;
+            Loop = loop; // Remove this line if loop doesn't work. (it should)
 
             var requestType = request.RequestMediaType;
             var subRequests = await request.GetSubRequestsAsync();
@@ -314,7 +316,7 @@ namespace Suits.Jukebox
             {
                 playbackThread = BeginWrite(new AudioProcessor(song!.Info.DataInformation.MediaPath, BufferSize, song!.Info.DataInformation.Format));
                 playbackThread.Start();
-                playbackThread.Join();
+                playbackThread.Join();               
             }
 
             if (!error && !Loop)
@@ -331,7 +333,7 @@ namespace Suits.Jukebox
             if (IsAlone())
             {
                 await DismissAsync().ConfigureAwait(false);
-                return;
+                throw new EmptyChannelException();
             }
 
             if (queue.IsEmpty && !Loop)
