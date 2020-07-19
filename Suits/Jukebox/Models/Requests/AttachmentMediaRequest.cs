@@ -21,6 +21,11 @@ namespace Suits.Jukebox.Models.Requests
 
         private MediaMetadata? info;
 
+        public override MediaType RequestMediaType { get; protected set; }
+
+        public override SubRequestInfo? SubRequestInfo { get; protected set; }
+        public override List<MediaRequest>? SubRequests { get; set; }
+
         public override MediaMetadata GetInfo()
         {
             info ??= new MediaMetadata() { Duration = TimeSpan.Zero, ID = Path.ChangeExtension(attachment!.Filename, null), Thumbnail = null, Title = attachment!.Filename };

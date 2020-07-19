@@ -33,6 +33,11 @@ namespace Suits.Jukebox.Models.Requests
             };
         }
 
+        public override MediaType RequestMediaType { get; protected set; }
+        public override SubRequestInfo? SubRequestInfo { get; protected set; }
+        public override List<MediaRequest>? SubRequests { get; set; }
+
+
         private readonly string mediaName;
 
         private readonly string mediaFormat;

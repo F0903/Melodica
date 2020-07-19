@@ -11,7 +11,7 @@ namespace Suits.Jukebox.Models.Requests
         public MediaMetadata? ParentRequestInfo { get; set; }
     }
 
-    public class MediaRequest
+    public abstract class MediaRequest
     {
         public MediaRequest(PlayableMedia media)
         {
@@ -22,18 +22,14 @@ namespace Suits.Jukebox.Models.Requests
         protected MediaRequest()
         {}
 
-        public MediaType RequestMediaType { get; protected set; }
+        public abstract MediaType RequestMediaType { get; protected set; }
 
-        public SubRequestInfo SubRequestInfo { get; protected set; }
+        public abstract SubRequestInfo? SubRequestInfo { get; protected set; }
 
-        protected List<MediaRequest> SubRequests { get; set; } = new List<MediaRequest>();
+        public abstract List<MediaRequest>? SubRequests { get; set; }
+
 
         private readonly PlayableMedia? media;
-
-        public virtual Task<IEnumerable<MediaRequest>> GetSubRequestsAsync()
-        {
-            return Task.FromResult((IEnumerable<MediaRequest>)SubRequests);
-        }
 
         public virtual MediaMetadata GetInfo()
         {

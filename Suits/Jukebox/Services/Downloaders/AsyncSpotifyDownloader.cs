@@ -130,16 +130,17 @@ namespace Suits.Jukebox.Services.Downloaders
 
                     var lastTotalDuration = totalDuration;
 
-                    var ytItem = await dlHelper.GetMediaInfoAsync(trackTitle);
+                    // Get object from another service due to Spotify not offering direct streaming.
+                    var externalItem = await dlHelper.GetMediaInfoAsync(trackTitle); 
                     playlistTracks[i] = new MediaMetadata()
                     {
                         MediaOrigin = MediaOrigin.Spotify,
                         MediaType = MediaType.Video,
-                        Title = ytItem.Title,
-                        Duration = (totalDuration += ytItem.Duration) - lastTotalDuration, // Ugly
-                        Thumbnail = ytItem.Thumbnail,
-                        URL = ytItem.URL,
-                        ID = ytItem.ID
+                        Title = externalItem.Title,
+                        Duration = (totalDuration += externalItem.Duration) - lastTotalDuration, // Ugly
+                        Thumbnail = externalItem.Thumbnail,
+                        URL = externalItem.URL,
+                        ID = externalItem.ID
                     };
                 }
             }

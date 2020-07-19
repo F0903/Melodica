@@ -30,13 +30,14 @@ namespace Suits.Jukebox.Models.Requests
 
             if (RequestMediaType == MediaType.Playlist)
             {
+                SubRequests = new List<MediaRequest>();
                 var (pl, videos) = this.downloader.DownloadPlaylistInfoAsync(query).Result;
                 info = pl;
                 for (int i = 0; i < videos.Count(); i++)
                 {
                     var item = videos.ElementAt(i);
                     if (item.MediaOrigin == null) throw new CriticalException("MediaOrigin is not specified.");
-                    SubRequests.Add(new DownloadRequest(item, info, item.MediaOrigin!.SupportsDirectDownload ? this.downloader : IAsyncDownloader.Default));
+                    SubRequests!.Add(new DownloadRequest(item, info, item.MediaOrigin!.SupportsDirectDownload ? this.downloader : IAsyncDownloader.Default));
                 }
             }
         }
@@ -62,6 +63,10 @@ namespace Suits.Jukebox.Models.Requests
         private readonly IAsyncDownloader downloader;
 
         private readonly MediaMetadata info;
+
+        public override MediaType RequestMediaType { get; protected set; }
+        public override SubRequestInfo? SubRequestInfo { get; protected set; }
+        public override List<MediaRequest>? SubRequests { get; set; }
 
         public override MediaMetadata GetInfo() => info;
 

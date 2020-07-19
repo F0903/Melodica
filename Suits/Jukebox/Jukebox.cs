@@ -65,7 +65,7 @@ namespace Suits.Jukebox
         private readonly SemaphoreSlim writeLock = new SemaphoreSlim(1);
 
 
-        public (MediaMetadata info, SubRequestInfo subInfo) GetSong() => ((currentRequest ?? throw new Exception("No song is playing")).GetInfo(), currentRequest.SubRequestInfo);
+        public (MediaMetadata info, SubRequestInfo subInfo) GetSong() => ((currentRequest ?? throw new Exception("No song is playing")).GetInfo(), currentRequest.SubRequestInfo!.Value);
 
         public string GetChannelName() => channel!.Name;
 
@@ -229,7 +229,7 @@ namespace Suits.Jukebox
             Loop = loop; // Remove this line if loop doesn't work. (it should)
 
             var requestType = request.RequestMediaType;
-            var subRequests = await request.GetSubRequestsAsync();
+            var subRequests = request.SubRequests!;
 
             bool error = false;
 
@@ -249,7 +249,7 @@ namespace Suits.Jukebox
                         throw new CriticalException("Unknown error happened in RequestType switch.");
                 }
 
-                callback?.Invoke((request.GetInfo(), request.SubRequestInfo, MediaState.Queued));
+                callback?.Invoke((request.GetInfo(), request.SubRequestInfo!.Value, MediaState.Queued));
                 return;
             }
 
@@ -277,7 +277,7 @@ namespace Suits.Jukebox
                 Playing = true;
 
                 if (IsRequestDownloadable() && !Loop)
-                    callback?.Invoke((currentRequest.GetInfo(), currentRequest.SubRequestInfo, MediaState.Downloading));
+                    callback?.Invoke((currentRequest.GetInfo(), request.SubRequestInfo!.Value, MediaState.Downloading));
 
                 song = await currentRequest.GetMediaAsync();
             }
@@ -287,7 +287,7 @@ namespace Suits.Jukebox
                 Playing = wasPlaying;
                 Shuffle = wasShuffling;
 
-                callback?.Invoke((currentRequest.GetInfo(), currentRequest.SubRequestInfo, MediaState.Error));
+                callback?.Invoke((currentRequest.GetInfo(), request.SubRequestInfo!.Value, MediaState.Error));
                 currentRequest = null;
 
                 if (ex is CriticalException || queue.IsEmpty)
@@ -320,7 +320,7 @@ namespace Suits.Jukebox
             }
 
             if (!error && !Loop)
-                callback?.Invoke((song!.Info, currentRequest!.SubRequestInfo, MediaState.Finished));
+                callback?.Invoke((song!.Info, request.SubRequestInfo!.Value, MediaState.Finished));
 
             writeLock.Release();
 

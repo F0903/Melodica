@@ -34,6 +34,7 @@ namespace Suits.Jukebox.Models.Requests
                 MediaType = MediaType.Playlist
             };
 
+            SubRequests = new List<MediaRequest>();
             foreach (var file in Directory.EnumerateFiles(uri).Convert(x => new FileInfo(x)))
             {
                 if (!AllowedMediaExts.Any(x => x == file.Extension))
@@ -42,6 +43,10 @@ namespace Suits.Jukebox.Models.Requests
                 SubRequests.Add(new LocalMediaRequest(file, info));
             }
         }
+
+        public override MediaType RequestMediaType { get; protected set; }
+        public override SubRequestInfo? SubRequestInfo { get; protected set; }
+        public override List<MediaRequest>? SubRequests { get; set; }
 
         private LocalMediaRequest(FileInfo file, MediaMetadata parentMeta)
         {
