@@ -65,7 +65,7 @@ namespace Suits.Jukebox
         private readonly SemaphoreSlim writeLock = new SemaphoreSlim(1);
 
 
-        public (MediaMetadata info, SubRequestInfo subInfo) GetSong() => ((currentRequest ?? throw new Exception("No song is playing")).GetInfo(), currentRequest.SubRequestInfo!.Value);
+        public (MediaMetadata info, SubRequestInfo? subInfo) GetSong() => ((currentRequest ?? throw new Exception("No song is playing")).GetInfo(), currentRequest.SubRequestInfo);
 
         public string GetChannelName() => channel!.Name;
 
@@ -219,7 +219,7 @@ namespace Suits.Jukebox
         /// <param name="loop"> Should this media be put on loop? </param>
         /// <param name="callbacks"> Callbacks for different states. </param>
         /// <returns></returns>
-        public async Task PlayAsync(MediaRequest request, IAudioChannel channel, bool switchSong = false, bool loop = false, Action<(MediaMetadata info, SubRequestInfo subInfo, MediaState state)>? callback = null)
+        public async Task PlayAsync(MediaRequest request, IAudioChannel channel, bool switchSong = false, bool loop = false, Action<(MediaMetadata info, SubRequestInfo? subInfo, MediaState state)>? callback = null)
         {
             switching = switchSong;
 
@@ -249,7 +249,7 @@ namespace Suits.Jukebox
                         throw new CriticalException("Unknown error happened in RequestType switch.");
                 }
 
-                callback?.Invoke((request.GetInfo(), request.SubRequestInfo!.Value, MediaState.Queued));
+                callback?.Invoke((request.GetInfo(), request.SubRequestInfo, MediaState.Queued));
                 return;
             }
 
@@ -277,7 +277,7 @@ namespace Suits.Jukebox
                 Playing = true;
 
                 if (IsRequestDownloadable() && !Loop)
-                    callback?.Invoke((currentRequest.GetInfo(), request.SubRequestInfo!.Value, MediaState.Downloading));
+                    callback?.Invoke((currentRequest.GetInfo(), request.SubRequestInfo, MediaState.Downloading));
 
                 song = await currentRequest.GetMediaAsync();
             }
@@ -287,7 +287,7 @@ namespace Suits.Jukebox
                 Playing = wasPlaying;
                 Shuffle = wasShuffling;
 
-                callback?.Invoke((currentRequest.GetInfo(), request.SubRequestInfo!.Value, MediaState.Error));
+                callback?.Invoke((currentRequest.GetInfo(), request.SubRequestInfo, MediaState.Error));
                 currentRequest = null;
 
                 if (ex is CriticalException || queue.IsEmpty)
@@ -320,7 +320,7 @@ namespace Suits.Jukebox
             }
 
             if (!error && !Loop)
-                callback?.Invoke((song!.Info, request.SubRequestInfo!.Value, MediaState.Finished));
+                callback?.Invoke((song!.Info, request.SubRequestInfo, MediaState.Finished));
 
             writeLock.Release();
 

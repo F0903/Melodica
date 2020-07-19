@@ -30,7 +30,7 @@ namespace Suits.Jukebox
         IUserMessage? playbackPlaylistMessage;
         readonly SemaphoreSlim playbackLock = new SemaphoreSlim(1);
 
-        private async void PlaybackCallback((MediaMetadata info, SubRequestInfo subInfo, MediaState state) ctx)
+        private async void PlaybackCallback((MediaMetadata info, SubRequestInfo? subInfo, MediaState state) ctx)
         {
             await playbackLock.WaitAsync(); // Use a this to make sure no threads send multiple messages at the same time.    
 
@@ -52,7 +52,7 @@ namespace Suits.Jukebox
             {
                 MediaState.Error => OnUnavailable(),
                 MediaState.Downloading => CreateMediaEmbed("**Downloading**", ctx.info!, ctx.subInfo, Color.Blue),
-                MediaState.Queued => CreateMediaEmbed("**Queued**", ctx.info!, ctx.subInfo, null, ctx.info.MediaType == MediaType.Livestream ? '\u221E'.ToString() : null),
+                MediaState.Queued => CreateMediaEmbed("**Queued**", ctx.info!, ctx.subInfo, null, null, ctx.info.MediaType == MediaType.Livestream ? '\u221E'.ToString() : null),
                 MediaState.Playing => ctx.info.MediaType switch
                 {
                     MediaType.Video => CreateMediaEmbed("**Playing**", ctx.info!, ctx.subInfo, Color.Green),
@@ -96,9 +96,9 @@ namespace Suits.Jukebox
         {
             return new EmbedBuilder().WithColor(color ?? Color.DarkGrey)
                                      .WithTitle(embedTitle)
-                                     .WithDescription(subInfo.HasValue && subInfo.Value.IsSubRequest ? $"__{description ?? mediaInfo.Title}__\n{subInfo.Value.ParentRequestInfo!.Title}" : description ?? mediaInfo.Title)
+                                     .WithDescription(subInfo.HasValue ? $"__{description ?? mediaInfo.Title}__\n{subInfo.Value.ParentRequestInfo!.Title}" : description ?? mediaInfo.Title)
                                      .WithFooter(mediaInfo.Duration != TimeSpan.Zero ?
-                                                 subInfo.HasValue && subInfo!.Value.IsSubRequest ?
+                                                 subInfo.HasValue ?
                                                  $"{mediaInfo.Duration} | {subInfo.Value.ParentRequestInfo!.Duration}" :
                                                  footerText ?? mediaInfo.Duration.ToString() : "")
                                      .WithThumbnailUrl(mediaInfo.Thumbnail).Build();

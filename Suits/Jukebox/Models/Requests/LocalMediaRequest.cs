@@ -20,7 +20,6 @@ namespace Suits.Jukebox.Models.Requests
             {
                 if (!File.Exists(uri)) throw new CriticalException("File does not exist.");
                 info = EvalInfo(new FileInfo(uri));
-                SubRequestInfo = new SubRequestInfo() { IsSubRequest = false, ParentRequestInfo = null };
                 return;
             }
             else if (!Directory.Exists(uri)) throw new CriticalException("Directory does not exist.");
@@ -51,7 +50,7 @@ namespace Suits.Jukebox.Models.Requests
         private LocalMediaRequest(FileInfo file, MediaMetadata parentMeta)
         {
             info = EvalInfo(file);
-            SubRequestInfo = new SubRequestInfo() { IsSubRequest = true, ParentRequestInfo = parentMeta };
+            SubRequestInfo = new SubRequestInfo() { ParentRequestInfo = parentMeta };
         }
 
         private static readonly string[] AllowedMediaExts =

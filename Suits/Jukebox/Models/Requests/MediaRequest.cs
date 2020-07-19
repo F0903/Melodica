@@ -7,7 +7,6 @@ namespace Suits.Jukebox.Models.Requests
 {
     public struct SubRequestInfo
     {
-        public bool IsSubRequest { get; set; }
         public MediaMetadata? ParentRequestInfo { get; set; }
     }
 

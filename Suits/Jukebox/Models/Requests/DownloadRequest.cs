@@ -22,12 +22,6 @@ namespace Suits.Jukebox.Models.Requests
             info = downloader.GetMediaInfoAsync(query).Result;
             RequestMediaType = info.MediaType;
 
-            SubRequestInfo = new SubRequestInfo()
-            {
-                IsSubRequest = false,
-                ParentRequestInfo = null
-            };
-
             if (RequestMediaType == MediaType.Playlist)
             {
                 SubRequests = new List<MediaRequest>();
@@ -49,7 +43,6 @@ namespace Suits.Jukebox.Models.Requests
 
             SubRequestInfo = new SubRequestInfo()
             {
-                IsSubRequest = true,
                 ParentRequestInfo = parentRequestInfo
             };
 
