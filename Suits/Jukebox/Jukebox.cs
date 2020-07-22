@@ -8,7 +8,7 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using Suits.Jukebox.Services.Cache;
+using Suits.Jukebox.Services;
 using Suits.Jukebox.Services.Downloaders;
 using Suits.Jukebox.Models.Requests;
 using AngleSharp.Io;

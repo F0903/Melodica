@@ -6,7 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.IO;
 using Suits.Utility.Extensions;
-using Suits.Jukebox.Services.Cache;
+using Suits.Jukebox.Services;
 
 namespace Suits.Jukebox.Models.Requests
 {

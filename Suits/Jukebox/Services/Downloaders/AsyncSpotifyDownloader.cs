@@ -9,7 +9,7 @@ using System.Linq;
 using AngleSharp.Html.Dom;
 using System.Runtime.CompilerServices;
 using Suits.Utility.Extensions;
-using Suits.Jukebox.Services.Cache;
+using Suits.Jukebox.Services;
 using YoutubeExplode.Videos;
 using System.Security.Cryptography;
 

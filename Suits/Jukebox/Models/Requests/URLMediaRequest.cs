@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Text;
 using System.Net;
 using System.Threading.Tasks;
-using Suits.Jukebox.Services.Cache;
+using Suits.Jukebox.Services;
 using System.IO;
 using System.Threading;
 using Suits.Jukebox.Models.Exceptions;

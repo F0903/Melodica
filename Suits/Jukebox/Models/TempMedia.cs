@@ -2,7 +2,7 @@
 using System.Threading.Tasks;
 using System.Collections.Generic;
 using System.Text;
-using Suits.Jukebox.Services.Cache;
+using Suits.Jukebox.Services;
 using System.IO;
 
 namespace Suits.Jukebox.Models

@@ -1,4 +1,4 @@
-﻿using Suits.Jukebox.Services.Cache;
+﻿using Suits.Jukebox.Services;
 using Suits.Jukebox.Services.Downloaders;
 using System;
 using System.Linq;

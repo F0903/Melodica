@@ -12,7 +12,7 @@ using System.Diagnostics;
 using Suits.Core;
 using Suits.Jukebox.Models.Exceptions;
 
-namespace Suits.Jukebox.Services.Cache
+namespace Suits.Jukebox.Services
 {
     public class MediaCache
     {

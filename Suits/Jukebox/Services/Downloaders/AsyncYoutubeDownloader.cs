@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 using AngleSharp.Common;
 using Suits.Jukebox.Models;
 using Suits.Jukebox.Models.Exceptions;
-using Suits.Jukebox.Services.Cache;
+using Suits.Jukebox.Services;
 using Suits.Utility;
 using Suits.Utility.Extensions;
 using YoutubeExplode;

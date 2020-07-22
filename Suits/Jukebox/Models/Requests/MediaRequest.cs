@@ -12,32 +12,14 @@ namespace Suits.Jukebox.Models.Requests
 
     public abstract class MediaRequest
     {
-        public MediaRequest(PlayableMedia media)
-        {
-            RequestMediaType = MediaType.Video;
-            this.media = media;
-        }
-
-        protected MediaRequest()
-        {}
-
         public abstract MediaType RequestMediaType { get; protected set; }
 
         public abstract SubRequestInfo? SubRequestInfo { get; protected set; }
 
         public abstract List<MediaRequest>? SubRequests { get; set; }
 
+        public abstract MediaMetadata GetInfo();
 
-        private readonly PlayableMedia? media;
-
-        public virtual MediaMetadata GetInfo()
-        {
-            return media!.Info;
-        }
-
-        public virtual Task<PlayableMedia> GetMediaAsync()
-        {
-            return Task.FromResult(media!);
-        }
+        public abstract Task<PlayableMedia> GetMediaAsync();
     }
 }

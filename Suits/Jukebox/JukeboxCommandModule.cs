@@ -1,7 +1,6 @@
 ﻿using Suits.Jukebox;
 using Suits.Jukebox.Services;
 using Suits.Jukebox.Models.Requests;
-using Suits.Jukebox.Services.Cache;
 using Suits.Jukebox.Services.Downloaders;
 using Discord;
 using Discord.Commands;
