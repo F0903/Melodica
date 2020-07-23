@@ -3,6 +3,7 @@ using System;
 using Discord;
 using Suits.Core.Services;
 using System.IO;
+using System.Diagnostics;
 
 namespace Suits.Core
 {
@@ -30,6 +31,8 @@ namespace Suits.Core
                 return settingsDir;
             } 
         }
+
+        public const ProcessPriorityClass ProcessPriority = ProcessPriorityClass.AboveNormal;
 
         public const string SettingsExtension = ".ss";
 

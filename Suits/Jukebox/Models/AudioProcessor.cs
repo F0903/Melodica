@@ -1,4 +1,5 @@
 ﻿using Discord;
+using Suits.Core;
 using System;
 using System.Diagnostics;
 using System.IO;
@@ -10,9 +11,8 @@ namespace Suits.Jukebox.Models
     {
         public AudioProcessor(string? path, int bufferSize = 1024, string? format = null)
         {
-            playerProcess = Construct(path, bufferSize, format);
+            playerProcess = ConstructExternal(path, bufferSize, format);
             playerProcess.Start();
-            playerProcess.PriorityClass = ProcessPriorityClass.AboveNormal;
         }
 
         ~AudioProcessor()
@@ -20,7 +20,7 @@ namespace Suits.Jukebox.Models
             Dispose();
         }
 
-        protected virtual Process Construct(string? path, int bufferSize = 1024, string? format = null)
+        protected virtual Process ConstructExternal(string? path, int bufferSize = 1024, string? format = null)
         {
             if (path != null && path == string.Empty)
                 throw new Exception("Song path is empty.");
@@ -35,7 +35,8 @@ namespace Suits.Jukebox.Models
                     RedirectStandardInput = (inputAvailable = (path == null)),
                     RedirectStandardOutput = (outputAvailable = true),
                     CreateNoWindow = false,
-                }
+                },
+                PriorityClass = BotSettings.ProcessPriority
             };
         }
 

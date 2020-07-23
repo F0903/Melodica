@@ -148,17 +148,17 @@ namespace Suits.Jukebox.Services
             return media;
         }
 
-        public async Task<CachedMedia> CacheMediaAsync(PlayableMedia med, bool pruneCache = true)
+        public async Task<PlayableMedia> CacheMediaAsync(PlayableMedia med, bool pruneCache = true)
         {
             if (pruneCache)
                 await PruneCacheAsync();
 
-            if (Contains(med.Info.ID ?? throw new NullReferenceException("Media ID was null.")))
-                return (CachedMedia)med;
-
-            cache.Add(med.Info);
-
-            return new CachedMedia(med, cacheLocation);
+            if (!Contains(med.Info.ID ?? throw new NullReferenceException("Media ID was null.")))
+            {
+                cache.Add(med.Info);
+                await med.SaveDataAsync(cacheLocation);
+            }
+            return med;
         }
     }
 }

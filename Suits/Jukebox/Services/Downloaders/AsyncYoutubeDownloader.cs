@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using AngleSharp.Common;
 using Suits.Jukebox.Models;
 using Suits.Jukebox.Models.Exceptions;
+using Suits.Jukebox.Models.MediaOrigin;
 using Suits.Jukebox.Services;
 using Suits.Utility;
 using Suits.Utility.Extensions;
@@ -15,8 +16,9 @@ using YoutubeExplode.Videos.Streams;
 
 namespace Suits.Jukebox.Services.Downloaders
 {
-    public class AsyncYoutubeDownloader : IAsyncDownloader
+    public class AsyncYoutubeDownloader : AsyncDownloaderBase
     {
+
         readonly YoutubeClient yt = new YoutubeClient();
 
         readonly MediaCache cache = new MediaCache("YouTube");
@@ -58,7 +60,7 @@ namespace Suits.Jukebox.Services.Downloaders
                 try
                 {
                     var videos = yt.Search.GetVideosAsync(input);
-                    var bufVideos = videos.BufferAsync(attempt).Result;
+                    var bufVideos = videos.BufferAsync(attempt + 1).Result;
                     video = bufVideos.ElementAtOrDefault(attempt)?.Url;
                 }
                 catch (Exception ex) when (IsUnavailable(ex))
@@ -72,7 +74,7 @@ namespace Suits.Jukebox.Services.Downloaders
         }
 
         // Expects that GetMediaInfoAsync has been called prior. Thus the parameter.
-        public Task<PlayableMedia> DownloadAsync(MediaMetadata meta)
+        public override Task<PlayableMedia> DownloadAsync(MediaMetadata meta)
         {
             bool inCache = cache.Contains(meta.ID!);
             try
@@ -94,7 +96,7 @@ namespace Suits.Jukebox.Services.Downloaders
             }
         }
 
-        public async Task<(MediaMetadata playlist, IEnumerable<MediaMetadata> videos)> DownloadPlaylistInfoAsync(string url)
+        public override async Task<(MediaMetadata playlist, IEnumerable<MediaMetadata> videos)> DownloadPlaylistInfoAsync(string url)
         {
             var pl = await yt.Playlists.GetAsync(url);
             var plMeta = await GetPlaylistMetadataAsync(pl);
@@ -110,14 +112,14 @@ namespace Suits.Jukebox.Services.Downloaders
             return (plMeta, plVideoMeta);
         }
 
-        public bool IsUrlSupported(string url)
+        public override bool IsUrlSupported(string url)
         {
             if (url.Contains("https://www.youtube.com/"))
                 return true;
             else return false;
         }
 
-        public Task<string> GetLivestreamAsync(string streamURL)
+        public override Task<string> GetLivestreamAsync(string streamURL)
         {
             return yt.Videos.Streams.GetHttpLiveStreamUrlAsync(streamURL);
         }
@@ -181,7 +183,7 @@ namespace Suits.Jukebox.Services.Downloaders
             throw new CriticalException("MediaType could not be evaluated. (YT)");
         }
 
-        public Task<MediaMetadata> GetMediaInfoAsync(string input)
+        public override Task<MediaMetadata> GetMediaInfoAsync(string input)
         {
             input = SearchOrGetVideo(input).Result;
             var mType = EvaluateMediaTypeAsync(input).Result;
@@ -222,7 +224,7 @@ namespace Suits.Jukebox.Services.Downloaders
             };
         }
 
-        public async Task<bool> VerifyURLAsync(string url)
+        public override async Task<bool> VerifyURLAsync(string url)
         {
             try
             {

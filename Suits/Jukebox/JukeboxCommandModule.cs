@@ -112,7 +112,7 @@ namespace Suits.Jukebox
             }
             else
             {
-                var downloader = IAsyncDownloader.GetDownloaderFromURL(query) ?? (query.IsUrl() ? null : IAsyncDownloader.Default);
+                var downloader = DownloaderResolver.GetDownloader(query) ?? (query.IsUrl() ? null : AsyncDownloaderBase.Default);
                 return Task.FromResult(downloader == null ? new URLMediaRequest(null, query, true) : new DownloadRequest(query!, downloader) as MediaRequest);
             }
         }

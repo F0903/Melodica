@@ -12,10 +12,11 @@ using Suits.Utility.Extensions;
 using Suits.Jukebox.Services;
 using YoutubeExplode.Videos;
 using System.Security.Cryptography;
+using Suits.Jukebox.Models.MediaOrigin;
 
 namespace Suits.Jukebox.Services.Downloaders
 {
-    public class AsyncSpotifyDownloader : IAsyncDownloader
+    public class AsyncSpotifyDownloader : AsyncDownloaderBase
     {
         public AsyncSpotifyDownloader()
         {
@@ -28,7 +29,7 @@ namespace Suits.Jukebox.Services.Downloaders
         readonly SpotifyClient spotify;
 
         // Tie this to the default downloader (can't download directly from Spotify)
-        readonly IAsyncDownloader dlHelper = IAsyncDownloader.Default;
+        readonly AsyncDownloaderBase dlHelper = AsyncDownloaderBase.Default;
 
         private Task<string> ParseURL(string url)
         {
@@ -47,7 +48,7 @@ namespace Suits.Jukebox.Services.Downloaders
             return dlHelper.DownloadAsync(vidMeta);
         }
 
-        public Task<PlayableMedia> DownloadAsync(MediaMetadata info)
+        public override Task<PlayableMedia> DownloadAsync(MediaMetadata info)
         {
             return info.MediaType switch
             {
@@ -71,7 +72,7 @@ namespace Suits.Jukebox.Services.Downloaders
             return tracklist;
         }
 
-        public async Task<(MediaMetadata playlist, IEnumerable<MediaMetadata> videos)> DownloadPlaylistInfoAsync(string url)
+        public override async Task<(MediaMetadata playlist, IEnumerable<MediaMetadata> videos)> DownloadPlaylistInfoAsync(string url)
         {
             var id = await ParseURL(url);
 
@@ -174,7 +175,7 @@ namespace Suits.Jukebox.Services.Downloaders
             };
         }
 
-        public bool IsUrlSupported(string url)
+        public override bool IsUrlSupported(string url)
         {
             if (url.Contains("https://open.spotify.com/"))
                 return true;
@@ -195,7 +196,7 @@ namespace Suits.Jukebox.Services.Downloaders
             throw new NotSupportedException("The link provided is not supported.");
         }
 
-        public Task<MediaMetadata> GetMediaInfoAsync(string url)
+        public override Task<MediaMetadata> GetMediaInfoAsync(string url)
         {
             var mType = EvaluateMediaTypeAsync(url).Result;
 
@@ -208,7 +209,7 @@ namespace Suits.Jukebox.Services.Downloaders
             };
         }
 
-        public async Task<bool> VerifyURLAsync(string url)
+        public override async Task<bool> VerifyURLAsync(string url)
         {
             try
             {
@@ -219,6 +220,6 @@ namespace Suits.Jukebox.Services.Downloaders
             return false;
         }
 
-        public Task<string> GetLivestreamAsync(string streamURL) => throw new NotSupportedException("Spotify does not support livestreams.");
+        public override Task<string> GetLivestreamAsync(string streamURL) => throw new NotSupportedException("Spotify does not support livestreams.");
     }
 }

@@ -4,7 +4,8 @@ using System.Text;
 
 namespace Suits.Jukebox.Services.Downloaders
 {
-    public class AsyncSoundcloudDownloader
+    public class AsyncSoundcloudDownloader 
     {
+
     }
 }

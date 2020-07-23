@@ -18,9 +18,7 @@ namespace Suits.Jukebox.Models
                 Directory.CreateDirectory(toSaveDir);
 
             saveLocation = toSave;
-            saveDir = toSaveDir;
-
-            SaveDataAsync().Wait();
+            SaveDataAsync(saveLocation).Wait();
         }
 
         ~TempMedia()
@@ -33,11 +31,6 @@ namespace Suits.Jukebox.Models
         private void Destroy()
         {
             File.Delete(saveLocation);
-        }
-
-        protected override Task SaveDataAsync()
-        {
-            return base.SaveDataAsync();
         }
     }
 }

@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using System.IO;
 using Suits.Utility.Extensions;
 using Suits.Jukebox.Services;
+using Suits.Jukebox.Models;
 
 namespace Suits.Jukebox.Models.Requests
 {

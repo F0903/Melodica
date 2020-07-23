@@ -10,12 +10,13 @@ using Suits.Jukebox.Models.Exceptions;
 using System.Threading;
 using System.ComponentModel;
 using Ninject.Activation.Caching;
+using Suits.Jukebox.Models;
 
 namespace Suits.Jukebox.Models.Requests
 {
     public class DownloadRequest : MediaRequest
     {
-        public DownloadRequest(string query, IAsyncDownloader dl)
+        public DownloadRequest(string query, AsyncDownloaderBase dl)
         {
             downloader = dl;
 
@@ -31,12 +32,12 @@ namespace Suits.Jukebox.Models.Requests
                 {
                     var item = videos.ElementAt(i);
                     if (item.MediaOrigin == null) throw new CriticalException("MediaOrigin is not specified.");
-                    SubRequests!.Add(new DownloadRequest(item, info, item.MediaOrigin!.SupportsDirectDownload ? this.downloader : IAsyncDownloader.Default));
+                    SubRequests!.Add(new DownloadRequest(item, info, item.MediaOrigin!.SupportsDirectDownload ? this.downloader : AsyncDownloaderBase.Default));
                 }
             }
         }
 
-        private DownloadRequest(MediaMetadata info, MediaMetadata parentRequestInfo, IAsyncDownloader dl)
+        private DownloadRequest(MediaMetadata info, MediaMetadata parentRequestInfo, AsyncDownloaderBase dl)
         {
             this.info = info;
             RequestMediaType = info.MediaType;
@@ -53,12 +54,14 @@ namespace Suits.Jukebox.Models.Requests
         public const int MaxExceptionRetries = 3;
         private int currentExceptionRetries = 0;
 
-        private readonly IAsyncDownloader downloader;
+        private readonly AsyncDownloaderBase downloader;
 
         private readonly MediaMetadata info;
 
         public override MediaType RequestMediaType { get; protected set; }
+
         public override SubRequestInfo? SubRequestInfo { get; protected set; }
+
         public override List<MediaRequest>? SubRequests { get; set; }
 
         public override MediaMetadata GetInfo() => info;
