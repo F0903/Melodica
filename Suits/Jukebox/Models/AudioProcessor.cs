@@ -13,6 +13,7 @@ namespace Suits.Jukebox.Models
         {
             playerProcess = ConstructExternal(path, bufferSize, format);
             playerProcess.Start();
+            playerProcess.PriorityClass = BotSettings.ProcessPriority;
         }
 
         ~AudioProcessor()
@@ -24,7 +25,7 @@ namespace Suits.Jukebox.Models
         {
             if (path != null && path == string.Empty)
                 throw new Exception("Song path is empty.");
-            var proc = new Process()
+            return new Process()
             {
                 StartInfo = new ProcessStartInfo()
                 {
@@ -37,8 +38,6 @@ namespace Suits.Jukebox.Models
                     CreateNoWindow = false,
                 }
             };
-            proc.PriorityClass = ProcessPriorityClass.AboveNormal;
-            return proc;
         }
 
         private readonly Process playerProcess;
