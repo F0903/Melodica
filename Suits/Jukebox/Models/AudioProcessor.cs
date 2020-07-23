@@ -24,7 +24,7 @@ namespace Suits.Jukebox.Models
         {
             if (path != null && path == string.Empty)
                 throw new Exception("Song path is empty.");
-            return new Process()
+            var proc = new Process()
             {
                 StartInfo = new ProcessStartInfo()
                 {
@@ -35,9 +35,10 @@ namespace Suits.Jukebox.Models
                     RedirectStandardInput = (inputAvailable = (path == null)),
                     RedirectStandardOutput = (outputAvailable = true),
                     CreateNoWindow = false,
-                },
-                PriorityClass = BotSettings.ProcessPriority
+                }
             };
+            proc.PriorityClass = ProcessPriorityClass.AboveNormal;
+            return proc;
         }
 
         private readonly Process playerProcess;
