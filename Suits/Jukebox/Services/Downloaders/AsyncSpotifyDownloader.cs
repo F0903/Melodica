@@ -1,37 +1,26 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Text;
-using System.Threading.Tasks;
-using Suits.Jukebox.Models;
-using SpotifyAPI.Web;
-using YoutubeExplode;
 using System.Linq;
-using AngleSharp.Html.Dom;
-using System.Runtime.CompilerServices;
+using System.Threading.Tasks;
+using SpotifyAPI.Web;
+using Suits.Jukebox.Models;
+using Suits.Jukebox.Models.Exceptions;
+using Suits.Jukebox.Models.Origins;
 using Suits.Utility.Extensions;
-using Suits.Jukebox.Services;
-using YoutubeExplode.Videos;
-using System.Security.Cryptography;
-using Suits.Jukebox.Models.MediaOrigin;
 
 namespace Suits.Jukebox.Services.Downloaders
 {
     public class AsyncSpotifyDownloader : AsyncDownloaderBase
     {
-        public AsyncSpotifyDownloader()
-        {
-            var config = SpotifyClientConfig
-                         .CreateDefault()
-                         .WithAuthenticator(new ClientCredentialsAuthenticator("f8ecc5fd441249e4bc1471c5bfbb7cbd", "83890edde8014ffd927bf98b6394d4a2"));
-            spotify = new SpotifyClient(config);
-        }
-
-        readonly SpotifyClient spotify;
+        static readonly SpotifyClient spotify = new SpotifyClient(SpotifyClientConfig
+                                                                  .CreateDefault()
+                                                                  .WithAuthenticator(new ClientCredentialsAuthenticator("f8ecc5fd441249e4bc1471c5bfbb7cbd",
+                                                                                                                        "83890edde8014ffd927bf98b6394d4a2")));
 
         // Tie this to the default downloader (can't download directly from Spotify)
-        readonly AsyncDownloaderBase dlHelper = AsyncDownloaderBase.Default;
+        readonly AsyncDownloaderBase dlHelper = Default;
 
-        private Task<string> ParseURL(string url)
+        private Task<string> ParseURLToId(string url)
         {
             if (!url.StartsWith("https://"))
                 return Task.FromResult(url);
@@ -43,6 +32,7 @@ namespace Suits.Jukebox.Services.Downloaders
 
         private Task<PlayableMedia> DownloadVideo(MediaMetadata info)
         {
+            // Outsource downloading to another service (YouTube) since Spotify doesn't support direct streaming.
             var vidMeta = dlHelper.GetMediaInfoAsync(info.Title!).Result;
 
             return dlHelper.DownloadAsync(vidMeta);
@@ -74,7 +64,7 @@ namespace Suits.Jukebox.Services.Downloaders
 
         public override async Task<(MediaMetadata playlist, IEnumerable<MediaMetadata> videos)> DownloadPlaylistInfoAsync(string url)
         {
-            var id = await ParseURL(url);
+            var id = await ParseURLToId(url);
 
             bool isAlbum = false;
 
@@ -96,59 +86,60 @@ namespace Suits.Jukebox.Services.Downloaders
             }
 
             var itemImages = isAlbum ? spotifyAlbum!.Images : spotifyPlaylist!.Images;
-            TimeSpan totalDuration = TimeSpan.Zero;
             var playlistTracks = new MediaMetadata[isAlbum ? spotifyAlbum!.Tracks.Items!.Count : spotifyPlaylist!.Tracks!.Items!.Count];
-
+            TimeSpan totalDuration = TimeSpan.Zero;
+           
             if (isAlbum)
             {
-                var items = spotifyAlbum!.Tracks.Items;
-                
-                for (int i = 0; i < items!.Count; i++)
+                var tracks = spotifyAlbum!.Tracks.Items;
+                if (tracks == null) 
+                    throw new CriticalException("Album tracks could not be fetched.");                
+                    
+                for (int i = 0; i < tracks!.Count; i++)
                 {
-                    var trackTitle = $"{items[i].Artists[0].Name} {items[i].Name}";
+                    var track = tracks[i];
+                    var trackTitle = $"{tracks[i].Artists[0].Name} {tracks[i].Name}";
 
                     var lastTotalDuration = totalDuration;
 
-                    var helperMediaInfo = await dlHelper.GetMediaInfoAsync(trackTitle);
                     playlistTracks[i] = new MediaMetadata()
                     {
                         MediaOrigin = MediaOrigin.Spotify,
                         MediaType = MediaType.Video,
-                        Title = helperMediaInfo.Title,
-                        Duration = (totalDuration += helperMediaInfo.Duration) - lastTotalDuration, // Ugly
-                        Thumbnail = helperMediaInfo.Thumbnail,
-                        URL = helperMediaInfo.URL,
-                        ID = helperMediaInfo.ID
+                        Title = trackTitle,
+                        Duration = (totalDuration += TimeSpan.FromSeconds(track.DurationMs / 1000)) - lastTotalDuration, // Ugly
+                        Thumbnail = itemImages?[0].Url,
+                        URL = track.PreviewUrl,
+                        ID = track.Id
                     };
                 }
             }
             else // Stupid but neccesary due to API
             {
-                var items = ToTrackList(spotifyPlaylist!.Tracks!.Items!);
-                for (int i = 0; i < items.Count; i++)
+                var tracks = ToTrackList(spotifyPlaylist!.Tracks!.Items!);
+                for (int i = 0; i < tracks.Count; i++)
                 {
-                    var trackTitle = $"{items[i].Artists[0].Name} {items[i].Name}";
+                    var track = tracks[i];
+                    var trackTitle = $"{tracks[i].Artists[0].Name} {tracks[i].Name}";
 
                     var lastTotalDuration = totalDuration;
 
-                    // Get object from another service due to Spotify not offering direct streaming.
-                    var externalItem = await dlHelper.GetMediaInfoAsync(trackTitle); 
                     playlistTracks[i] = new MediaMetadata()
                     {
                         MediaOrigin = MediaOrigin.Spotify,
                         MediaType = MediaType.Video,
-                        Title = externalItem.Title,
-                        Duration = (totalDuration += externalItem.Duration) - lastTotalDuration, // Ugly
-                        Thumbnail = externalItem.Thumbnail,
-                        URL = externalItem.URL,
-                        ID = externalItem.ID
+                        Title = trackTitle,
+                        Duration = (totalDuration += TimeSpan.FromSeconds(track.DurationMs / 1000)) - lastTotalDuration, // Ugly
+                        Thumbnail = itemImages?[0].Url,
+                        URL = track.PreviewUrl,
+                        ID = track.Id
                     };
                 }
             }
 
             var playlistInfo = new MediaMetadata()
             {
-                Title = isAlbum ? spotifyAlbum!.Name : spotifyPlaylist!.Name,
+                Title = (isAlbum ? spotifyAlbum!.Name : spotifyPlaylist!.Name) ?? throw new CriticalException("Could not fetch name of Spotify media."),
                 Duration = totalDuration,
                 MediaOrigin = MediaOrigin.Spotify,
                 MediaType = MediaType.Playlist,
@@ -160,7 +151,7 @@ namespace Suits.Jukebox.Services.Downloaders
 
         public async Task<MediaMetadata> DownloadVideoInfoAsync(string url)
         {
-            var id = await ParseURL(url);
+            var id = await ParseURLToId(url);
             var track = await spotify.Tracks.Get(id);
 
             return new MediaMetadata()

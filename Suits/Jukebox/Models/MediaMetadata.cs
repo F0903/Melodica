@@ -6,7 +6,7 @@ using System.Text;
 using System.Runtime.Serialization;
 using Suits.Jukebox.Services;
 using Suits.Core.Services;
-using Suits.Jukebox.Models.MediaOrigin;
+using Suits.Jukebox.Models.Origins;
 
 namespace Suits.Jukebox.Models
 {
@@ -32,15 +32,15 @@ namespace Suits.Jukebox.Models
 
         public const string MetaFileExtension = ".meta";
 
-        public MediaOrigin.MediaOrigin? MediaOrigin { get; set; }
+        public MediaOrigin MediaOrigin { get; set; } = new MediaOrigin("External", false);
 
         public MediaType MediaType { get; set; }
 
         public TimeSpan Duration { get; set; }
 
-        public string? Thumbnail { get; set; }
+        public string Title { get; set; } = "External Media";
 
-        public string? Title { get; set; }
+        public string? Thumbnail { get; set; }
 
         public string? URL { get; set; }
 

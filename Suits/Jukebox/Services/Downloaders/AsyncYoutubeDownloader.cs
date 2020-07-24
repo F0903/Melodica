@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 using AngleSharp.Common;
 using Suits.Jukebox.Models;
 using Suits.Jukebox.Models.Exceptions;
-using Suits.Jukebox.Models.MediaOrigin;
+using Suits.Jukebox.Models.Origins;
 using Suits.Jukebox.Services;
 using Suits.Utility;
 using Suits.Utility.Extensions;

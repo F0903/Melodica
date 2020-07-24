@@ -14,7 +14,7 @@ using Suits.Jukebox.Models;
 
 namespace Suits.Jukebox.Models.Requests
 {
-    public class DownloadRequest : MediaRequest
+    public class DownloadRequest : MediaRequestBase
     {
         public DownloadRequest(string query, AsyncDownloaderBase dl)
         {
@@ -25,14 +25,13 @@ namespace Suits.Jukebox.Models.Requests
 
             if (RequestMediaType == MediaType.Playlist)
             {
-                SubRequests = new List<MediaRequest>();
-                var (pl, videos) = this.downloader.DownloadPlaylistInfoAsync(query).Result;
-                info = pl;
+                SubRequests = new List<MediaRequestBase>();
+                var (playlistInfo, videos) = this.downloader.DownloadPlaylistInfoAsync(query).Result;
+                info = playlistInfo;
                 for (int i = 0; i < videos.Count(); i++)
                 {
                     var item = videos.ElementAt(i);
-                    if (item.MediaOrigin == null) throw new CriticalException("MediaOrigin is not specified.");
-                    SubRequests!.Add(new DownloadRequest(item, info, item.MediaOrigin!.SupportsDirectDownload ? this.downloader : AsyncDownloaderBase.Default));
+                    SubRequests!.Add(new DownloadRequest(item, info, item.MediaOrigin.HandlesDownloads ? downloader : AsyncDownloaderBase.Default));
                 }
             }
         }
@@ -62,7 +61,7 @@ namespace Suits.Jukebox.Models.Requests
 
         public override SubRequestInfo? SubRequestInfo { get; protected set; }
 
-        public override List<MediaRequest>? SubRequests { get; set; }
+        public override List<MediaRequestBase>? SubRequests { get; set; }
 
         public override MediaMetadata GetInfo() => info;
 

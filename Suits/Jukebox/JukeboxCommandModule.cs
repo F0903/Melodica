@@ -93,27 +93,28 @@ namespace Suits.Jukebox
 
         private Embed CreateMediaEmbed(string embedTitle, MediaMetadata mediaInfo, SubRequestInfo? subInfo, Color? color = null, string? description = null, string? footerText = null)
         {
-            return new EmbedBuilder().WithColor(color ?? Color.DarkGrey)
-                                     .WithTitle(embedTitle)
-                                     .WithDescription(subInfo.HasValue ? $"__{description ?? mediaInfo.Title}__\n{subInfo.Value.ParentRequestInfo!.Title}" : description ?? mediaInfo.Title)
-                                     .WithFooter(mediaInfo.Duration != TimeSpan.Zero ?
-                                                 subInfo.HasValue ?
-                                                 $"{mediaInfo.Duration} | {subInfo.Value.ParentRequestInfo!.Duration}" :
-                                                 footerText ?? mediaInfo.Duration.ToString() : "")
-                                     .WithThumbnailUrl(mediaInfo.Thumbnail).Build();
+            return new EmbedBuilder()
+                   .WithColor(color ?? Color.DarkGrey)
+                   .WithTitle(embedTitle)
+                   .WithDescription(subInfo.HasValue ? $"__{description ?? mediaInfo.Title}__\n{subInfo.Value.ParentRequestInfo!.Title}" : description ?? mediaInfo.Title)
+                   .WithFooter(mediaInfo.Duration != TimeSpan.Zero ?
+                               subInfo.HasValue ?
+                               $"{mediaInfo.Duration} | {subInfo.Value.ParentRequestInfo!.Duration}" :
+                               footerText ?? mediaInfo.Duration.ToString() : "")
+                   .WithThumbnailUrl(mediaInfo.Thumbnail).Build();
         }
 
-        private Task<MediaRequest> GetRequestAsync(string query)
+        private Task<MediaRequestBase> GetRequestAsync(string query)
         {
             var attach = Context.Message.Attachments;
             if (attach.Count != 0)
             {
-                return Task.FromResult(new AttachmentMediaRequest(attach.ToArray()) as MediaRequest);
+                return Task.FromResult(new AttachmentMediaRequest(attach.ToArray()) as MediaRequestBase);
             }
             else
             {
                 var downloader = DownloaderResolver.GetDownloader(query) ?? (query.IsUrl() ? null : AsyncDownloaderBase.Default);
-                return Task.FromResult(downloader == null ? new URLMediaRequest(null, query, true) : new DownloadRequest(query!, downloader) as MediaRequest);
+                return Task.FromResult(downloader == null ? new URLMediaRequest(null, query, true) : new DownloadRequest(query!, downloader) as MediaRequestBase);
             }
         }
 
@@ -177,7 +178,7 @@ namespace Suits.Jukebox
 
             bool state = juke.Loop = !juke.Loop;
             await ReplyAsync($"Loop {(state ? "On" : "Off")}");
-        }      
+        }
 
         [Command("Song"), Alias("Info", "SongInfo"), Summary("Gets info about the current song.")]
         public async Task GetSongAsync()

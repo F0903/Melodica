@@ -11,20 +11,20 @@ namespace Suits.Jukebox.Models
     {
         private readonly object locker = new object();
 
-        private readonly List<MediaRequest> list = new List<MediaRequest>();
+        private readonly List<MediaRequestBase> list = new List<MediaRequestBase>();
 
         public bool IsEmpty { get => list.Count == 0; }
 
         public int Length { get => list.Count; }
 
-        public MediaRequest this[int i]
+        public MediaRequestBase this[int i]
         {
             get => list[i];
         }
 
         public TimeSpan GetTotalDuration() => list.Sum(x => x.GetInfo().Duration);
 
-        public MediaRequest[] ToArray()
+        public MediaRequestBase[] ToArray()
         {
             lock (locker)
                 return list.ToArray();
@@ -32,34 +32,34 @@ namespace Suits.Jukebox.Models
 
         public MediaMetadata GetMediaInfo() => new MediaMetadata() { Duration = GetTotalDuration(), Thumbnail = list[0].GetInfo().Thumbnail };
 
-        public Task EnqueueAsync(MediaRequest item)
+        public Task EnqueueAsync(MediaRequestBase item)
         {
             list.Add(item);
             return Task.CompletedTask;
         }
 
-        public Task EnqueueAsync(IEnumerable<MediaRequest> items)
+        public Task EnqueueAsync(IEnumerable<MediaRequestBase> items)
         {
             list.AddRange(items);
             return Task.CompletedTask;
         }
 
-        public Task PutFirst(MediaRequest item)
+        public Task PutFirst(MediaRequestBase item)
         {
             list.Insert(0, item);
             return Task.CompletedTask;
         }
 
-        public Task PutFirst(IEnumerable<MediaRequest> items)
+        public Task PutFirst(IEnumerable<MediaRequestBase> items)
         {
             list.InsertRange(0, items);
             return Task.CompletedTask;
         }
 
-        public Task<MediaRequest> DequeueRandomAsync(bool keep = false)
+        public Task<MediaRequestBase> DequeueRandomAsync(bool keep = false)
         {
             var rng = new Random();
-            MediaRequest item;
+            MediaRequestBase item;
             lock (locker)
             {
                 item = list[rng.Next(0, list.Count)];
@@ -68,9 +68,9 @@ namespace Suits.Jukebox.Models
             return Task.FromResult(item);
         }
 
-        public Task<MediaRequest> DequeueAsync(bool keep = false)
+        public Task<MediaRequestBase> DequeueAsync(bool keep = false)
         {
-            MediaRequest item;
+            MediaRequestBase item;
             lock (locker)
             {
                 item = list[0];
@@ -85,14 +85,14 @@ namespace Suits.Jukebox.Models
             return Task.CompletedTask;
         }
 
-        public Task<MediaRequest> RemoveAtAsync(int index)
+        public Task<MediaRequestBase> RemoveAtAsync(int index)
         {
             if (index < 0)
                 throw new Exception("Index cannot be under 0.");
             else if (index > list.Count)
                 throw new Exception("Index cannot be larger than the queues size.");
 
-            MediaRequest item;
+            MediaRequestBase item;
             lock (locker)
             {
                 item = list[index];

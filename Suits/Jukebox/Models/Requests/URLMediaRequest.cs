@@ -10,7 +10,7 @@ using Suits.Jukebox.Models.Exceptions;
 
 namespace Suits.Jukebox.Models.Requests
 {
-    public class URLMediaRequest : MediaRequest
+    public class URLMediaRequest : MediaRequestBase
     {
         public URLMediaRequest(string? mediaName, string mediaUrl, bool directStream)
         {
@@ -35,7 +35,7 @@ namespace Suits.Jukebox.Models.Requests
 
         public override MediaType RequestMediaType { get; protected set; }
         public override SubRequestInfo? SubRequestInfo { get; protected set; }
-        public override List<MediaRequest>? SubRequests { get; set; }
+        public override List<MediaRequestBase>? SubRequests { get; set; }
 
 
         private readonly string mediaName;

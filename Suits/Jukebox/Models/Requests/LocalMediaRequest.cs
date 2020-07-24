@@ -10,7 +10,7 @@ using Suits.Utility.Extensions;
 
 namespace Suits.Jukebox.Models.Requests
 {
-    public class LocalMediaRequest : MediaRequest
+    public class LocalMediaRequest : MediaRequestBase
     {
         public LocalMediaRequest(string uri)
         {
@@ -33,7 +33,7 @@ namespace Suits.Jukebox.Models.Requests
                 MediaType = MediaType.Playlist
             };
 
-            SubRequests = new List<MediaRequest>();
+            SubRequests = new List<MediaRequestBase>();
             foreach (var file in Directory.EnumerateFiles(uri).Convert(x => new FileInfo(x)))
             {
                 if (!AllowedMediaExts.Any(x => x == file.Extension))
@@ -45,7 +45,7 @@ namespace Suits.Jukebox.Models.Requests
 
         public override MediaType RequestMediaType { get; protected set; }
         public override SubRequestInfo? SubRequestInfo { get; protected set; }
-        public override List<MediaRequest>? SubRequests { get; set; }
+        public override List<MediaRequestBase>? SubRequests { get; set; }
 
         private LocalMediaRequest(FileInfo file, MediaMetadata parentMeta)
         {

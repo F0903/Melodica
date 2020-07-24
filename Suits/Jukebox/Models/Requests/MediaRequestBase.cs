@@ -7,16 +7,16 @@ namespace Suits.Jukebox.Models.Requests
 {
     public struct SubRequestInfo
     {
-        public MediaMetadata? ParentRequestInfo { get; set; }
+        public MediaMetadata ParentRequestInfo { get; set; }
     }
 
-    public abstract class MediaRequest
+    public abstract class MediaRequestBase
     {
         public abstract MediaType RequestMediaType { get; protected set; }
 
         public abstract SubRequestInfo? SubRequestInfo { get; protected set; }
 
-        public abstract List<MediaRequest>? SubRequests { get; set; }
+        public abstract List<MediaRequestBase>? SubRequests { get; set; }
 
         public abstract MediaMetadata GetInfo();
 

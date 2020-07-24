@@ -60,7 +60,7 @@ namespace Suits.Jukebox
 
         private IAudioClient? audioClient;
 
-        private MediaRequest? currentRequest;
+        private MediaRequestBase? currentRequest;
 
         private readonly SemaphoreSlim writeLock = new SemaphoreSlim(1);
 
@@ -219,7 +219,7 @@ namespace Suits.Jukebox
         /// <param name="loop"> Should this media be put on loop? </param>
         /// <param name="callbacks"> Callbacks for different states. </param>
         /// <returns></returns>
-        public async Task PlayAsync(MediaRequest request, IAudioChannel channel, bool switchSong = false, bool loop = false, Action<(MediaMetadata info, SubRequestInfo? subInfo, MediaState state)>? callback = null)
+        public async Task PlayAsync(MediaRequestBase request, IAudioChannel channel, bool switchSong = false, bool loop = false, Action<(MediaMetadata info, SubRequestInfo? subInfo, MediaState state)>? callback = null)
         {
             switching = switchSong;
 
@@ -277,7 +277,7 @@ namespace Suits.Jukebox
                 Playing = true;
 
                 if (IsRequestDownloadable() && !Loop)
-                    callback?.Invoke((currentRequest.GetInfo(), request.SubRequestInfo, MediaState.Downloading));
+                    callback?.Invoke((currentRequest.GetInfo(), currentRequest.SubRequestInfo, MediaState.Downloading));
 
                 song = await currentRequest.GetMediaAsync();
             }
@@ -287,7 +287,7 @@ namespace Suits.Jukebox
                 Playing = wasPlaying;
                 Shuffle = wasShuffling;
 
-                callback?.Invoke((currentRequest.GetInfo(), request.SubRequestInfo, MediaState.Error));
+                callback?.Invoke((currentRequest.GetInfo(), currentRequest.SubRequestInfo, MediaState.Error));
                 currentRequest = null;
 
                 if (ex is CriticalException || queue.IsEmpty)
@@ -316,11 +316,15 @@ namespace Suits.Jukebox
             {
                 playbackThread = BeginWrite(new AudioProcessor(song!.Info.DataInformation.MediaPath, BufferSize, song!.Info.DataInformation.Format));
                 playbackThread.Start();
-                playbackThread.Join();               
+                playbackThread.Join();
             }
 
             if (!error && !Loop)
-                callback?.Invoke((song!.Info, request.SubRequestInfo, MediaState.Finished));
+                callback?.Invoke((song!.Info, currentRequest!.SubRequestInfo, MediaState.Finished));
+
+            // Subtract playlist total duration by the finished song.
+            if (currentRequest!.SubRequestInfo.HasValue)
+                currentRequest!.SubRequestInfo.Value.ParentRequestInfo.Duration -= currentRequest.GetInfo().Duration;
 
             writeLock.Release();
 

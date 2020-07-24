@@ -11,7 +11,7 @@ using Suits.Jukebox.Models;
 
 namespace Suits.Jukebox.Models.Requests
 {
-    class AttachmentMediaRequest : MediaRequest
+    class AttachmentMediaRequest : MediaRequestBase
     {
         public AttachmentMediaRequest(Discord.Attachment[] attachments)
         {
@@ -25,7 +25,7 @@ namespace Suits.Jukebox.Models.Requests
         public override MediaType RequestMediaType { get; protected set; }
 
         public override SubRequestInfo? SubRequestInfo { get; protected set; }
-        public override List<MediaRequest>? SubRequests { get; set; }
+        public override List<MediaRequestBase>? SubRequests { get; set; }
 
         public override MediaMetadata GetInfo()
         {
