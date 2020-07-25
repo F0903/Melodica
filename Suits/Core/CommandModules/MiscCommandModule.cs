@@ -70,7 +70,7 @@ namespace Suits.Core.CommandModules
         [Command("Owner")]
         public async Task GetOwnerAsync()
         {
-            var owner = await Utility.General.GetAppOwnerAsync();
+            var owner = await Utility.GeneralUtility.GetAppOwnerAsync();
             await ReplyAsync(Context.Message.Author.Id == owner.Id ? "You already know..." : $"My owner is {owner}");
         }
     }

@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace Suits.Utility
 {
-    public static class General
+    public static class GeneralUtility
     {
         public static Task<IUser> GetAppOwnerAsync() =>
             Task.FromResult(IoC.Kernel.Get<DiscordSocketClient>().GetApplicationInfoAsync().Result.Owner);

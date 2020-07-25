@@ -14,7 +14,7 @@ namespace Suits.Jukebox.Models.Requests
     {
         public URLMediaRequest(string? mediaName, string mediaUrl, bool directStream)
         {
-            this.mediaFormat = Utility.General.GetUrlResourceFormat(mediaUrl);
+            this.mediaFormat = Utility.GeneralUtility.GetUrlResourceFormat(mediaUrl);
             this.mediaName = mediaName ?? $"External {mediaFormat.ToUpper()} {(directStream ? "Stream" : "File")}";
             this.mediaUrl = mediaUrl;
             this.directStream = directStream;
