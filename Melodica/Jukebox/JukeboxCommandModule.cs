@@ -120,26 +120,28 @@ namespace Melodica.Jukebox
 
         private void CheckForPermissions(IVoiceChannel voice)
         {
-            var botRoles = Context.Guild.GetUser(Context.Client.CurrentUser.Id).Roles;
-            foreach (var role in botRoles) // Check through all roles.
+            var botGuildRoles = Context.Guild.GetUser(Context.Client.CurrentUser.Id).Roles;
+            foreach (var role in botGuildRoles) // Check through all roles.
             {
                 if (role.Permissions.Administrator)
                     return;
-                var perms = voice.GetPermissionOverwrite(role);
-                if (perms == null)
+                var guildRolePerms = voice.GetPermissionOverwrite(role);
+                if (guildRolePerms == null)
                     continue;
-                var allowedPerms = perms!.Value.ToAllowList();
-                if (allowedPerms.Contains(ChannelPermission.Connect) && allowedPerms.Contains(ChannelPermission.Speak))
+                var allowedGuildPerms = guildRolePerms!.Value.ToAllowList();
+                if (allowedGuildPerms.Contains(ChannelPermission.Connect) && allowedGuildPerms.Contains(ChannelPermission.Speak))
                     return;
             }
 
             // Check for user role.
-            var userPerms = voice.GetPermissionOverwrite(Context.Client.CurrentUser);
-            var allowedUserPerms = userPerms!.Value.ToAllowList();
-            if (allowedUserPerms.Contains(ChannelPermission.Connect) && allowedUserPerms.Contains(ChannelPermission.Speak))
-                return;
-
-            throw new Exception("I'm not allowed to connect or speak in this channel :(");
+            var botPerms = voice.GetPermissionOverwrite(Context.Client.CurrentUser);
+            if (botPerms != null)
+            {
+                var allowedBotPerms = botPerms!.Value.ToAllowList();
+                if (allowedBotPerms.Contains(ChannelPermission.Connect) && allowedBotPerms.Contains(ChannelPermission.Speak))
+                    return;
+            }
+            throw new Exception("I don't have explicit permission to connect and speak in this channel :(");
         }
 
         [Command("ClearCache"), Summary("Clears cache."), RequireOwner]
@@ -189,8 +191,7 @@ namespace Melodica.Jukebox
                 await ReplyAsync("No song is playing.");
                 return;
             }
-            var (info, subInfo) = juke.GetSong();
-            await ReplyAsync(null, false, CreateMediaEmbed("**Playing**", info, subInfo));
+            await ReplyAsync(null, false, playbackEmbed!);
         }
 
         [Command("Resume"), Summary("Resumes playback.")]
@@ -254,9 +255,10 @@ namespace Melodica.Jukebox
             }
             else
             {
+                var queueDuration = queue.GetTotalDuration();
                 eb.WithTitle("**Queue**")
                   .WithThumbnailUrl(queue.GetMediaInfo().Thumbnail)
-                  .WithFooter($"{queue.GetTotalDuration()}{(juke.Shuffle ? " | Shuffle" : "")}");
+                  .WithFooter($"{(queueDuration == TimeSpan.Zero ? '\u221E'.ToString() : queueDuration.ToString())}{(juke.Shuffle ? " | Shuffle" : "")}");
 
                 int maxElems = 20;
                 for (int i = 1; i <= maxElems; i++)
@@ -310,9 +312,12 @@ namespace Melodica.Jukebox
         [Command("PlayLocal"), RequireOwner]
         public async Task PlayLocalMedia([Remainder] string directUrl)
         {
+            var userVoice = GetUserVoiceChannel();
+            CheckForPermissions(userVoice);
+
             var juke = await JukeboxManager.GetJukeboxAsync(Context.Guild);
             var req = new LocalMediaRequest(directUrl);
-            await juke.PlayAsync(req, GetUserVoiceChannel(), true, false, PlaybackCallback);
+            await juke.PlayAsync(req, userVoice, true, false, PlaybackCallback);
         }
 
         [Command("Stop"), Summary("Stops playback.")]
