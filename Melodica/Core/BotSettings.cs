@@ -34,7 +34,7 @@ namespace Melodica.Core
 
         public const ProcessPriorityClass ProcessPriority = ProcessPriorityClass.AboveNormal;
 
-        public const string SettingsExtension = ".ss";
+        public const string SettingsExtension = ".melodica";
 
         private static readonly string BotSettingsPath = SettingsDir + "Bot" + SettingsExtension;
 

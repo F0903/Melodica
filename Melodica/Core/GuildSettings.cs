@@ -14,9 +14,7 @@ namespace Melodica.Core
             connectedGuild = guild.Id;
         }
 
-        public const string DefaultPrefix = "dev."; // Melodica.
-
-        public const string SettingsExtension = ".ss";
+        public const string DefaultPrefix = "m.";
 
         public static IAsyncSerializer Serializer { get; set; } = new BinarySerializer();
 
@@ -24,7 +22,7 @@ namespace Melodica.Core
 
         private readonly ulong connectedGuild;
 
-        private static string GetGuildSettingsPath(ulong guildId) => BotSettings.SettingsDir + guildId.ToString() + SettingsExtension;
+        private static string GetGuildSettingsPath(ulong guildId) => BotSettings.SettingsDir + guildId.ToString() + BotSettings.SettingsExtension;
 
         public static GuildSettings Get(IGuild guild)
         {
