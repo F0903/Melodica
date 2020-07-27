@@ -41,7 +41,7 @@ namespace Melodica.Core
         private static readonly IAsyncSerializer serializer = new BinarySerializer();
 
         // For safety reasons, this should probably not be set here.
-        public string Token { get; } = "NzA0Mjg3MjM0NTEzMzA1NzAw.Xqa-lg.5uK_cMps1lH9MQELZyj4dM25hpc";
+        public string Token { get; } = "NTcxNDAwNTc4MDY0ODQyNzUy.XMNMQQ.8K9ovB1sbkExbYIK2wCI6OxzXSw";
 
         private LogSeverity logSeverity = LogSeverity.Debug;
         public LogSeverity LogSeverity
