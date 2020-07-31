@@ -294,6 +294,7 @@ namespace Melodica.Jukebox
                 if (ex is CriticalException || queue.IsEmpty)
                 {
                     await DismissAsync();
+                    Playing = false;
                     throw ex;
                 }
                 error = true;
