@@ -1,8 +1,9 @@
 ﻿using Discord;
 using Discord.WebSocket;
-using Melodica.Core.Services.CommandHandlers;
-using Melodica.Core.Services;
+using Melodica.Services.CommandHandlers;
+using Melodica.Services;
 using System.Threading.Tasks;
+using Melodica.Services.Logging;
 
 namespace Melodica.Core
 {

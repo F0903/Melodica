@@ -1,9 +1,9 @@
-﻿using Melodica.Core.Filehandlers.XML;
-using System;
+﻿using System;
 using Discord;
-using Melodica.Core.Services;
+using Melodica.Services;
 using System.IO;
 using System.Diagnostics;
+using Melodica.Services.Serialization;
 
 namespace Melodica.Core
 {

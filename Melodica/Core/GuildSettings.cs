@@ -1,6 +1,7 @@
 ﻿using Discord;
 using Discord.Rest;
-using Melodica.Core.Services;
+using Melodica.Services;
+using Melodica.Services.Serialization;
 using System;
 using System.IO;
 
