@@ -9,18 +9,7 @@ namespace Melodica.Utility
     public static class Utils
     {
         public static Task<IUser> GetAppOwnerAsync() =>
-            Task.FromResult(IoC.Kernel.Get<DiscordSocketClient>().GetApplicationInfoAsync().Result.Owner);
-
-        public static Task<string> ParseURLToIdAsync(string url)
-        {
-            if (!(url.StartsWith("https://") || url.StartsWith("http://")))
-                return Task.FromResult(url); // Just return, cause the url is probably already an id.
-            var startIndex = url.LastIndexOf('/') + 1;
-            var qIndx = url.IndexOf('?');
-            var stopIndex = qIndx == -1 ? url.Length : qIndx;
-            var id = url[startIndex..stopIndex];
-            return Task.FromResult(id);
-        }
+            Task.FromResult(IoC.Kernel.Get<DiscordSocketClient>().GetApplicationInfoAsync().Result.Owner);      
 
         public static Task<int?> GetURLArgumentIntAsync(string url, string argName, bool throwOnNull = true)
         {

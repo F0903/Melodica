@@ -22,8 +22,22 @@ namespace Melodica.Services.Downloaders.Spotify
         // Tie this to the default downloader (can't download directly from Spotify)
         readonly AsyncDownloaderBase dlHelper = Default;
 
-        public static bool IsUrlSupported(string url) => url.StartsWith("https://open.spotify.com/") || url.StartsWith("http://open.spotify.com/");
-      
+        public static bool IsUrlSupported(string url) => url.StartsWith("https://open.spotify.com/")   || 
+                                                         url.StartsWith("http://open.spotify.com/")    ||
+                                                         url.StartsWith("https://api.spotify.com/v1/") ||
+                                                         url.StartsWith("http://api.spotify.com/v1/");
+
+        private Task<string> ParseURLToIdAsync(string url)
+        {
+            if (!(url.StartsWith("https://") || url.StartsWith("http://")))
+                return Task.FromResult(url); // Just return, cause the url is probably already an id.
+            var startIndex = url.LastIndexOf('/') + 1;
+            var qIndx = url.IndexOf('?');
+            var stopIndex = qIndx == -1 ? url.Length : qIndx;
+            var id = url[startIndex..stopIndex];
+            return Task.FromResult(id);
+        }
+
         private Task<PlayableMedia> DownloadVideo(MediaMetadata info)
         {
             // Outsource downloading to another service (YouTube) since Spotify doesn't support direct streaming.
@@ -57,7 +71,7 @@ namespace Melodica.Services.Downloaders.Spotify
 
         public override async Task<(MediaMetadata playlist, IEnumerable<MediaMetadata> videos)> DownloadPlaylistInfoAsync(string url)
         {
-            var id = await Utils.ParseURLToIdAsync(url);
+            var id = await ParseURLToIdAsync(url);
 
             bool isAlbum = false;
 
@@ -102,7 +116,7 @@ namespace Melodica.Services.Downloaders.Spotify
                         Title = trackTitle,
                         Duration = (totalDuration += TimeSpan.FromSeconds(track.DurationMs / 1000)) - lastTotalDuration, // Ugly
                         Thumbnail = itemImages?[0].Url,
-                        URL = track.PreviewUrl,
+                        URL = track.Href,
                         ID = track.Id
                     };
                 }
@@ -124,7 +138,7 @@ namespace Melodica.Services.Downloaders.Spotify
                         Title = trackTitle,
                         Duration = (totalDuration += TimeSpan.FromSeconds(track.DurationMs / 1000)) - lastTotalDuration, // Ugly
                         Thumbnail = itemImages?[0].Url,
-                        URL = track.PreviewUrl,
+                        URL = track.Href,
                         ID = track.Id
                     };
                 }
@@ -136,7 +150,8 @@ namespace Melodica.Services.Downloaders.Spotify
                 Duration = totalDuration,
                 MediaOrigin = MediaOrigin.Spotify,
                 MediaType = MediaType.Playlist,
-                Thumbnail = itemImages![0].Url
+                Thumbnail = itemImages![0].Url,
+                URL = isAlbum ? spotifyAlbum!.Href : spotifyPlaylist!.Href
             };
 
             return (playlistInfo, playlistTracks);
@@ -144,7 +159,7 @@ namespace Melodica.Services.Downloaders.Spotify
 
         public async Task<MediaMetadata> DownloadVideoInfoAsync(string url)
         {
-            var id = await Utils.ParseURLToIdAsync(url);
+            var id = await ParseURLToIdAsync(url);
             var track = await spotify.Tracks.Get(id);
 
             return new MediaMetadata()
@@ -154,12 +169,15 @@ namespace Melodica.Services.Downloaders.Spotify
                 Title = $"{track.Artists[0].Name} {track.Name}",
                 Duration = TimeSpan.FromSeconds(track.DurationMs / 1000),
                 ID = track.Id,
-                URL = track.PreviewUrl,
+                URL = track.Href,
                 Thumbnail = track.Album.Images.FirstOrDefault().Url
             };
         }
 
-        public override bool IsPlaylistAsync(string url) => url.Contains(@"open.spotify.com/playlist/") || url.Contains(@"open.spotify.com/album/");
+        public override bool IsPlaylistAsync(string url) => url.Contains("open.spotify.com/playlist/") ||
+                                                            url.Contains("open.spotify.com/album/") ||
+                                                            url.StartsWith("api.spotify.com/v1/playlists") ||
+                                                            url.StartsWith("api.spotify.com/v1/albums");
 
         protected override Task<MediaType> EvaluateMediaTypeAsync(string url)
         {
@@ -169,7 +187,7 @@ namespace Melodica.Services.Downloaders.Spotify
             if (IsPlaylistAsync(url))
                 return Task.FromResult(MediaType.Playlist);
 
-            if (url.Contains(@"open.spotify.com/track/"))
+            if (url.Contains("open.spotify.com/track/") || url.Contains("api.spotify.com/v1/tracks/"))
                 return Task.FromResult(MediaType.Video);
             
             throw new NotSupportedException("The link provided is not supported.");

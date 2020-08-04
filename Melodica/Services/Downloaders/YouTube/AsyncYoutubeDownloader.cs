@@ -47,6 +47,16 @@ namespace Melodica.Services.Downloaders.YouTube
             ex is YoutubeExplode.Exceptions.VideoUnavailableException ||
             ex is YoutubeExplode.Exceptions.VideoRequiresPurchaseException;
 
+        private Task<string> ParseURLToIdAsync(string url)
+        {
+            if (!(url.StartsWith("https://") || url.StartsWith("http://")))
+                return Task.FromResult(url); // Just return, cause the url is probably already an id.
+            var startIndex = url.LastIndexOf('=') + 1;
+            var stopIndex = url.Length;
+            var id = url[startIndex..stopIndex];
+            return Task.FromResult(id);
+        }
+
         private Task<Video> SearchOrGetVideo(string input)
         {
             Video SearchVideo(int attempt = 0)
@@ -79,10 +89,11 @@ namespace Melodica.Services.Downloaders.YouTube
         public override async Task<PlayableMedia> DownloadAsync(string query)
         {
             string vidId;
-            MediaMetadata? meta = null;
+            MediaMetadata? meta;
             if (query.IsUrl())
             {
-                vidId = await Utils.ParseURLToIdAsync(query);
+                vidId = await ParseURLToIdAsync(query);
+                meta = await GetMediaInfoAsync(vidId);
             }
             else
             {

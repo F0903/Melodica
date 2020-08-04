@@ -39,7 +39,7 @@ namespace Melodica.Services.Jukebox.Models.Requests
         private DownloadRequest(MediaMetadata info, MediaMetadata parentRequestInfo, AsyncDownloaderBase dl)
         {
             this.info = info;
-            this.query = info.ID!;
+            this.query = info.URL!;
 
             SubRequestInfo = new SubRequestInfo()
             {
