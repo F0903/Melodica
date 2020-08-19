@@ -7,9 +7,9 @@ using Melodica.Services.Downloaders.YouTube;
 
 namespace Melodica.Services.Services.Downloaders
 {
-    public static class DownloaderResolver
+    public class DownloaderProvider
     {
-        public static AsyncDownloaderBase? GetDownloaderFromURL(string url)
+        public AsyncDownloaderBase? GetDownloaderFromURL(string url)
         {
             if (AsyncYoutubeDownloader.IsUrlSupported(url))
                 return new AsyncYoutubeDownloader();

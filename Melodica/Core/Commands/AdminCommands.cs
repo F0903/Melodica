@@ -7,7 +7,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace Melodica.Commands
+namespace Melodica.Core.Commands
 {
     [Group("Admin"), RequireUserPermission(GuildPermission.Administrator, ErrorMessage = "This command can only be used by guild admins.")]
     public class AdminCommands : ModuleBase<SocketCommandContext>

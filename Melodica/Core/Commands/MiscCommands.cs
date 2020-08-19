@@ -7,7 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Melodica.Commands
+namespace Melodica.Core.Commands
 {
     [Name("Misc")]
     public class MiscCommands : ModuleBase<SocketCommandContext>

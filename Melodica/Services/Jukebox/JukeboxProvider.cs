@@ -6,11 +6,11 @@ using System.Threading.Tasks;
 
 namespace Melodica.Services.Jukebox
 {
-    public class JukeboxManager
+    public class JukeboxProvider
     {
         private static readonly ConcurrentDictionary<IGuild, Jukebox> Jukeboxes = new ConcurrentDictionary<IGuild, Jukebox>();
 
-        public static Task<Jukebox> GetJukeboxAsync(IGuild guild)
+        public Task<Jukebox> GetJukeboxAsync(IGuild guild)
         {
             if (!Jukeboxes.TryGetValue(guild, out var juke))
                 if (!Jukeboxes.TryAdd(guild, new Jukebox()))

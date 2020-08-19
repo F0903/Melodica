@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace Melodica.Commands
+namespace Melodica.Core.Commands
 {
     [Group("Bot"), RequireOwner]
     public class BotCommands : ModuleBase<SocketCommandContext>

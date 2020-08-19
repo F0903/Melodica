@@ -1,5 +1,6 @@
 ﻿using Ninject;
 using System;
+using System.Reflection;
 
 namespace Melodica.IoC
 {
@@ -7,7 +8,7 @@ namespace Melodica.IoC
     {
         static Kernel()
         {
-            kernel.Load(AppDomain.CurrentDomain.GetAssemblies());
+            kernel.Load(Assembly.GetExecutingAssembly());
         }
 
         private readonly static IKernel kernel = new StandardKernel();
@@ -20,9 +21,5 @@ namespace Melodica.IoC
         {
             kernel.Bind<T>().ToConstant(instance).InSingletonScope();
         }
-
-        public static Ninject.Syntax.IBindingToSyntax<T> Bind<T>() => kernel.Bind<T>();
-
-        public static Ninject.Syntax.IBindingToSyntax<object> Bind(params Type[] types) => kernel.Bind(types);
     }
 }

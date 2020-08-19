@@ -7,7 +7,7 @@ using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
 
-namespace Melodica.Commands
+namespace Melodica.Core.Commands
 {
     [Group("Diag"), RequireOwner(ErrorMessage = "This command group can only be used by the app owner.")]
     public class DiagCommands : ModuleBase<SocketCommandContext>

@@ -7,7 +7,7 @@ using Discord.Commands;
 namespace Melodica.Casino
 {
     [Group("Casino")]
-    public class CasinoCommandModule : ModuleBase<SocketCommandContext>
+    public class CasinoCommands : ModuleBase<SocketCommandContext>
     {
 
     }
