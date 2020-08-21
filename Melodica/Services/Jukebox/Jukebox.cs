@@ -229,14 +229,36 @@ namespace Melodica.Services.Jukebox
             bool wasShuffling = Shuffle;
             Loop = loop; // Remove this line if loop doesn't work. (it should)
 
-            var requestInfo = request.GetInfo();
-            var subRequests = request.SubRequests!;
-
             bool error = false;
+
+            async Task Error(Exception ex)
+            {
+                writeLock.Release();
+                Playing = wasPlaying;
+                Shuffle = wasShuffling;
+
+                if (currentRequest != null)
+                    callback?.Invoke((currentRequest!.GetInfo(), currentRequest?.SubRequestInfo, MediaState.Error));
+                currentRequest = null;
+
+                if (ex is CriticalException || queue.IsEmpty)
+                {
+                    await DismissAsync();
+                    Playing = false;
+                    throw ex;
+                }
+                error = true; // Use this variable instead of returning so playback wont be stopped.
+            }
+
+            MediaMetadata? requestInfo = null;
+            try { requestInfo = request.GetInfo(); }
+            catch (Exception ex) { await Error(ex); }
+
+            var subRequests = request.SubRequests!;
 
             if (Playing && !switching)
             {
-                switch (requestInfo.MediaType)
+                switch (requestInfo?.MediaType)
                 {
                     case MediaType.Video:
                         await queue.EnqueueAsync(request);
@@ -254,7 +276,7 @@ namespace Melodica.Services.Jukebox
                 return;
             }
 
-            switch (requestInfo.MediaType)
+            switch (requestInfo?.MediaType)
             {
                 case MediaType.Video:
                     await queue.PutFirst(request);
@@ -284,20 +306,7 @@ namespace Melodica.Services.Jukebox
             }
             catch (Exception ex)
             {
-                writeLock.Release();
-                Playing = wasPlaying;
-                Shuffle = wasShuffling;
-
-                callback?.Invoke((currentRequest.GetInfo(), currentRequest.SubRequestInfo, MediaState.Error));
-                currentRequest = null;
-
-                if (ex is CriticalException || queue.IsEmpty)
-                {
-                    await DismissAsync();
-                    Playing = false;
-                    throw ex;
-                }
-                error = true;
+                await Error(ex);
             }
             finally
             {
