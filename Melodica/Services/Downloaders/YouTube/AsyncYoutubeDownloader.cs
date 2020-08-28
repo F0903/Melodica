@@ -94,7 +94,7 @@ namespace Melodica.Services.Downloaders.YouTube
             if (query.IsUrl())
             {
                 vidId = await ParseURLToIdAsync(query);
-                meta = await GetMediaInfoAsync(vidId);
+                meta = await GetMediaInfoAsync(query);
             }
             else
             {

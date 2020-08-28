@@ -102,6 +102,7 @@ namespace Melodica.Services.Playback
             }
         }
 
+
         private AudioOutStream CreateOutputStream()
         {
             int bitrate;
@@ -216,7 +217,8 @@ namespace Melodica.Services.Playback
         public async Task PlayAsync(MediaRequestBase request, IAudioChannel channel, bool switchSong = false, bool loop = false, Action<(MediaMetadata info, SubRequestInfo? subInfo, MediaState state)>? callback = null)
         {
             //TODO: This whole thing might need a kind refactoring.
-            switching = switchSong;
+            if (switching = switchSong)
+                Paused = false;
 
             await ConnectAsync(channel);
             bool wasPlaying = Playing;
@@ -321,11 +323,11 @@ namespace Melodica.Services.Playback
             {
                 try
                 {
-                    playbackThread = BeginWrite(new AudioProcessor(song!.Info.DataInformation.MediaPath!, BufferSize, song!.Info.DataInformation.Format));
+                    playbackThread = BeginWrite(new FFmpegAudioProcessor(song!.Info.DataInformation.MediaPath!, BufferSize, song!.Info.DataInformation.Format));
                     playbackThread.Start();
                     playbackThread.Join();
                 }
-                catch(Exception ex) { await Error(ex); }
+                catch (Exception ex) { await Error(ex); }
                 finally { writeLock.Release(); } // Just in case
             }
 

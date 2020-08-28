@@ -9,7 +9,7 @@ using Melodica.Services.Services;
 
 namespace Melodica.Services.Audio
 {
-    public class AudioProcessor : IDisposable
+    public abstract class AudioProcessor : IDisposable
     {
         public AudioProcessor(string path, int bufferSize = 1024, string? format = null)
         {
@@ -23,27 +23,7 @@ namespace Melodica.Services.Audio
             Dispose();
         }
 
-        protected virtual Process ConstructExternal(string path, int bufferSize = 1024, string? format = null)
-        {
-            if (path == null || path == string.Empty)
-            {
-                MediaCache.PruneAllCachesAsync().Wait();
-                throw new CriticalException("Song path is empty... Clearing cache... (something went wrong here)");
-            }
-            return new Process()
-            {
-                StartInfo = new ProcessStartInfo()
-                {
-                    FileName = "ffmpeg.exe",
-                    Arguments = $"-y -hide_banner -loglevel debug -vn {(format != null ? $"-f {format}" : string.Empty)} -i {(path != null ? $"\"{path}\"" : "pipe:0")} -f s16le -bufsize {bufferSize} -ac 2 -ar 48000 pipe:1",
-                    UseShellExecute = false,
-                    RedirectStandardError = false,
-                    RedirectStandardInput = (inputAvailable = (path == null)),
-                    RedirectStandardOutput = (outputAvailable = true),
-                    CreateNoWindow = false,
-                }
-            };
-        }
+        protected abstract Process ConstructExternal(string path, int bufferSize = 1024, string? format = null);
 
         private readonly Process playerProcess;
 
