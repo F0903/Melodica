@@ -9,7 +9,7 @@ using Melodica.Services;
 using Melodica.Services.Downloaders;
 using Melodica.Services.Serialization;
 
-namespace Melodica.Services.Jukebox.Models
+namespace Melodica.Services.Playback.Models
 {
     [Serializable]
     public class MediaMetadata

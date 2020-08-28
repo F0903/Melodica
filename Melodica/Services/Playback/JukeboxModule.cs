@@ -1,10 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using Ninject.Modules;
 
-using Ninject.Modules;
-
-namespace Melodica.Services.Jukebox
+namespace Melodica.Services.Playback
 {
     public class JukeboxModule : NinjectModule
     {

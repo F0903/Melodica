@@ -1,20 +1,12 @@
-﻿using Melodica.Services.Services;
-using Melodica.Services.Services.Downloaders;
-using System;
-using System.Linq;
+﻿using System;
 using System.Collections.Generic;
-using System.Text;
+using System.Linq;
 using System.Threading.Tasks;
-using Melodica.Utility.Extensions;
-using Melodica.Services.Downloaders.Exceptions;
-using System.Threading;
-using System.ComponentModel;
-using Ninject.Activation.Caching;
-using Melodica.Services.Jukebox.Models;
-using Microsoft.EntityFrameworkCore;
-using Melodica.Services.Downloaders;
 
-namespace Melodica.Services.Jukebox.Models.Requests
+using Melodica.Services.Downloaders;
+using Melodica.Services.Downloaders.Exceptions;
+
+namespace Melodica.Services.Playback.Models.Requests
 {
     public class DownloadRequest : MediaRequestBase
     {

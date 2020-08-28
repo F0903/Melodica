@@ -1,24 +1,18 @@
-﻿using Discord;
-using Discord.Audio;
-using Melodica.Services.Jukebox.Models;
-using System;
-using System.Collections.Generic;
-using System.IO;
+﻿using System;
 using System.Linq;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using Melodica.Services.Services;
-using Melodica.Services.Services.Downloaders;
-using Melodica.Services.Jukebox.Models.Requests;
-using AngleSharp.Io;
-using Discord.WebSocket;
-using Melodica.Services.Downloaders.Exceptions;
-using System.Diagnostics;
-using System.Runtime.CompilerServices;
-using YoutubeExplode.Playlists;
 
-namespace Melodica.Services.Jukebox
+using Discord;
+using Discord.Audio;
+using Discord.WebSocket;
+
+using Melodica.Core.Exceptions;
+using Melodica.Services.Audio;
+using Melodica.Services.Playback.Models;
+using Melodica.Services.Playback.Models.Requests;
+
+namespace Melodica.Services.Playback
 {
     public enum MediaState
     {
@@ -233,7 +227,6 @@ namespace Melodica.Services.Jukebox
 
             async Task Error(Exception ex)
             {
-                writeLock.Release();
                 Playing = wasPlaying;
                 Shuffle = wasShuffling;
 
@@ -310,6 +303,7 @@ namespace Melodica.Services.Jukebox
             }
             finally
             {
+                writeLock.Release();
                 GC.Collect();
             }
 
@@ -325,9 +319,14 @@ namespace Melodica.Services.Jukebox
 
             if (!error)
             {
-                playbackThread = BeginWrite(new AudioProcessor(song!.Info.DataInformation.MediaPath, BufferSize, song!.Info.DataInformation.Format));
-                playbackThread.Start();
-                playbackThread.Join();
+                try
+                {
+                    playbackThread = BeginWrite(new AudioProcessor(song!.Info.DataInformation.MediaPath!, BufferSize, song!.Info.DataInformation.Format));
+                    playbackThread.Start();
+                    playbackThread.Join();
+                }
+                catch(Exception ex) { await Error(ex); }
+                finally { writeLock.Release(); } // Just in case
             }
 
             if (!error && !Loop)
@@ -336,8 +335,6 @@ namespace Melodica.Services.Jukebox
             // Subtract playlist total duration by the finished song.
             if (currentRequest!.SubRequestInfo.HasValue)
                 currentRequest!.SubRequestInfo.Value.ParentRequestInfo.Duration -= currentRequest.GetInfo().Duration;
-
-            writeLock.Release();
 
             if (switching)
             {

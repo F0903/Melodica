@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace Melodica.Services.Downloaders.Exceptions
+namespace Melodica.Core.Exceptions
 {
     public class CriticalException : Exception
     {

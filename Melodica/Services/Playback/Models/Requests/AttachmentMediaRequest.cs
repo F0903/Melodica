@@ -1,15 +1,10 @@
 ﻿using System;
-using System.Net;
-using System.Linq;
 using System.Collections.Generic;
-using System.Text;
-using System.Threading.Tasks;
 using System.IO;
-using Melodica.Utility.Extensions;
-using Melodica.Services.Services;
-using Melodica.Services.Jukebox.Models;
+using System.Net;
+using System.Threading.Tasks;
 
-namespace Melodica.Services.Jukebox.Models.Requests
+namespace Melodica.Services.Playback.Models.Requests
 {
     class AttachmentMediaRequest : MediaRequestBase
     {

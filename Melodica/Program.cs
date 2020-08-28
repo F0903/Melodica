@@ -1,6 +1,6 @@
 ﻿using Melodica.Core;
 using Melodica.IoC;
-using Melodica.Services.CommandHandlers;
+using Melodica.Core.CommandHandlers;
 using Melodica.Services.Logging;
 using System;
 using System.Threading.Tasks;

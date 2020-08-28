@@ -1,8 +1,8 @@
 ﻿using System.Threading.Tasks;
 
-namespace Melodica.Services.CommandHandlers
+namespace Melodica.Core.CommandHandlers
 {
-    public interface IAsyncCommandHandlerService
+    public interface IAsyncCommandHandler
     {
         public Task HandleCommandsAsync(Discord.IMessage message);
     }

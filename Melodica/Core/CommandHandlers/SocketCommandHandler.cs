@@ -11,9 +11,9 @@ using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
 
-namespace Melodica.Services.CommandHandlers
+namespace Melodica.Core.CommandHandlers
 {
-    public class SocketCommandHandler : IAsyncCommandHandlerService
+    public class SocketCommandHandler : IAsyncCommandHandler
     {
         public SocketCommandHandler(IAsyncLoggingService logger)
         {

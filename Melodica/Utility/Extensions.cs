@@ -18,6 +18,11 @@ namespace Melodica.Utility.Extensions
             '<'
         };
 
+        public static string FixURLWhitespace(this string input)
+        {
+            return input.Replace(" ", "%20");
+        }
+
         public async static Task<TimeSpan> GetTotalDurationAsync(this YoutubeExplode.Playlists.Playlist pl, YoutubeExplode.YoutubeClient? client = null) 
         {
             client ??= new YoutubeExplode.YoutubeClient();

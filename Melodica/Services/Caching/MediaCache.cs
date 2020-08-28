@@ -1,4 +1,4 @@
-﻿using Melodica.Services.Jukebox.Models;
+﻿using Melodica.Services.Playback.Models;
 using Melodica.Utility.Extensions;
 using Discord;
 using System;

@@ -1,22 +1,20 @@
-﻿using Melodica.Services.Jukebox;
-using Melodica.Services.Services;
-using Melodica.Services.Jukebox.Models.Requests;
-using Melodica.Services.Services.Downloaders;
+﻿using System;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+
 using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
-using System;
-using System.IO;
-using System.Linq;
-using System.Threading.Tasks;
-using Melodica.Utility.Extensions;
-using Melodica.Services.Jukebox.Models;
-using System.Collections.Generic;
-using System.Threading;
-using Melodica.Services.Downloaders.Exceptions;
-using Melodica.Services.Downloaders;
 
-namespace Melodica.Services.Jukebox
+using Melodica.Services.Downloaders;
+using Melodica.Services.Playback.Models;
+using Melodica.Services.Playback.Models.Requests;
+using Melodica.Services.Services;
+using Melodica.Services.Services.Downloaders;
+using Melodica.Utility.Extensions;
+
+namespace Melodica.Services.Playback
 {
     //[Group("Services.Jukebox"), Alias("J")]
     public class JukeboxCommands : ModuleBase<SocketCommandContext>

@@ -1,14 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Text;
-using System.Net;
-using System.Threading.Tasks;
-using Melodica.Services.Services;
 using System.IO;
+using System.Net;
 using System.Threading;
-using Melodica.Services.Downloaders.Exceptions;
+using System.Threading.Tasks;
 
-namespace Melodica.Services.Jukebox.Models.Requests
+using Melodica.Core.Exceptions;
+
+namespace Melodica.Services.Playback.Models.Requests
 {
     public class URLMediaRequest : MediaRequestBase
     {

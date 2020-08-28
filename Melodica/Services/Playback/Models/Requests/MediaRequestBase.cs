@@ -1,9 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using System.Collections.Generic;
 using System.Threading.Tasks;
 
-namespace Melodica.Services.Jukebox.Models.Requests
+namespace Melodica.Services.Playback.Models.Requests
 {
     public struct SubRequestInfo
     {

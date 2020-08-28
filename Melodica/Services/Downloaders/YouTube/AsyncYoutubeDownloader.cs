@@ -2,13 +2,14 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using AngleSharp.Common;
-using Melodica.Services.Jukebox.Models;
+
+using Melodica.Core.Exceptions;
 using Melodica.Services.Downloaders.Exceptions;
-using Melodica.Services.Downloaders;
+using Melodica.Services.Playback.Models;
 using Melodica.Services.Services;
 using Melodica.Utility;
 using Melodica.Utility.Extensions;
+
 using YoutubeExplode;
 using YoutubeExplode.Playlists;
 using YoutubeExplode.Videos;

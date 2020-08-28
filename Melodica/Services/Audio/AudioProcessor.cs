@@ -1,15 +1,17 @@
-﻿using Discord;
-using Melodica.Core;
-using System;
+﻿using System;
 using System.Diagnostics;
 using System.IO;
 using System.Threading.Tasks;
 
-namespace Melodica.Services.Jukebox.Models
+using Melodica.Core;
+using Melodica.Core.Exceptions;
+using Melodica.Services.Services;
+
+namespace Melodica.Services.Audio
 {
     public class AudioProcessor : IDisposable
     {
-        public AudioProcessor(string? path, int bufferSize = 1024, string? format = null)
+        public AudioProcessor(string path, int bufferSize = 1024, string? format = null)
         {
             playerProcess = ConstructExternal(path, bufferSize, format);
             playerProcess.Start();
@@ -21,10 +23,13 @@ namespace Melodica.Services.Jukebox.Models
             Dispose();
         }
 
-        protected virtual Process ConstructExternal(string? path, int bufferSize = 1024, string? format = null)
+        protected virtual Process ConstructExternal(string path, int bufferSize = 1024, string? format = null)
         {
-            if (path != null && path == string.Empty)
-                throw new Exception("Song path is empty.");
+            if (path == null || path == string.Empty)
+            {
+                MediaCache.PruneAllCachesAsync().Wait();
+                throw new CriticalException("Song path is empty... Clearing cache... (something went wrong here)");
+            }
             return new Process()
             {
                 StartInfo = new ProcessStartInfo()

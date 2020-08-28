@@ -1,10 +1,8 @@
-﻿using Melodica.Services.Downloaders.YouTube;
-using Melodica.Services.Jukebox.Models;
-using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using System.Collections.Generic;
 using System.Threading.Tasks;
-using YoutubeExplode;
+
+using Melodica.Services.Downloaders.YouTube;
+using Melodica.Services.Playback.Models;
 
 namespace Melodica.Services.Downloaders
 {

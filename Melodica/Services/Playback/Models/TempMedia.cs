@@ -5,7 +5,7 @@ using System.Text;
 using Melodica.Services.Services;
 using System.IO;
 
-namespace Melodica.Services.Jukebox.Models
+namespace Melodica.Services.Playback.Models
 {
     public sealed class TempMedia : PlayableMedia
     {

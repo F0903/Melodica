@@ -1,14 +1,12 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Runtime.CompilerServices;
-using System.Text;
 using System.Threading.Tasks;
-using Melodica.Services.Downloaders.Exceptions;
+
+using Melodica.Core.Exceptions;
 using Melodica.Utility.Extensions;
 
-namespace Melodica.Services.Jukebox.Models.Requests
+namespace Melodica.Services.Playback.Models.Requests
 {
     public class LocalMediaRequest : MediaRequestBase
     {

@@ -2,13 +2,12 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Discord;
-using SpotifyAPI.Web;
-using Melodica.Services.Jukebox.Models;
-using Melodica.Services.Downloaders.Exceptions;
-using Melodica.Services.Downloaders;
-using Melodica.Utility;
+
+using Melodica.Core.Exceptions;
+using Melodica.Services.Playback.Models;
 using Melodica.Utility.Extensions;
+
+using SpotifyAPI.Web;
 
 namespace Melodica.Services.Downloaders.Spotify
 {

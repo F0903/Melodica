@@ -1,12 +1,11 @@
 ﻿using System;
 using System.IO;
-using System.Runtime.Serialization;
 using System.Threading.Tasks;
-using Melodica.Services;
+
 using Melodica.Services.Serialization;
 using Melodica.Utility.Extensions;
 
-namespace Melodica.Services.Jukebox.Models
+namespace Melodica.Services.Playback.Models
 {
     public class PlayableMedia
     {

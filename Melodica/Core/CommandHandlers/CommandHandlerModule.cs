@@ -2,15 +2,17 @@
 using System.Collections.Generic;
 using System.Text;
 
+using Melodica.Core.CommandHandlers;
+
 using Ninject.Modules;
 
-namespace Melodica.Services.CommandHandlers
+namespace Melodica.Core.CommandHandlers
 {
     class CommandHandlerModule : NinjectModule
     {
         public override void Load()
         {
-            Bind<IAsyncCommandHandlerService>().To<SocketCommandHandler>();
+            Bind<IAsyncCommandHandler>().To<SocketCommandHandler>();
         }
     }
 }

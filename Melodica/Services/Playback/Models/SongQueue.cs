@@ -3,9 +3,9 @@ using System.Linq;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Melodica.Utility.Extensions;
-using Melodica.Services.Jukebox.Models.Requests;
+using Melodica.Services.Playback.Models.Requests;
 
-namespace Melodica.Services.Jukebox.Models
+namespace Melodica.Services.Playback.Models
 {
     public class SongQueue
     {
