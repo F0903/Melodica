@@ -335,7 +335,7 @@ namespace Melodica.Services.Playback
                 callback?.Invoke((song!.Info, currentRequest!.SubRequestInfo, MediaState.Finished));
 
             // Subtract playlist total duration by the finished song.
-            if (currentRequest!.SubRequestInfo.HasValue)
+            if (!error && currentRequest!.SubRequestInfo.HasValue)
                 currentRequest!.SubRequestInfo.Value.ParentRequestInfo.Duration -= currentRequest.GetInfo().Duration;
 
             if (switching)
