@@ -7,6 +7,8 @@ using Melodica.Core;
 using Melodica.Core.Exceptions;
 using Melodica.Services.Services;
 
+using SpotifyAPI.Web;
+
 namespace Melodica.Services.Audio
 {
     public abstract class AudioProcessor : IDisposable
@@ -47,8 +49,10 @@ namespace Melodica.Services.Audio
             if (outputAvailable)
                 playerProcess.StandardOutput.Dispose();
 
+            if (playerProcess == null)
+                return;
             playerProcess.Kill();
-            if (!playerProcess.HasExited)
+            if (playerProcess.HasExited)
                 playerProcess.WaitForExit();
         }
     }

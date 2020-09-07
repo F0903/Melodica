@@ -27,10 +27,23 @@ namespace Melodica.Services.Downloaders.YouTube
 
         private async Task<PlayableMedia> DownloadVideo(Video video, MediaMetadata meta)
         {
+            var newMeta = new MediaMetadata()
+            {
+                ID = video.Id,
+                Duration = meta.Duration,
+                MediaOrigin = meta.MediaOrigin,
+                MediaType = meta.MediaType,
+                Thumbnail = meta.Thumbnail,
+                Title = meta.Title,
+                URL = meta.URL
+            };
+
             if (cache.Contains(video.Id))
             {
                 var cacheMed = await cache.GetAsync(video.Id);
-                var newMed = new PlayableMedia(cacheMed, meta);
+                newMeta.DataInformation = cacheMed.Info.DataInformation;
+
+                var newMed = new PlayableMedia(newMeta, null);
                 return newMed;
             }
             var vidStreams = await yt.Videos.Streams.GetManifestAsync(video.Id);
@@ -39,8 +52,8 @@ namespace Melodica.Services.Downloaders.YouTube
 
             var rawStream = await yt.Videos.Streams.GetAsync(vidAudioStream!);
 
-            meta.DataInformation.Format = vidAudioStream!.Container.Name.ToLower();
-            return await cache.CacheMediaAsync(new PlayableMedia(meta, rawStream!));
+            newMeta.DataInformation.Format = vidAudioStream!.Container.Name.ToLower();
+            return await cache.CacheMediaAsync(new PlayableMedia(newMeta, rawStream!));
         }
 
         private bool IsUnavailable(Exception ex) =>

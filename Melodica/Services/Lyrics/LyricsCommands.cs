@@ -29,13 +29,15 @@ namespace Melodica.Services.Lyrics
             try { juke = await jukebox.GetJukeboxAsync(Context.Guild, true); }
             catch (System.Exception) { juke = null; }
 
-            if (songName == null && (juke == null || !juke.Playing))
+            if (songName == null && !(juke != null && juke.Playing))
             {
                 await ReplyAsync("You either need to specify a search term or have a song playing.");
                 return;
             }
 
-            var lyrs = await lyrics.GetLyricsAsync((juke == null || !juke.Playing) ? songName! : juke!.GetSong().info.Title);
+            songName ??= juke!.GetSong().info.Title;
+
+            var lyrs = await lyrics.GetLyricsAsync(songName);
 
             string text = lyrs.Lyrics;
             int count = 0;

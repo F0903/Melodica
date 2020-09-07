@@ -217,6 +217,9 @@ namespace Melodica.Services.Playback
         public async Task PlayAsync(MediaRequestBase request, IAudioChannel channel, bool switchSong = false, bool loop = false, Action<(MediaMetadata info, SubRequestInfo? subInfo, MediaState state)>? callback = null)
         {
             //TODO: This whole thing might need a kind refactoring.
+
+            //TODO: Fix media empty path bug (something may be going on in the cache) (ref song: https://open.spotify.com/track/0CpTNItafURRFujw9WAKfR?si=yRmzFCJsT6KlCVGCVcLhZQ)
+
             if (switching = switchSong)
                 Paused = false;
 
@@ -335,7 +338,7 @@ namespace Melodica.Services.Playback
                 callback?.Invoke((song!.Info, currentRequest!.SubRequestInfo, MediaState.Finished));
 
             // Subtract playlist total duration by the finished song.
-            if (!error && currentRequest!.SubRequestInfo.HasValue)
+            if(currentRequest != null && currentRequest!.SubRequestInfo.HasValue)
                 currentRequest!.SubRequestInfo.Value.ParentRequestInfo.Duration -= currentRequest.GetInfo().Duration;
 
             if (switching)

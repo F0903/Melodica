@@ -54,15 +54,15 @@ namespace Melodica.Services.Lyrics
             var responseStream = response.GetResponseStream();
             using var fullResponse = await JsonDocument.ParseAsync(responseStream);
 
-            var responseSection = fullResponse.RootElement.GetProperty("response");
-            
-            //if (responseSection.GetArrayLength() == 0)
-            //    throw new CriticalException($"No results found for lyrics search. Query was: {query}");
+            var responseSection = fullResponse.RootElement.GetProperty("response"); 
 
             JsonElement GetElement(int index = 0)
             {
                 if (index > 5) throw new Exception("Max attempts reached. Could not retrieve song info.");
-                var hit = responseSection.GetProperty("hits")[index];
+
+                JsonElement hit;
+                try { hit = responseSection.GetProperty("hits")[index]; }
+                catch { throw new CriticalException($"No results found for lyrics search. Query was: {query}"); }
                 var hitType = hit.GetProperty("type");
                 if (hitType.GetString() != "song")
                     return GetElement(index++);

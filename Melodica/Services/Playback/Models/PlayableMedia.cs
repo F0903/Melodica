@@ -15,12 +15,6 @@ namespace Melodica.Services.Playback.Models
             this.rawMediaData = data;
         }
 
-        public PlayableMedia(PlayableMedia other, MediaMetadata newMeta)
-        {
-            this.rawMediaData = other.rawMediaData;
-            this.Info = newMeta;
-        }
-
         private PlayableMedia(MediaMetadata meta)
         {
             Info = meta;
