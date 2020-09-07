@@ -65,8 +65,8 @@ namespace Melodica.Services.Downloaders.YouTube
         {
             if (!(url.StartsWith("https://") || url.StartsWith("http://")))
                 return Task.FromResult(url); // Just return, cause the url is probably already an id.
-            var startIndex = url.LastIndexOf('=') + 1;
-            var stopIndex = url.Length;
+            var startIndex = url.IndexOf("?v=") + 3;
+            var stopIndex = url.Contains('&') ? url.IndexOf('&') : url.Length;
             var id = url[startIndex..stopIndex];
             return Task.FromResult(id);
         }
