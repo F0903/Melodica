@@ -8,20 +8,16 @@ using Melodica.Services.Services;
 
 namespace Melodica.Services.Audio
 {
-    public class FFmpegAudioProcessor : AudioProcessor
+    public class FFmpegAudioProcessor : ExternalAudioProcessor
     {
-        public FFmpegAudioProcessor(string path, int bufferSize = 1024, string? format = null) : base(path, bufferSize, format)
-        {
-
-        }
-
-        //TODO: Continue refactoring
+        public FFmpegAudioProcessor(string mediaPath, int bufferSize = 1024, string? format = null) : base(mediaPath, bufferSize, format)
+        {}
 
         protected override Process ConstructExternal(string path, int bufferSize = 1024, string? format = null)
         {
             if (path == null || path == string.Empty)
             {
-                MediaCache.PruneAllCachesAsync().Wait();
+                MediaFileCache.PruneAllCachesAsync().Wait();
                 throw new CriticalException("Song path is empty... Clearing cache... (something went wrong here)");
             }
             return new Process()

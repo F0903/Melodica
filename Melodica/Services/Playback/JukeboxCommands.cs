@@ -26,6 +26,8 @@ namespace Melodica.Services.Playback
         }
 
         readonly JukeboxProvider jukeboxProvider;
+        Jukebox Jukebox => jukeboxProvider.GetJukeboxAsync(Context.Guild).GetAwaiter().GetResult();
+
         readonly DownloaderProvider downloaderProvider;
 
         Embed? playbackEmbed;
@@ -153,30 +155,29 @@ namespace Melodica.Services.Playback
         [Command("ClearCache"), Summary("Clears cache."), RequireOwner]
         public async Task ClearCacheAsync()
         {
-            var (deletedFiles, filesInUse, ms) = await MediaCache.PruneAllCachesAsync();
+            var (deletedFiles, filesInUse, ms) = await MediaFileCache.PruneAllCachesAsync();
             await ReplyAsync($"Deleted {deletedFiles} files. ({filesInUse} files in use) [{ms}ms]");
         }
 
         [Command("Shuffle"), Summary("Toggles shuffle.")]
         public async Task ShuffleAsync()
         {
-            var juke = await jukeboxProvider.GetJukeboxAsync(Context.Guild);
-            bool state = juke.Shuffle = !juke.Shuffle;
+            bool state = Jukebox.Shuffle = !Jukebox.Shuffle;
             await ReplyAsync($"Shuffle {(state ? "On" : "Off")}");
         }
 
         [Command("Repeat"), Summary("Toggles repeat of the queue.")]
         public async Task ToggleRepeatAsync()
         {
-            var juke = await jukeboxProvider.GetJukeboxAsync(Context.Guild);
-            bool state = juke.Repeat = !juke.Repeat;
+            //var juke = await jukebox.GetJukeboxAsync(Context.Guild);
+            bool state = Jukebox.Repeat = !Jukebox.Repeat;
             await ReplyAsync($"Repeat {(state ? "On" : "Off")}");
         }
 
         [Command("Loop"), Summary("Toggles loop on the current song.")]
         public async Task SetLoopingAsync([Remainder] string? query = null)
         {
-            var juke = await jukeboxProvider.GetJukeboxAsync(Context.Guild);
+            //var juke = await jukebox.GetJukeboxAsync(Context.Guild);
 
             if (!string.IsNullOrEmpty(query))
             {
@@ -184,15 +185,15 @@ namespace Melodica.Services.Playback
                 return;
             }
 
-            bool state = juke.Loop = !juke.Loop;
+            bool state = Jukebox.Loop = !Jukebox.Loop;
             await ReplyAsync($"Loop {(state ? "On" : "Off")}");
         }
 
         [Command("Song"), Alias("Info", "SongInfo"), Summary("Gets info about the current song.")]
         public async Task GetSongAsync()
         {
-            var juke = await jukeboxProvider.GetJukeboxAsync(Context.Guild);
-            if (!juke.Playing)
+            //var juke = await jukebox.GetJukeboxAsync(Context.Guild);
+            if (!Jukebox.Playing)
             {
                 await ReplyAsync("No song is playing.");
                 return;
@@ -200,28 +201,32 @@ namespace Melodica.Services.Playback
             await ReplyAsync(null, false, playbackEmbed!);
         }
 
-        [Command("Resume"), Summary("Resumes playback.")]
-        public async Task ResumeAsync()
+        [Command("Resume", RunMode = RunMode.Sync), Summary("Resumes playback.")]
+        public Task ResumeAsync()
         {
-            (await jukeboxProvider.GetJukeboxAsync(Context.Guild)).Paused = false;
+            Jukebox.Paused = false;
+            return Task.CompletedTask;
         }
 
-        [Command("Pause"), Alias("Unpause"), Summary("Pauses playback.")]
-        public async Task PauseAsync()
+        [Command("Pause", RunMode = RunMode.Sync), Alias("Unpause"), Summary("Pauses playback.")]
+        public Task PauseAsync()
         {
-            (await jukeboxProvider.GetJukeboxAsync(Context.Guild)).Paused = true;
+            Jukebox.Paused = true;
+            return Task.CompletedTask;
         }
 
-        [Command("Skip"), Summary("Skips current song.")]
-        public async Task SkipAsync()
+        [Command("Skip", RunMode = RunMode.Sync), Summary("Skips current song.")]
+        public Task SkipAsync()
         {
-            (await jukeboxProvider.GetJukeboxAsync(Context.Guild)).Skip();
+            Jukebox.Skip();
+            return Task.CompletedTask;
         }
 
         [Command("Clear"), Summary("Clears queue.")]
         public async Task ClearQueue()
         {
-            await (await jukeboxProvider.GetJukeboxAsync(Context.Guild)).ClearQueueAsync();
+            //await (await jukebox.GetJukeboxAsync(Context.Guild)).ClearQueueAsync();
+            await Jukebox.ClearQueueAsync();
             await ReplyAsync("Cleared queue.");
         }
 
@@ -234,23 +239,25 @@ namespace Melodica.Services.Playback
                 return;
             }
 
-            var removed = (await jukeboxProvider.GetJukeboxAsync(Context.Guild)).RemoveFromQueue(index - 1);
+            //var removed = (await jukebox.GetJukeboxAsync(Context.Guild)).RemoveFromQueue(index - 1);
+            var removed = Jukebox.RemoveFromQueue(index - 1);
             await ReplyAsync(null, false, CreateMediaEmbed("Removed", removed, null));
         }
 
         [Command("RemoveLast"), Summary("Removes the last song from the queue.")]
         public async Task RemoveLast() 
-        { 
-            var removed = (await jukeboxProvider.GetJukeboxAsync(Context.Guild)).RemoveFromQueue(^0);
+        {
+            //var removed = (await jukebox.GetJukeboxAsync(Context.Guild)).RemoveFromQueue(^0);
+            var removed = Jukebox.RemoveFromQueue(^0);
             await ReplyAsync(null, false, CreateMediaEmbed("Removed", removed, null));
         }
 
         [Command("Queue"), Summary("Shows current queue.")]
         public async Task QueueAsync()
         {
-            var juke = await jukeboxProvider.GetJukeboxAsync(Context.Guild);
+            //var juke = await jukebox.GetJukeboxAsync(Context.Guild);
 
-            var queue = juke.GetQueue();
+            var queue = Jukebox.GetQueue();
 
             EmbedBuilder eb = new EmbedBuilder();
             if (queue.IsEmpty)
@@ -264,7 +271,7 @@ namespace Melodica.Services.Playback
                 var queueDuration = queue.GetTotalDuration();
                 eb.WithTitle("**Queue**")
                   .WithThumbnailUrl(queue.GetMediaInfo().Thumbnail)
-                  .WithFooter($"{(queueDuration == TimeSpan.Zero ? '\u221E'.ToString() : queueDuration.ToString())}{(juke.Shuffle ? " | Shuffle" : "")}");
+                  .WithFooter($"{(queueDuration == TimeSpan.Zero ? '\u221E'.ToString() : queueDuration.ToString())}{(Jukebox.Shuffle ? " | Shuffle" : "")}");
 
                 int maxElems = 20;
                 for (int i = 1; i <= maxElems; i++)
@@ -296,9 +303,9 @@ namespace Melodica.Services.Playback
                 return;
             }
 
-            var juke = await jukeboxProvider.GetJukeboxAsync(Context.Guild);
+            //var juke = await jukebox.GetJukeboxAsync(Context.Guild);
 
-            try { await juke.PlayAsync(await GetRequestAsync(query!), userVoice, switchPlayback, loop, PlaybackCallback); }
+            try { await Jukebox.PlayAsync(await GetRequestAsync(query!), userVoice, switchPlayback, loop, PlaybackCallback); }
             catch (EmptyChannelException) { await ReplyAsync("All users have left the channel. Disconnecting..."); }
         }
 
@@ -321,21 +328,21 @@ namespace Melodica.Services.Playback
             var userVoice = GetUserVoiceChannel();
             CheckForPermissions(userVoice);
 
-            var juke = await jukeboxProvider.GetJukeboxAsync(Context.Guild);
+            //var juke = await jukebox.GetJukeboxAsync(Context.Guild);
             var req = new LocalMediaRequest(directUrl);
-            await juke.PlayAsync(req, userVoice, true, false, PlaybackCallback);
+            await Jukebox.PlayAsync(req, userVoice, true, false, PlaybackCallback);
         }
 
         [Command("Stop"), Summary("Stops playback.")]
         public async Task StopAsync()
         {
-            var juke = await jukeboxProvider.GetJukeboxAsync(Context.Guild);
-            if (!juke.Playing)
+            //var juke = await jukebox.GetJukeboxAsync(Context.Guild);
+            if (!Jukebox.Playing)
             {
                 await ReplyAsync("No song is playing.");
                 return;
             }
-            await juke.StopAsync();
+            await Jukebox.StopAsync();
         }
     }
 }

@@ -14,9 +14,9 @@ using Melodica.Services.Downloaders.Exceptions;
 
 namespace Melodica.Services.Services
 {
-    public class MediaCache
+    public class MediaFileCache
     {
-        public MediaCache(string dirName)
+        public MediaFileCache(string dirName)
         {
             cacheLocation = Path.Combine(RootCacheLocation, dirName);
             bool exists = Directory.Exists(cacheLocation);
@@ -32,7 +32,7 @@ namespace Melodica.Services.Services
 
         public const string RootCacheLocation = @"./Mediacache/";
 
-        private readonly static List<MediaCache> cacheInstances = new List<MediaCache>(); // Keep track of all instances so we can clear all cache.
+        private readonly static List<MediaFileCache> cacheInstances = new List<MediaFileCache>(); // Keep track of all instances so we can clear all cache.
 
 
         private readonly string cacheLocation;

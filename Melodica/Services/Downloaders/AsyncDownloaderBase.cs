@@ -12,6 +12,8 @@ namespace Melodica.Services.Downloaders
 
         protected abstract Task<MediaType> EvaluateMediaTypeAsync(string url);
 
+        public abstract bool IsUrlSupported(string url);
+
         public abstract Task<bool> VerifyURLAsync(string url);
 
         public abstract Task<(MediaMetadata playlist, IEnumerable<MediaMetadata> videos)> DownloadPlaylistInfoAsync(string url);

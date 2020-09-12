@@ -23,7 +23,7 @@ namespace Melodica.Services.Playback.Models.Requests
                 for (int i = 0; i < videos.Count(); i++)
                 {
                     var item = videos.ElementAt(i);
-                    SubRequests!.Add(new DownloadRequest(item, info, item.MediaOrigin.HandlesDownloads ? downloader : AsyncDownloaderBase.Default));
+                    SubRequests!.Add(new DownloadRequest(item, info, item.MediaOrigin.SupportsDirectDownloads ? downloader : AsyncDownloaderBase.Default));
                 }
             }
         }
@@ -76,6 +76,7 @@ namespace Melodica.Services.Playback.Models.Requests
 
                     if (currentExceptionRetries++ > MaxExceptionRetries)
                         throw new Exception("Max exception retry attempts reached. The specified media could not be retrieved.\nIf this issue persists, please contact the bot owner.", ex);
+
                     return GetVideoAsync(id); // Retry once more.
                 }
                 return Task.FromResult(media);

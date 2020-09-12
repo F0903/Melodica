@@ -21,9 +21,9 @@ namespace Melodica.Services.Downloaders.YouTube
     {
         readonly YoutubeClient yt = new YoutubeClient();
 
-        readonly MediaCache cache = new MediaCache("YouTube");
+        readonly MediaFileCache cache = new MediaFileCache("YouTube");
 
-        public static bool IsUrlSupported(string url) => url.StartsWith("https://www.youtube.com/") || url.StartsWith("http://www.youtube.com/");
+        public override bool IsUrlSupported(string url) => url.StartsWith("https://www.youtube.com/") || url.StartsWith("http://www.youtube.com/");
 
         private async Task<PlayableMedia> DownloadVideo(Video video, MediaMetadata meta)
         {
@@ -243,6 +243,7 @@ namespace Melodica.Services.Downloaders.YouTube
 
             var mType = EvaluateMediaTypeAsync(input).Result;
 
+            // This whole object casting thing is smells bad
             object mediaObj = mType switch
             {
                 MediaType.Video => SearchOrGetVideo(input).Result,

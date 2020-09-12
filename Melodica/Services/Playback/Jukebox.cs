@@ -120,7 +120,7 @@ namespace Melodica.Services.Playback
         /// </summary>
         /// <param name="audio"> The audio processor to use. </param>
         /// <returns> The writing thread. </returns>
-        private Thread BeginWrite(AudioProcessor audio)
+        private Thread BeginWrite(ExternalAudioProcessor audio)
         {
             if (audioClient == null)
                 throw new NullReferenceException("Audio Client was null.");

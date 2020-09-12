@@ -21,7 +21,7 @@ namespace Melodica.Services.Downloaders.Spotify
         // Tie this to the default downloader (can't download directly from Spotify)
         readonly AsyncDownloaderBase dlHelper = Default;
 
-        public static bool IsUrlSupported(string url) => url.StartsWith("https://open.spotify.com/")   || 
+        public override bool IsUrlSupported(string url) => url.StartsWith("https://open.spotify.com/")   || 
                                                          url.StartsWith("http://open.spotify.com/")    ||
                                                          url.StartsWith("https://api.spotify.com/v1/") ||
                                                          url.StartsWith("http://api.spotify.com/v1/");

@@ -11,7 +11,7 @@ namespace Melodica.Services.Playback.Models
     {
         public TempMedia(MediaMetadata meta, Stream data) : base(meta, data)
         {
-            var toSave = Path.Combine(MediaCache.RootCacheLocation, $"temp/{meta.Title}");
+            var toSave = Path.Combine(MediaFileCache.RootCacheLocation, $"temp/{meta.Title}");
             var toSaveDir = Path.GetDirectoryName(toSave);
 
             if (!Directory.Exists(toSaveDir))

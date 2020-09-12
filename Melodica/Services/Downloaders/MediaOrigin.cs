@@ -7,10 +7,10 @@ namespace Melodica.Services.Downloaders
     [Serializable] // Remember to mark all child classes as Serializable
     public class MediaOrigin
     {
-        public MediaOrigin(string serviceName, bool handlesDownloads)
+        public MediaOrigin(string serviceName, bool supportsDownloads)
         {
             ServiceName = serviceName;
-            HandlesDownloads = handlesDownloads;
+            SupportsDirectDownloads = supportsDownloads;
         }
 
         public static MediaOrigin Spotify = new Spotify.SpotifyOrigin();
@@ -18,6 +18,6 @@ namespace Melodica.Services.Downloaders
 
         public string ServiceName { get; }
 
-        public bool HandlesDownloads { get; }
+        public bool SupportsDirectDownloads { get; }
     }
 }
