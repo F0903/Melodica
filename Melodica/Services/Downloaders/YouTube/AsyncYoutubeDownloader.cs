@@ -94,12 +94,6 @@ namespace Melodica.Services.Downloaders.YouTube
             return Task.FromResult(input.IsUrl() ? yt.Videos.GetAsync(input).Result : SearchVideo());
         }
 
-        public override Task<PlayableMedia> DownloadToExistingMetaAsync(MediaMetadata meta)
-        {
-            var vidInfo = SearchOrGetVideo(meta.Title).Result;
-            return DownloadVideo(vidInfo, meta);
-        }
-
         public override async Task<PlayableMedia> DownloadAsync(string query)
         {
             string vidId;

@@ -24,8 +24,6 @@ namespace Melodica.Services.Downloaders
 
         public abstract Task<PlayableMedia> DownloadAsync(string input);
 
-        public abstract Task<PlayableMedia> DownloadToExistingMetaAsync(MediaMetadata meta);
-
         public abstract Task<string> GetLivestreamAsync(string streamURL);
     }
 }

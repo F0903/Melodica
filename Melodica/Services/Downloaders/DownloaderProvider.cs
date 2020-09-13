@@ -40,7 +40,7 @@ namespace Melodica.Services.Services.Downloaders
                 if (type.IsUrlSupported(url))
                     return type;
             }
-            throw new Exception("Url is not supported.");
+            return AsyncDownloaderBase.Default;
 
             //if (AsyncYoutubeDownloader.IsUrlSupported(url))
             //    return new AsyncYoutubeDownloader();

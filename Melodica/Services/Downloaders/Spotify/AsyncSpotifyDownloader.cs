@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 
 using Melodica.Core.Exceptions;
 using Melodica.Services.Playback.Models;
+using Melodica.Services.Services;
 using Melodica.Utility.Extensions;
 
 using SpotifyAPI.Web;
@@ -37,10 +38,14 @@ namespace Melodica.Services.Downloaders.Spotify
             return Task.FromResult(id);
         }
 
-        private Task<PlayableMedia> DownloadVideo(MediaMetadata info)
+        private async Task<PlayableMedia> DownloadVideo(MediaMetadata info)
         {
             // Outsource downloading to another service (YouTube) since Spotify doesn't support direct streaming.
-            return dlHelper.DownloadToExistingMetaAsync(info);
+            var video = await dlHelper.DownloadAsync(info.Title);
+            video.Info.ID = info.ID;
+            video.Info.Title = info.Title;
+            video.Info.Thumbnail = info.Thumbnail;
+            return video;
         }
 
         public override Task<PlayableMedia> DownloadAsync(string url)
@@ -217,6 +222,6 @@ namespace Melodica.Services.Downloaders.Spotify
         }
 
         public override Task<string> GetLivestreamAsync(string streamURL) => throw new NotSupportedException("Spotify does not support livestreams.");
-        public override Task<PlayableMedia> DownloadToExistingMetaAsync(MediaMetadata meta) => throw new NotSupportedException("Spotify does not support direct streaming of data.");
+        //public override Task<PlayableMedia> DownloadToExistingMetaAsync(MediaMetadata meta) => throw new NotSupportedException("Spotify does not support direct streaming of data.");
     }
 }
