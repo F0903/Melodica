@@ -34,11 +34,6 @@ namespace Melodica.Services.Playback
             this.queue = queue ?? new SongQueue();
         }
 
-        public int Bitrate { get; set; } = 96 * 1024;
-        private readonly bool alwaysUseMaxBitrate = true;
-
-        public int BufferSize { get; set; } = 2 * 1024;
-
         private bool skip = false;
 
         private volatile bool switching = false;
@@ -60,6 +55,26 @@ namespace Melodica.Services.Playback
         private readonly SemaphoreSlim writeLock = new SemaphoreSlim(1);
 
         private readonly Stopwatch durationTimer = new Stopwatch();
+
+        public int Bitrate { get; set; } = 96 * 1024;
+        private readonly bool useChannelMaxBitrate = true;
+
+        public int BufferSize { get; set; } = 4 * 1024;
+
+        public const int MaxVolume = 100; // DO NOT go above 100 unless you want your ears blown out by distortion
+        public const int MinVolume = 1;
+
+        private int volume = 100;
+        public int Volume
+        {
+            get => volume;
+            set
+            {
+                if (value > MaxVolume) value = MaxVolume;
+                if (value < MinVolume) value = MinVolume;
+                volume = value;
+            }
+        }
 
         public TimeSpan Duration => new TimeSpan(durationTimer.Elapsed.Hours, durationTimer.Elapsed.Minutes, durationTimer.Elapsed.Seconds);
 
@@ -114,7 +129,7 @@ namespace Melodica.Services.Playback
             if (channel is SocketVoiceChannel ch)
             {
                 var chFullBitrate = ch.Bitrate / 1000 * 1024;
-                bitrate = alwaysUseMaxBitrate || Bitrate > chFullBitrate ? chFullBitrate : Bitrate;
+                bitrate = useChannelMaxBitrate || Bitrate > chFullBitrate ? chFullBitrate : Bitrate;
             }
             else bitrate = Bitrate;
             return audioClient!.CreatePCMStream(AudioApplication.Music, bitrate, 100, 0);
@@ -156,6 +171,22 @@ namespace Melodica.Services.Playback
 
                         if (shouldBreak)
                             break;
+
+                        for (int i = 0; i < buffer.Length; i += 2 /*16LE is 2 bytes*/)
+                        {
+                            short sample = BitConverter.ToInt16(buffer, i);
+                            float normalizedVol = Volume / 100f;
+                            sample = (short)(sample * normalizedVol);
+                            byte[] sampleBytes = BitConverter.GetBytes(sample);
+                            if (!BitConverter.IsLittleEndian) // Convert to little endian.
+                            {
+                                var first = sampleBytes[0];
+                                sampleBytes[0] = sampleBytes[1];
+                                sampleBytes[1] = first;
+                            }
+                            buffer[i] = sampleBytes[^2];
+                            buffer[i + 1] = sampleBytes[^1];
+                        }
 
                         discordOut!.Write(buffer, 0, bytesRead);
                     }
@@ -347,7 +378,7 @@ namespace Melodica.Services.Playback
                 callback?.Invoke((song!.Info, currentRequest!.SubRequestInfo, MediaState.Finished));
 
             // Subtract playlist total duration by the finished song.
-            if(currentRequest != null && currentRequest!.SubRequestInfo.HasValue)
+            if (currentRequest != null && currentRequest!.SubRequestInfo.HasValue)
                 currentRequest!.SubRequestInfo.Value.ParentRequestInfo.Duration -= currentRequest.GetInfo().Duration;
 
             if (switching)

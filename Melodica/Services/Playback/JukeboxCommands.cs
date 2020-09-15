@@ -232,6 +232,16 @@ namespace Melodica.Services.Playback
             return Task.CompletedTask;
         }
 
+        [Command("Volume", RunMode = RunMode.Sync), Summary("Sets volume.")]
+        public Task VolumeAsync(int value)
+        {
+            if (value > Jukebox.MaxVolume) return ReplyAsync($"Volume cannot be higher than {Jukebox.MaxVolume}");
+            if (value < Jukebox.MinVolume) return ReplyAsync($"Volume cannot be lower than {Jukebox.MinVolume}");
+
+            Jukebox.Volume = value;
+            return ReplyAsync($"Volume set to {value}");
+        }
+
         [Command("Clear"), Summary("Clears queue.")]
         public async Task ClearQueue()
         {
