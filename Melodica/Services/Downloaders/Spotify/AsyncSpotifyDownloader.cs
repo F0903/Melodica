@@ -22,10 +22,10 @@ namespace Melodica.Services.Downloaders.Spotify
         // Tie this to the default downloader (can't download directly from Spotify)
         readonly AsyncDownloaderBase dlHelper = Default;
 
-        public override bool IsUrlSupported(string url) => url.StartsWith("https://open.spotify.com/")   || 
-                                                         url.StartsWith("http://open.spotify.com/")    ||
-                                                         url.StartsWith("https://api.spotify.com/v1/") ||
-                                                         url.StartsWith("http://api.spotify.com/v1/");
+        public override bool IsUrlSupported(string url) => url.StartsWith("https://open.spotify.com/") ||
+                                                           url.StartsWith("http://open.spotify.com/") ||
+                                                           url.StartsWith("https://api.spotify.com/v1/") ||
+                                                           url.StartsWith("http://api.spotify.com/v1/");
 
         private Task<string> ParseURLToIdAsync(string url)
         {
@@ -99,13 +99,13 @@ namespace Melodica.Services.Downloaders.Spotify
             var itemImages = isAlbum ? spotifyAlbum!.Images : spotifyPlaylist!.Images;
             var playlistTracks = new MediaMetadata[isAlbum ? spotifyAlbum!.Tracks.Items!.Count : spotifyPlaylist!.Tracks!.Items!.Count];
             TimeSpan totalDuration = TimeSpan.Zero;
-           
+
             if (isAlbum)
             {
                 var tracks = spotifyAlbum!.Tracks.Items;
-                if (tracks == null) 
-                    throw new CriticalException("Album tracks could not be fetched.");                
-                    
+                if (tracks == null)
+                    throw new CriticalException("Album tracks could not be fetched.");
+
                 for (int i = 0; i < tracks!.Count; i++)
                 {
                     var track = tracks[i];
@@ -193,7 +193,7 @@ namespace Melodica.Services.Downloaders.Spotify
 
             if (url.Contains("open.spotify.com/track/") || url.Contains("api.spotify.com/v1/tracks/"))
                 return Task.FromResult(MediaType.Video);
-            
+
             throw new NotSupportedException("The link provided is not supported.");
         }
 

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -36,7 +37,7 @@ namespace Melodica.Services.Playback
         public int Bitrate { get; set; } = 96 * 1024;
         private readonly bool alwaysUseMaxBitrate = true;
 
-        public int BufferSize { get; set; } = 1024 / 2;
+        public int BufferSize { get; set; } = 2 * 1024;
 
         private bool skip = false;
 
@@ -57,6 +58,10 @@ namespace Melodica.Services.Playback
         private MediaRequestBase? currentRequest;
 
         private readonly SemaphoreSlim writeLock = new SemaphoreSlim(1);
+
+        private readonly Stopwatch durationTimer = new Stopwatch();
+
+        public TimeSpan Duration => new TimeSpan(durationTimer.Elapsed.Hours, durationTimer.Elapsed.Minutes, durationTimer.Elapsed.Seconds);
 
 
         public (MediaMetadata info, SubRequestInfo? subInfo) GetSong() => ((currentRequest ?? throw new Exception("No song is playing")).GetInfo(), currentRequest.SubRequestInfo);
@@ -131,11 +136,13 @@ namespace Melodica.Services.Playback
 
             void Write()
             {
+                var reqInfo = (currentRequest ?? throw new Exception("currentRequest was null in write loop. Please contact owner.")).GetInfo();
                 var inS = audio.GetOutput();
                 byte[] buffer = new byte[BufferSize];
                 int bytesRead;
                 try
                 {
+                    durationTimer.Start();
                     Playing = true;
                     while ((bytesRead = inS!.Read(buffer, 0, buffer.Length)) != 0)
                     {
@@ -152,6 +159,7 @@ namespace Melodica.Services.Playback
 
                         discordOut!.Write(buffer, 0, bytesRead);
                     }
+                    durationTimer.Stop();
                 }
                 catch (Exception)
                 {
@@ -160,6 +168,7 @@ namespace Melodica.Services.Playback
                 }
                 finally
                 {
+                    durationTimer.Reset();
                     Playing = false;
                     audio.Dispose();
                     discordOut!.Flush();
@@ -326,7 +335,7 @@ namespace Melodica.Services.Playback
             {
                 try
                 {
-                    playbackThread = BeginWrite(new FFmpegAudioProcessor(song!.Info.DataInformation.MediaPath!, BufferSize, song!.Info.DataInformation.Format));
+                    playbackThread = BeginWrite(new FFmpegAudioProcessor(song!.Info.DataInformation.MediaPath!, song!.Info.DataInformation.Format));
                     playbackThread.Start();
                     playbackThread.Join();
                 }

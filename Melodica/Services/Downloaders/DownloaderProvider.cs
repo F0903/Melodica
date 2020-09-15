@@ -32,15 +32,18 @@ namespace Melodica.Services.Services.Downloaders
             return subtypeObjs;
         }
 
-        public AsyncDownloaderBase? GetDownloaderFromURL(string url)
+        public AsyncDownloaderBase? GetDownloaderFromQuery(string query)
         {
+            if(!query.IsUrl())
+                return AsyncDownloaderBase.Default;
+
             cachedSubtypes ??= GetDownloaderSubTypesDynamically();
             foreach (var type in cachedSubtypes)
             {
-                if (type.IsUrlSupported(url))
+                if (type.IsUrlSupported(query))
                     return type;
             }
-            return AsyncDownloaderBase.Default;
+            throw new Exception("URL is not supported.");
 
             //if (AsyncYoutubeDownloader.IsUrlSupported(url))
             //    return new AsyncYoutubeDownloader();

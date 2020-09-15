@@ -10,10 +10,10 @@ namespace Melodica.Services.Audio
 {
     public class FFmpegAudioProcessor : ExternalAudioProcessor
     {
-        public FFmpegAudioProcessor(string mediaPath, int bufferSize = 1024, string? format = null) : base(mediaPath, bufferSize, format)
+        public FFmpegAudioProcessor(string mediaPath, string? format = null) : base(mediaPath, 0, format)
         {}
 
-        protected override Process ConstructExternal(string path, int bufferSize = 1024, string? format = null)
+        protected override Process ConstructExternal(string path, int bufferSize = 0, string? format = null)
         {
             if (path == null || path == string.Empty)
             {
@@ -25,7 +25,7 @@ namespace Melodica.Services.Audio
                 StartInfo = new ProcessStartInfo()
                 {
                     FileName = "ffmpeg.exe",
-                    Arguments = $"-y -hide_banner -loglevel debug -vn {(format != null ? $"-f {format}" : string.Empty)} -i {(path != null ? $"\"{path}\"" : "pipe:0")} -f s16le -bufsize {bufferSize} -ac 2 -ar 48000 pipe:1",
+                    Arguments = $"-y -hide_banner -loglevel debug -fflags nobuffer -fflags discardcorrupt -flags low_delay -strict experimental -avioflags direct -vn {(format != null ? $"-f {format}" : string.Empty)} -i {(path != null ? $"\"{path}\"" : "pipe:0")} -f s16le -ac 2 -ar 48000 pipe:1",
                     UseShellExecute = false,
                     RedirectStandardError = false,
                     RedirectStandardInput = (inputAvailable = (path == null)),

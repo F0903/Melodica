@@ -121,7 +121,7 @@ namespace Melodica.Services.Playback
             }
             else
             {
-                var downloader = downloaderProvider.GetDownloaderFromURL(query) ?? (query.IsUrl() ? null : AsyncDownloaderBase.Default);
+                var downloader = downloaderProvider.GetDownloaderFromQuery(query) ?? (query.IsUrl() ? null : AsyncDownloaderBase.Default);
                 return Task.FromResult(downloader == null ? new URLMediaRequest(null, query, true) : new DownloadRequest(query!, downloader) as MediaRequestBase);
             }
         }
@@ -169,7 +169,6 @@ namespace Melodica.Services.Playback
         [Command("Repeat"), Summary("Toggles repeat of the queue.")]
         public async Task ToggleRepeatAsync()
         {
-            //var juke = await jukebox.GetJukeboxAsync(Context.Guild);
             bool state = Jukebox.Repeat = !Jukebox.Repeat;
             await ReplyAsync($"Repeat {(state ? "On" : "Off")}");
         }
@@ -177,8 +176,6 @@ namespace Melodica.Services.Playback
         [Command("Loop"), Summary("Toggles loop on the current song.")]
         public async Task SetLoopingAsync([Remainder] string? query = null)
         {
-            //var juke = await jukebox.GetJukeboxAsync(Context.Guild);
-
             if (!string.IsNullOrEmpty(query))
             {
                 await InternalPlayAsync(query, true, true);
@@ -192,13 +189,26 @@ namespace Melodica.Services.Playback
         [Command("Song"), Alias("Info", "SongInfo"), Summary("Gets info about the current song.")]
         public async Task GetSongAsync()
         {
-            //var juke = await jukebox.GetJukeboxAsync(Context.Guild);
             if (!Jukebox.Playing)
             {
                 await ReplyAsync("No song is playing.");
                 return;
             }
             await ReplyAsync(null, false, playbackEmbed!);
+        }
+
+        [Command("Duration"), Summary("Gets the elapsed time of the song.")]
+        public async Task GetDurationAsync()
+        {
+            if (!Jukebox.Playing)
+            {
+                await ReplyAsync("No song is playing.");
+                return;
+            }
+
+            var dur = Jukebox.Duration;
+            var songDur = Jukebox.GetSong().info.Duration;
+            await ReplyAsync($"**__{dur}__\n{songDur}**");
         }
 
         [Command("Resume", RunMode = RunMode.Sync), Summary("Resumes playback.")]
@@ -225,38 +235,21 @@ namespace Melodica.Services.Playback
         [Command("Clear"), Summary("Clears queue.")]
         public async Task ClearQueue()
         {
-            //await (await jukebox.GetJukeboxAsync(Context.Guild)).ClearQueueAsync();
             await Jukebox.ClearQueueAsync();
             await ReplyAsync("Cleared queue.");
         }
 
         [Command("Remove"), Summary("Removes song from queue by index.")]
-        public async Task RemoveSongFromQueue(int index)
+        public async Task RemoveSongFromQueue(int? index = null)
         {
-            if (index <= 0)
-            {
-                await ReplyAsync("The index to remove cannot be under 0.");
-                return;
-            }
-
-            //var removed = (await jukebox.GetJukeboxAsync(Context.Guild)).RemoveFromQueue(index - 1);
-            var removed = Jukebox.RemoveFromQueue(index - 1);
-            await ReplyAsync(null, false, CreateMediaEmbed("Removed", removed, null));
-        }
-
-        [Command("RemoveLast"), Summary("Removes the last song from the queue.")]
-        public async Task RemoveLast() 
-        {
-            //var removed = (await jukebox.GetJukeboxAsync(Context.Guild)).RemoveFromQueue(^0);
-            var removed = Jukebox.RemoveFromQueue(^0);
+            // If index is null (default) then remove the last element.
+            var removed = index == null ? Jukebox.RemoveFromQueue(^0) : Jukebox.RemoveFromQueue(index.Value - 1);
             await ReplyAsync(null, false, CreateMediaEmbed("Removed", removed, null));
         }
 
         [Command("Queue"), Summary("Shows current queue.")]
         public async Task QueueAsync()
         {
-            //var juke = await jukebox.GetJukeboxAsync(Context.Guild);
-
             var queue = Jukebox.GetQueue();
 
             EmbedBuilder eb = new EmbedBuilder();
@@ -303,8 +296,6 @@ namespace Melodica.Services.Playback
                 return;
             }
 
-            //var juke = await jukebox.GetJukeboxAsync(Context.Guild);
-
             try { await Jukebox.PlayAsync(await GetRequestAsync(query!), userVoice, switchPlayback, loop, PlaybackCallback); }
             catch (EmptyChannelException) { await ReplyAsync("All users have left the channel. Disconnecting..."); }
         }
@@ -328,7 +319,6 @@ namespace Melodica.Services.Playback
             var userVoice = GetUserVoiceChannel();
             CheckForPermissions(userVoice);
 
-            //var juke = await jukebox.GetJukeboxAsync(Context.Guild);
             var req = new LocalMediaRequest(directUrl);
             await Jukebox.PlayAsync(req, userVoice, true, false, PlaybackCallback);
         }
@@ -336,7 +326,6 @@ namespace Melodica.Services.Playback
         [Command("Stop"), Summary("Stops playback.")]
         public async Task StopAsync()
         {
-            //var juke = await jukebox.GetJukeboxAsync(Context.Guild);
             if (!Jukebox.Playing)
             {
                 await ReplyAsync("No song is playing.");

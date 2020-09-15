@@ -47,8 +47,10 @@ namespace Melodica.Services.Playback.Models
             using var file = File.OpenWrite(mediaLocation);
             await rawMediaData.CopyToAsync(file);
             await file.FlushAsync();
-            rawMediaData = null;
+
             Info.DataInformation.MediaPath = mediaLocation;
+
+            rawMediaData = null;
 
             // Serialize the metadata.
             var metaLocation = Path.Combine(saveDir!, (Info.ID ?? throw new NullReferenceException("Tried to save media with empty ID.")).ReplaceIllegalCharacters() + MediaMetadata.MetaFileExtension);
