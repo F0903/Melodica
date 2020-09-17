@@ -46,7 +46,7 @@ namespace Melodica.Services.Lyrics
             };
             req.Method = "GET";
 
-            var response = req.GetResponse();
+            using var response = req.GetResponse();
             string status;
             if ((status = response.Headers.Get("Status")) != "200 OK")
                 throw new HttpRequestException($"Server returned invalid status: {status}");

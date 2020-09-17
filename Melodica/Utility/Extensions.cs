@@ -18,9 +18,17 @@ namespace Melodica.Utility.Extensions
             '<'
         };
 
-        public static string FixURLWhitespace(this string input)
+        public static string ExtractArtistName(this string songTitle)
         {
-            return input.Replace(" ", "%20");
+            int charIndx = songTitle.IndexOf('-');
+            int spaceIndx;
+            int endIndx = charIndx != -1 ? charIndx - 1 : (spaceIndx = songTitle.IndexOf(' ')) != -1 ? spaceIndx : songTitle.Length;
+            return songTitle[0..endIndx];
+        }
+
+        public static string FixURLWhitespace(this string input, string whitespaceReplacement = "%20")
+        {
+            return input.Replace(" ", whitespaceReplacement);
         }
 
         public async static Task<TimeSpan> GetTotalDurationAsync(this YoutubeExplode.Playlists.Playlist pl, YoutubeExplode.YoutubeClient? client = null) 
