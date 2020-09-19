@@ -2,7 +2,7 @@
 
 namespace Melodica.Core
 {
-    public interface IAsyncBot
+    public interface IBot
     {
         public Task ConnectAsync(bool startOnConnect = false);
 

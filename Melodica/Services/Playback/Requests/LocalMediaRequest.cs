@@ -4,9 +4,10 @@ using System.Linq;
 using System.Threading.Tasks;
 
 using Melodica.Core.Exceptions;
+using Melodica.Services.Models;
 using Melodica.Utility.Extensions;
 
-namespace Melodica.Services.Playback.Models.Requests
+namespace Melodica.Services.Playback.Requests
 {
     public class LocalMediaRequest : MediaRequestBase
     {

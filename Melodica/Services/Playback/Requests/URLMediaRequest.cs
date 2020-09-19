@@ -6,8 +6,9 @@ using System.Threading;
 using System.Threading.Tasks;
 
 using Melodica.Core.Exceptions;
+using Melodica.Services.Models;
 
-namespace Melodica.Services.Playback.Models.Requests
+namespace Melodica.Services.Playback.Requests
 {
     public class URLMediaRequest : MediaRequestBase
     {

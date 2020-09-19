@@ -10,8 +10,8 @@ using Discord.WebSocket;
 
 using Melodica.Core.Exceptions;
 using Melodica.Services.Audio;
-using Melodica.Services.Playback.Models;
-using Melodica.Services.Playback.Models.Requests;
+using Melodica.Services.Models;
+using Melodica.Services.Playback.Requests;
 
 namespace Melodica.Services.Playback
 {
@@ -256,9 +256,7 @@ namespace Melodica.Services.Playback
         /// <returns></returns>
         public async Task PlayAsync(MediaRequestBase request, IAudioChannel channel, bool switchSong = false, bool loop = false, Action<(MediaMetadata info, SubRequestInfo? subInfo, MediaState state)>? callback = null)
         {
-            //TODO: This whole thing might need a kind refactoring.
-
-            //TODO: Fix media empty path bug (something may be going on in the cache) (ref song: https://open.spotify.com/track/0CpTNItafURRFujw9WAKfR?si=yRmzFCJsT6KlCVGCVcLhZQ)
+            //TODO: Perhaps refactor this into seperate functions for switching and queueing/playing?
 
             if (switching = switchSong)
                 Paused = false;
@@ -266,7 +264,7 @@ namespace Melodica.Services.Playback
             await ConnectAsync(channel);
             bool wasPlaying = Playing;
             bool wasShuffling = Shuffle;
-            Loop = loop; // Remove this line if loop doesn't work. (it should)
+            Loop = loop;
 
             bool error = false;
 

@@ -2,7 +2,7 @@
 using System.Threading.Tasks;
 
 using Melodica.Services.Downloaders.YouTube;
-using Melodica.Services.Playback.Models;
+using Melodica.Services.Models;
 
 namespace Melodica.Services.Downloaders
 {

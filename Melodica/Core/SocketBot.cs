@@ -7,7 +7,7 @@ using Melodica.Services.Logging;
 
 namespace Melodica.Core
 {
-    public class SocketBot : IAsyncBot
+    public class SocketBot : IBot
     {
         public SocketBot(BotSettings settings, IAsyncLoggingService logger, SocketCommandHandler commandHandler)
         {

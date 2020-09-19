@@ -5,8 +5,9 @@ using System.Threading.Tasks;
 
 using Melodica.Services.Downloaders;
 using Melodica.Services.Downloaders.Exceptions;
+using Melodica.Services.Models;
 
-namespace Melodica.Services.Playback.Models.Requests
+namespace Melodica.Services.Playback.Requests
 {
     public class DownloadRequest : MediaRequestBase
     {

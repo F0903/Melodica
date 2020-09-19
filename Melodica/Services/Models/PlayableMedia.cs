@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 using Melodica.Services.Serialization;
 using Melodica.Utility.Extensions;
 
-namespace Melodica.Services.Playback.Models
+namespace Melodica.Services.Models
 {
     public class PlayableMedia
     {

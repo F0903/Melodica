@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 
 using Melodica.Core.Exceptions;
 using Melodica.Services.Downloaders.Exceptions;
-using Melodica.Services.Playback.Models;
+using Melodica.Services.Models;
 using Melodica.Services.Services;
 using Melodica.Utility;
 using Melodica.Utility.Extensions;

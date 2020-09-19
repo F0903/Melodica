@@ -4,7 +4,9 @@ using System.IO;
 using System.Net;
 using System.Threading.Tasks;
 
-namespace Melodica.Services.Playback.Models.Requests
+using Melodica.Services.Models;
+
+namespace Melodica.Services.Playback.Requests
 {
     class AttachmentMediaRequest : MediaRequestBase
     {

@@ -37,13 +37,14 @@ namespace Melodica.Services.Wiki
             try { doc = JsonDocument.Parse(resStream); }
             catch { throw new JsonException("Could not parse the response stream."); }
             var root = doc.RootElement;
-            doc.Dispose();
 
             var title = root.GetProperty("title").GetString();
             string? imageUrl = null;
             try { imageUrl = root.GetProperty("thumbnail").GetProperty("source").GetString(); } catch { }
             var summary = root.GetProperty("extract").GetString();
             response.Close();
+            doc.Dispose();
+
             return new WikiElement()
             {
                 Title = title,

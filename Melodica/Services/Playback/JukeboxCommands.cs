@@ -8,8 +8,8 @@ using Discord.Commands;
 using Discord.WebSocket;
 
 using Melodica.Services.Downloaders;
-using Melodica.Services.Playback.Models;
-using Melodica.Services.Playback.Models.Requests;
+using Melodica.Services.Models;
+using Melodica.Services.Playback.Requests;
 using Melodica.Services.Services;
 using Melodica.Services.Services.Downloaders;
 using Melodica.Utility.Extensions;
