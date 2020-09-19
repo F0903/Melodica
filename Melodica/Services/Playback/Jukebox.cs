@@ -172,21 +172,22 @@ namespace Melodica.Services.Playback
                         if (shouldBreak)
                             break;
 
-                        for (int i = 0; i < buffer.Length; i += 2 /*16LE is 2 bytes*/)
-                        {
-                            short sample = BitConverter.ToInt16(buffer, i);
-                            float normalizedVol = Volume / 100f;
-                            sample = (short)(sample * normalizedVol);
-                            byte[] sampleBytes = BitConverter.GetBytes(sample);
-                            if (!BitConverter.IsLittleEndian) // Convert to little endian.
+                        if (volume != MaxVolume) // Basic volume control
+                            for (int i = 0; i < buffer.Length; i += 2 /*16LE is 2 bytes*/)
                             {
-                                var first = sampleBytes[0];
-                                sampleBytes[0] = sampleBytes[1];
-                                sampleBytes[1] = first;
+                                short sample = BitConverter.ToInt16(buffer, i);
+                                float normalizedVol = Volume / 100f;
+                                sample = (short)(sample * normalizedVol);
+                                byte[] sampleBytes = BitConverter.GetBytes(sample);
+                                if (!BitConverter.IsLittleEndian) // Convert to little endian.
+                                {
+                                    var first = sampleBytes[0];
+                                    sampleBytes[0] = sampleBytes[1];
+                                    sampleBytes[1] = first;
+                                }
+                                buffer[i] = sampleBytes[^2];
+                                buffer[i + 1] = sampleBytes[^1];
                             }
-                            buffer[i] = sampleBytes[^2];
-                            buffer[i + 1] = sampleBytes[^1];
-                        }
 
                         discordOut!.Write(buffer, 0, bytesRead);
                     }
@@ -201,8 +202,9 @@ namespace Melodica.Services.Playback
                 {
                     durationTimer.Reset();
                     Playing = false;
-                    audio.Dispose();
+                    inS!.Flush();
                     discordOut!.Flush();
+                    audio.Dispose();
                 }
             }
             return new Thread(Write)

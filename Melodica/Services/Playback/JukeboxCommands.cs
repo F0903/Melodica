@@ -232,7 +232,7 @@ namespace Melodica.Services.Playback
             return Task.CompletedTask;
         }
 
-        [Command("Volume", RunMode = RunMode.Sync), Summary("Sets volume.")]
+        [Command("Volume", RunMode = RunMode.Sync), Alias("Vol"), Summary("Sets volume.")]
         public Task VolumeAsync(int value)
         {
             if (value > Jukebox.MaxVolume) return ReplyAsync($"Volume cannot be higher than {Jukebox.MaxVolume}");
@@ -285,8 +285,9 @@ namespace Melodica.Services.Playback
                 {
                     if (i > queue.Length)
                         break;
-                    var x = queue[i - 1];
-                    eb.AddField(i == 1 ? "Next:" : i == maxElems ? "And more" : i.ToString(), i == 1 ? $"**{x.GetInfo().Title}**" : i == maxElems ? $"Plus {queue.Length - (i - 1)} other songs!" : x.GetInfo().Title, false);
+                    var song = queue[i - 1];
+                    var songInfo = song.GetInfo();
+                    eb.AddField(i == 1 ? "Next:" : i == maxElems ? "And more" : i.ToString(), i == 1 ? $"**{songInfo.Artist} - {songInfo.Title}**" : i == maxElems ? $"Plus {queue.Length - (i - 1)} other songs!" : $"{songInfo.Artist} - {songInfo.Title}", false);
                 }
             }
 
@@ -312,6 +313,32 @@ namespace Melodica.Services.Playback
 
             try { await Jukebox.PlayAsync(await GetRequestAsync(query!), userVoice, switchPlayback, loop, PlaybackCallback); }
             catch (EmptyChannelException) { await ReplyAsync("All users have left the channel. Disconnecting..."); }
+        }
+
+        [Command("Continue"), Summary("Continues the current queue if the bot has disconnected.")]
+        public async Task ContinueAsync()
+        {
+            if(Jukebox.Playing)
+            {
+                await ReplyAsync("The bot is still playing. (If this is incorrect, please report it to the owner)");
+                return;
+            }
+
+            var queue = Jukebox.GetQueue();
+            if (queue.IsEmpty)
+            {
+                await ReplyAsync("Cannot continue from an empty queue.");
+                return;
+            }
+
+            var voice = GetUserVoiceChannel();
+            if(voice == null)
+            {
+                await ReplyAsync("You need to be in a voice channel!");
+                return;
+            }
+
+            await Jukebox.PlayAsync(await queue.DequeueAsync(), voice, false, false, PlaybackCallback);
         }
 
         [Command("Switch"), Summary("Changes the current song.")]

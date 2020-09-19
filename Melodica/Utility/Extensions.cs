@@ -21,12 +21,12 @@ namespace Melodica.Utility.Extensions
             '<'
         };
 
-        public static (string artist, string newTitle) SeperateArtistName(this string songTitle)
+        public static (string artist, string newTitle) SeperateArtistName(this string songTitle, string backupTitle = " ")
         {
             int charIndx = songTitle.IndexOf('-');
             int spaceIndx;
             int endIndx = charIndx != -1 ? charIndx - 1 : (spaceIndx = songTitle.IndexOf(' ')) != -1 ? spaceIndx : songTitle.Length;
-            return (songTitle[0..endIndx], songTitle[(endIndx + (charIndx != -1 ? 3 : 1))..songTitle.Length]);
+            return (songTitle[0..endIndx], endIndx != songTitle.Length ? songTitle[(endIndx + (charIndx != -1 ? 3 : 1))..songTitle.Length] : backupTitle);
         }
 
         public static string ExtractArtistName(this string songTitle)
