@@ -9,13 +9,12 @@ namespace Melodica.Core
 {
     public class SocketBot : IBot
     {
-        public SocketBot(BotSettings settings, IAsyncLoggingService logger, SocketCommandHandler commandHandler)
+        public SocketBot(IAsyncLogger logger, SocketCommandHandler commandHandler)
         {
-            this.settings = settings;
             this.client = new DiscordSocketClient(new DiscordSocketConfig() 
             { 
                 MessageCacheSize = 1,
-                LogLevel = settings.LogSeverity
+                LogLevel = BotSettings.LogLevel
             });
             this.logger = logger;
             this.commandHandler = commandHandler;
@@ -23,13 +22,11 @@ namespace Melodica.Core
             Bootstrap().Wait();
         }
 
-        internal readonly BotSettings settings;
-
         internal readonly DiscordSocketClient client;
 
         internal readonly SocketCommandHandler commandHandler;
 
-        private readonly IAsyncLoggingService logger;
+        private readonly IAsyncLogger logger;
 
         private async Task Bootstrap()
         {
@@ -53,7 +50,7 @@ namespace Melodica.Core
 
         public async Task ConnectAsync(bool startOnConnect = false)
         {
-            await client.LoginAsync(TokenType.Bot, settings.Token);
+            await client.LoginAsync(TokenType.Bot, BotSettings.Token);
             await client.GetApplicationInfoAsync().Result.UpdateAsync();
             if (startOnConnect)
                 await client.StartAsync();

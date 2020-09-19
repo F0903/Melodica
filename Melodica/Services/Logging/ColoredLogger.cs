@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 
 namespace Melodica.Services.Logging
 {
-    public class ColoredLogger : IAsyncLoggingService
+    public class ColoredLogger : IAsyncLogger
     {
         public Task LogAsync(Discord.LogMessage msg)
         {

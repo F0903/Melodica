@@ -41,6 +41,8 @@ namespace Melodica.Services.Models
 
         public string Title { get; set; } = "External Media";
 
+        public string Artist { get; set; } = "";
+
         public string? Thumbnail { get; set; }
 
         public string? URL { get; set; }

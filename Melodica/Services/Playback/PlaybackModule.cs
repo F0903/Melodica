@@ -2,7 +2,7 @@
 
 namespace Melodica.Services.Playback
 {
-    public class JukeboxModule : NinjectModule
+    public class PlaybackModule : NinjectModule
     {
         public override void Load()
         {

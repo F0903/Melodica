@@ -11,11 +11,11 @@ namespace Melodica
 {
     public static class Program
     {
-        private static readonly SocketBot currentBot = new SocketBot(BotSettings.Get(true), Kernel.Get<IAsyncLoggingService>(), Kernel.Get<SocketCommandHandler>());
+        private static readonly SocketBot currentBot = new SocketBot(Kernel.Get<IAsyncLogger>(), Kernel.Get<SocketCommandHandler>());
 
         private static async Task Main()
         {
-            await currentBot.ConnectAsync($"{GuildSettings.DefaultPrefix}play", Discord.ActivityType.Listening, true);
+            await currentBot.ConnectAsync($"{BotSettings.DefaultPrefix}play", Discord.ActivityType.Listening, true);
             AppDomain.CurrentDomain.ProcessExit += CurrentDomain_ProcessExit;
             Process.GetCurrentProcess().PriorityClass = BotSettings.ProcessPriority;
             

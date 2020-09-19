@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 
 using Melodica.Core.Exceptions;
+using Melodica.Services.Downloaders.Exceptions;
 using Melodica.Services.Models;
 using Melodica.Services.Services;
 using Melodica.Utility.Extensions;
@@ -41,16 +42,16 @@ namespace Melodica.Services.Downloaders.Spotify
         private async Task<PlayableMedia> DownloadVideo(MediaMetadata info)
         {
             // Outsource downloading to another service (YouTube) since Spotify doesn't support direct streaming.
-            var video = await dlHelper.DownloadAsync(info.Title);
+            var video = await dlHelper.DownloadAsync($"{info.Artist} {info.Title}");
             video.Info.ID = info.ID;
             video.Info.Title = info.Title;
+            video.Info.Artist = info.Artist;
             video.Info.Thumbnail = info.Thumbnail;
             return video;
         }
 
-        public override Task<PlayableMedia> DownloadAsync(string url)
+        public override Task<PlayableMedia> DownloadAsync(MediaMetadata info)
         {
-            var info = GetMediaInfoAsync(url).Result;
             return info.MediaType switch
             {
                 MediaType.Video => DownloadVideo(info),
@@ -58,6 +59,12 @@ namespace Melodica.Services.Downloaders.Spotify
                 MediaType.Livestream => throw new NotSupportedException(),
                 _ => throw new NotSupportedException(),
             };
+        }
+
+        public override Task<PlayableMedia> DownloadAsync(string url)
+        {
+            var info = GetMediaInfoAsync(url).Result;
+            return DownloadAsync(info);
         }
 
         private List<FullTrack> ToTrackList(List<PlaylistTrack<IPlayableItem>> tracks)
@@ -104,12 +111,11 @@ namespace Melodica.Services.Downloaders.Spotify
             {
                 var tracks = spotifyAlbum!.Tracks.Items;
                 if (tracks == null)
-                    throw new CriticalException("Album tracks could not be fetched.");
+                    throw new DownloaderException("Album tracks could not be fetched.");
 
                 for (int i = 0; i < tracks!.Count; i++)
                 {
                     var track = tracks[i];
-                    var trackTitle = $"{tracks[i].Artists[0].Name} {tracks[i].Name}";
 
                     var lastTotalDuration = totalDuration;
 
@@ -117,21 +123,21 @@ namespace Melodica.Services.Downloaders.Spotify
                     {
                         MediaOrigin = MediaOrigin.Spotify,
                         MediaType = MediaType.Video,
-                        Title = trackTitle,
+                        Title = track.Name,
+                        Artist = track.Artists.Aggregate("", (current, artist) => current += $"{artist.Name} "),
                         Duration = (totalDuration += TimeSpan.FromSeconds(track.DurationMs / 1000)) - lastTotalDuration, // Ugly
-                        Thumbnail = itemImages?[0].Url,
+                        Thumbnail = spotifyAlbum.Images[0].Url,
                         URL = track.Href,
                         ID = track.Id
                     };
                 }
             }
-            else // Stupid but neccesary due to API
+            else
             {
                 var tracks = ToTrackList(spotifyPlaylist!.Tracks!.Items!);
                 for (int i = 0; i < tracks.Count; i++)
                 {
                     var track = tracks[i];
-                    var trackTitle = $"{tracks[i].Artists[0].Name} {tracks[i].Name}";
 
                     var lastTotalDuration = totalDuration;
 
@@ -139,9 +145,10 @@ namespace Melodica.Services.Downloaders.Spotify
                     {
                         MediaOrigin = MediaOrigin.Spotify,
                         MediaType = MediaType.Video,
-                        Title = trackTitle,
+                        Title = track.Name,
+                        Artist = track.Artists.Aggregate("", (current, artist) => current += $"{artist.Name} "),
                         Duration = (totalDuration += TimeSpan.FromSeconds(track.DurationMs / 1000)) - lastTotalDuration, // Ugly
-                        Thumbnail = itemImages?[0].Url,
+                        Thumbnail = track.Album.Images[0].Url,
                         URL = track.Href,
                         ID = track.Id
                     };
@@ -150,7 +157,8 @@ namespace Melodica.Services.Downloaders.Spotify
 
             var playlistInfo = new MediaMetadata()
             {
-                Title = (isAlbum ? spotifyAlbum!.Name : spotifyPlaylist!.Name) ?? throw new CriticalException("Could not fetch name of Spotify media."),
+                Title = (isAlbum ? spotifyAlbum!.Name : spotifyPlaylist!.Name) ?? throw new DownloaderException("Could not fetch name of Spotify media."),
+                Artist = isAlbum ? spotifyAlbum!.Artists.Aggregate("", (current, artist) => current += $"{artist.Name} ") : spotifyPlaylist!.Name ?? throw new DownloaderException("Could not fetch name of Spotify media."),
                 Duration = totalDuration,
                 MediaOrigin = MediaOrigin.Spotify,
                 MediaType = MediaType.Playlist,
@@ -170,7 +178,8 @@ namespace Melodica.Services.Downloaders.Spotify
             {
                 MediaOrigin = MediaOrigin.Spotify,
                 MediaType = MediaType.Video,
-                Title = $"{track.Artists[0].Name} {track.Name}",
+                Title = track.Name,
+                Artist = track.Artists.Aggregate("", (current, artist) => current += $"{artist.Name} "),
                 Duration = TimeSpan.FromSeconds(track.DurationMs / 1000),
                 ID = track.Id,
                 URL = track.Href,
@@ -186,7 +195,7 @@ namespace Melodica.Services.Downloaders.Spotify
         protected override Task<MediaType> EvaluateMediaTypeAsync(string url)
         {
             if (!url.IsUrl())
-                throw new CriticalException("Function only accepts a url. Something very wrong happened here... (SP)");
+                throw new DownloaderException("Function only accepts a url. Something very wrong happened here... (SP)");
 
             if (IsPlaylistAsync(url))
                 return Task.FromResult(MediaType.Playlist);
@@ -194,7 +203,7 @@ namespace Melodica.Services.Downloaders.Spotify
             if (url.Contains("open.spotify.com/track/") || url.Contains("api.spotify.com/v1/tracks/"))
                 return Task.FromResult(MediaType.Video);
 
-            throw new NotSupportedException("The link provided is not supported.");
+            throw new DownloaderException("The link provided is not supported.");
         }
 
         public override Task<MediaMetadata> GetMediaInfoAsync(string url)

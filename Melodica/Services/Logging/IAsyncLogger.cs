@@ -2,7 +2,7 @@
 
 namespace Melodica.Services.Logging
 {
-    public interface IAsyncLoggingService
+    public interface IAsyncLogger
     {
         public Task LogAsync(Discord.LogMessage msg);
     }

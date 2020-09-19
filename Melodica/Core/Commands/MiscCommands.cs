@@ -39,7 +39,7 @@ namespace Melodica.Core.Commands
         }
 
         [Command("Help"), Summary("Prints out all available commands.")]
-        public async Task HelpAsync(int page = 1)
+        public async Task HelpAsync(int page = 1) //TODO: Fix and tidy up
         {
             if (page < 1) page = 1;
 

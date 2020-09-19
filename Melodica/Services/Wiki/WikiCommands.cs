@@ -38,9 +38,9 @@ namespace Melodica.Services.Wiki
             WikiElement info;
             if (pageTitle == null && Jukebox.Playing)
             {
-                var songTitle = Jukebox.GetSong().info.Title.ExtractArtistName();
+                var artist = Jukebox.GetSong().info.Artist;
                 
-                info = await wiki.GetInfoAsync(songTitle);
+                info = await wiki.GetInfoAsync(artist);
             }
             else info = await wiki.GetInfoAsync(pageTitle!);
 

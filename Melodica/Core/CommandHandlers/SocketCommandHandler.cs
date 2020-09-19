@@ -4,6 +4,7 @@ using Discord.WebSocket;
 using Melodica.Core;
 using Melodica.Services;
 using Melodica.Services.Logging;
+using Melodica.Services.Settings;
 using Melodica.Utility.Extensions;
 using System;
 using System.Collections.Generic;
@@ -15,14 +16,17 @@ namespace Melodica.Core.CommandHandlers
 {
     public class SocketCommandHandler : IAsyncCommandHandler
     {
-        public SocketCommandHandler(IAsyncLoggingService logger)
+        public SocketCommandHandler(IAsyncLogger logger, GuildSettingsProvider settings)
         {
-            this.logger = logger;           
+            this.logger = logger;
+            this.settings = settings;
         }
 
         public bool BuiltCommands { get; private set; } = false;
 
-        private readonly IAsyncLoggingService logger;
+        private readonly IAsyncLogger logger;
+
+        private readonly GuildSettingsProvider settings;
 
         private SocketBot? owner;
 
@@ -52,7 +56,7 @@ namespace Melodica.Core.CommandHandlers
             this.owner = owner;
             cmdService = new CommandService(new CommandServiceConfig()
             {
-                LogLevel = owner.settings.LogSeverity,
+                LogLevel = BotSettings.LogLevel,
                 DefaultRunMode = RunMode.Async,
                 CaseSensitiveCommands = false
             });
@@ -81,7 +85,9 @@ namespace Melodica.Core.CommandHandlers
 
             int argPos = 0;
 
-            if (!context.Message.HasStringPrefix(GuildSettings.Get(context.Guild).Prefix, ref argPos))
+            var guildSettings = await settings.GetSettingsAsync(context.Guild.Id);
+            var prefix = guildSettings.Prefix;
+            if (!context.Message.HasStringPrefix(prefix, ref argPos))
                 return;
 
             await cmdService!.ExecuteAsync(context, argPos, Melodica.IoC.Kernel.GetRawKernel());

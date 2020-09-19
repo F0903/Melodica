@@ -99,7 +99,7 @@ namespace Melodica.Services.Services
 
         public async Task<(int deletedFiles, int filesInUse, long msDuration)> PruneCacheAsync(bool forceClear = false)
         {
-            if (!forceClear && await GetCacheSizeAsync() < BotSettings.Get().MaxFileCacheInMB * 1024 * 1024)
+            if (!forceClear && await GetCacheSizeAsync() < BotSettings.CacheSizeMB * 1024 * 1024)
                 return (0, 0, 0);
 
             int deletedFiles = 0;

@@ -6,8 +6,8 @@ using System.Threading.Tasks;
 
 namespace Melodica.Services.Downloaders.Exceptions
 {
-    public class MissingMetadataException : Exception
+    public class MissingMetadataException : DownloaderException
     {
-        public MissingMetadataException(string? msg = null) : base(msg) { }
+        public MissingMetadataException(string? msg = null, Exception? inner = null) : base(msg, inner) { }
     }
 }

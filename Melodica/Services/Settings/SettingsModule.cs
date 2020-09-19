@@ -4,13 +4,13 @@ using System.Text;
 
 using Ninject.Modules;
 
-namespace Melodica.Services.Logging
+namespace Melodica.Services.Settings
 {
-    public class LoggingModule : NinjectModule
+    public class SettingsModule : NinjectModule
     {
         public override void Load()
         {
-            Bind<IAsyncLogger>().To<ColoredLogger>();
+            Kernel.Bind<GuildSettingsProvider>().ToSelf();
         }
     }
 }

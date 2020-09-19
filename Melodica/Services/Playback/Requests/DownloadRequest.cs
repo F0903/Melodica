@@ -67,7 +67,7 @@ namespace Melodica.Services.Playback.Requests
                     if(info != null && info!.MediaType == MediaType.Livestream) // Quicker than the alternative as livestreams don't need downloads, and skips uneccesary calls to APIs
                         return Task.FromResult(new PlayableMedia(info, null));
 
-                    media = downloader.DownloadAsync(query).Result;
+                    media = info != null ? downloader.DownloadAsync(info).Result : downloader.DownloadAsync(query).Result;
                     info = media.Info;
                 }
                 catch (Exception ex)

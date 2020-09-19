@@ -25,35 +25,16 @@ namespace Melodica.Services.Downloaders.YouTube
 
         public override bool IsUrlSupported(string url) => url.StartsWith("https://www.youtube.com/") || url.StartsWith("http://www.youtube.com/");
 
-        private async Task<PlayableMedia> DownloadVideo(Video video, MediaMetadata meta)
+        private async Task<PlayableMedia> DownloadVideo(MediaMetadata meta)
         {
-            var newMeta = new MediaMetadata()
-            {
-                ID = video.Id,
-                Duration = meta.Duration,
-                MediaOrigin = meta.MediaOrigin,
-                MediaType = meta.MediaType,
-                Thumbnail = meta.Thumbnail,
-                Title = meta.Title,
-                URL = meta.URL
-            };
-
-            if (cache.Contains(video.Id))
-            {
-                var cacheMed = await cache.GetAsync(video.Id);
-                newMeta.DataInformation = cacheMed.Info.DataInformation;
-
-                var newMed = new PlayableMedia(newMeta, null);
-                return newMed;
-            }
-            var vidStreams = await yt.Videos.Streams.GetManifestAsync(video.Id);
+            var vidStreams = await yt.Videos.Streams.GetManifestAsync(meta.ID ?? throw new DownloaderException("ID was null in DownloadVideo"));
             var vidAudioStream = vidStreams.GetAudioOnly().WithHighestBitrate();
             Assert.NotNull(vidAudioStream);
 
             var rawStream = await yt.Videos.Streams.GetAsync(vidAudioStream!);
 
-            newMeta.DataInformation.Format = vidAudioStream!.Container.Name.ToLower();
-            return await cache.CacheMediaAsync(new PlayableMedia(newMeta, rawStream!));
+            meta.DataInformation.Format = vidAudioStream!.Container.Name.ToLower();
+            return await cache.CacheMediaAsync(new PlayableMedia(meta, rawStream!));
         }
 
         private bool IsUnavailable(Exception ex) =>
@@ -94,24 +75,11 @@ namespace Melodica.Services.Downloaders.YouTube
             return Task.FromResult(input.IsUrl() ? yt.Videos.GetAsync(input).Result : SearchVideo());
         }
 
-        public override async Task<PlayableMedia> DownloadAsync(string query)
+        public override async Task<PlayableMedia> DownloadAsync(MediaMetadata meta)
         {
-            string vidId;
-            MediaMetadata? meta;
-            if (query.IsUrl())
-            {
-                vidId = await ParseURLToIdAsync(query);
-                meta = await GetMediaInfoAsync(query);
-            }
-            else
-            {
-                meta = await GetMediaInfoAsync(query);
-                vidId = meta.ID!;
-            }
- 
-            if (vidId == null) throw new CriticalException("Id of media was null. Unable to download.");
-            if (cache.Contains(vidId))
-                return await cache.GetAsync(vidId);
+            if (meta.ID == null) throw new DownloaderException("Id of media was null. Unable to download.");
+            if (cache.Contains(meta.ID))
+                return await cache.GetAsync(meta.ID);
 
             try
             {
@@ -121,16 +89,29 @@ namespace Melodica.Services.Downloaders.YouTube
                 if (meta.MediaType == MediaType.Livestream)
                     return new PlayableMedia(meta, null);
 
-                var vidInfo = await yt.Videos.GetAsync(vidId); ///
-                return await DownloadVideo(vidInfo, meta);
+                return await DownloadVideo(meta);
             }
             catch (Exception ex)
             {
                 if (IsUnavailable(ex))
                     throw new MediaUnavailableException();
                 else
-                    throw new CriticalException("Critical error happened in YT DownloadAsync.", ex);
+                    throw new DownloaderException("Critical error happened in YT DownloadAsync.", ex);
             }
+        }
+
+        public override async Task<PlayableMedia> DownloadAsync(string query)
+        {
+            MediaMetadata? meta;
+            if (query.IsUrl())
+            {
+                meta = await GetMediaInfoAsync(query);
+            }
+            else
+            {
+                meta = await GetMediaInfoAsync(query);
+            }
+            return await DownloadAsync(meta);
         }
 
         public override async Task<(MediaMetadata playlist, IEnumerable<MediaMetadata> videos)> DownloadPlaylistInfoAsync(string url)
@@ -156,6 +137,7 @@ namespace Melodica.Services.Downloaders.YouTube
 
         private Task<MediaMetadata> GetVideoMetadataAsync(Video video)
         {
+            var (artist, newTitle) = video.Title.SeperateArtistName();
             return Task.FromResult(new MediaMetadata()
             {
                 MediaOrigin = MediaOrigin.YouTube,
@@ -163,13 +145,15 @@ namespace Melodica.Services.Downloaders.YouTube
                 Duration = video.Duration,
                 ID = video.Id,
                 Thumbnail = video.Thumbnails.MediumResUrl,
-                Title = video.Title,
+                Title = newTitle,
+                Artist = artist,
                 URL = video.Url
             });
         }
 
         private Task<MediaMetadata> GetPlaylistMetadataAsync(Playlist pl)
         {
+            var (artist, newTitle) = pl.Title.SeperateArtistName();
             return Task.FromResult(new MediaMetadata()
             {
                 MediaOrigin = MediaOrigin.YouTube,
@@ -177,7 +161,8 @@ namespace Melodica.Services.Downloaders.YouTube
                 Duration = pl.GetTotalDurationAsync(yt).GetAwaiter().GetResult(),
                 ID = pl.Id,
                 Thumbnail = pl.GetPlaylistThumbnail(yt).GetAwaiter().GetResult(),
-                Title = pl.Title,
+                Title = newTitle,
+                Artist = artist,
                 URL = pl.Url
             });
         }
@@ -206,13 +191,13 @@ namespace Melodica.Services.Downloaders.YouTube
                     bool isLive = vid.Duration == TimeSpan.Zero;
                     return Task.FromResult(isLive ? MediaType.Livestream : MediaType.Video);
                 }
-                catch (Exception) { throw new CriticalException("ID might not be valid."); }
+                catch (Exception) { throw new DownloaderException("ID might not be valid."); }
             }
 
             if (IsPlaylistAsync(input))
                 return Task.FromResult(MediaType.Playlist);
 
-            throw new CriticalException("MediaType could not be evaluated. (YT)");
+            throw new DownloaderException("MediaType could not be evaluated. (YT)");
         }
 
         public override Task<MediaMetadata> GetMediaInfoAsync(string input)
@@ -220,6 +205,7 @@ namespace Melodica.Services.Downloaders.YouTube
             MediaMetadata GetLivestream()
             {
                 var vidInfo = SearchOrGetVideo(input).Result;
+                var (artist, newTitle) = vidInfo.Title.SeperateArtistName();
                 var meta = new MediaMetadata()
                 {
                     Duration = vidInfo.Duration,
@@ -227,7 +213,8 @@ namespace Melodica.Services.Downloaders.YouTube
                     MediaOrigin = MediaOrigin.YouTube,
                     MediaType = MediaType.Livestream,
                     Thumbnail = vidInfo.Thumbnails.MediumResUrl,
-                    Title = vidInfo.Title,
+                    Title = newTitle,
+                    Artist = artist,
                     URL = vidInfo.Url
                 };
                 meta.DataInformation.Format = "hls";
@@ -237,7 +224,7 @@ namespace Melodica.Services.Downloaders.YouTube
 
             var mType = EvaluateMediaTypeAsync(input).Result;
 
-            // This whole object casting thing is smells bad
+            // This whole object casting thing smells a bit bad
             object mediaObj = mType switch
             {
                 MediaType.Video => SearchOrGetVideo(input).Result,
@@ -264,6 +251,6 @@ namespace Melodica.Services.Downloaders.YouTube
             }
             catch (Exception)
             { return false; }
-        }       
+        }
     }
 }

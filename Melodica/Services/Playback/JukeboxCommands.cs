@@ -46,25 +46,25 @@ namespace Melodica.Services.Playback
             Embed OnDone()
             {
                 reset = true;
-                return CreateMediaEmbed("Done", ctx.info, ctx.subInfo, Color.LighterGrey);
+                return CreateMediaEmbed(ctx.info, ctx.subInfo, Color.LighterGrey);
             }
 
             Embed OnUnavailable()
             {
                 reset = true;
-                return CreateMediaEmbed("**Unavailable**", ctx.info, ctx.subInfo, Color.Red);
+                return CreateMediaEmbed(ctx.info, ctx.subInfo, Color.Red);
             }
 
             playbackEmbed = ctx.state switch
             {
                 MediaState.Error => OnUnavailable(),
-                MediaState.Downloading => CreateMediaEmbed("**Downloading**", ctx.info!, ctx.subInfo, Color.Blue),
-                MediaState.Queued => CreateMediaEmbed("**Queued**", ctx.info!, ctx.subInfo, null, null, ctx.info.MediaType == MediaType.Livestream ? '\u221E'.ToString() : null),
+                MediaState.Downloading => CreateMediaEmbed(ctx.info!, ctx.subInfo, Color.Blue),
+                MediaState.Queued => CreateMediaEmbed(ctx.info!, ctx.subInfo, null, ctx.info.MediaType == MediaType.Livestream ? '\u221E'.ToString() : null),
                 MediaState.Playing => ctx.info.MediaType switch
                 {
-                    MediaType.Video => CreateMediaEmbed("**Playing**", ctx.info!, ctx.subInfo, Color.Green),
-                    MediaType.Playlist => CreateMediaEmbed("**Playing**", ctx.info!, ctx.subInfo, Color.Green),
-                    MediaType.Livestream => CreateMediaEmbed("**Streaming**", ctx.info!, ctx.subInfo, Color.DarkGreen, null, '\u221E'.ToString()),
+                    MediaType.Video => CreateMediaEmbed(ctx.info!, ctx.subInfo, Color.Green),
+                    MediaType.Playlist => CreateMediaEmbed(ctx.info!, ctx.subInfo, Color.Green),
+                    MediaType.Livestream => CreateMediaEmbed(ctx.info!, ctx.subInfo, Color.DarkGreen, '\u221E'.ToString()),
                     _ => throw new Exception("Unknown error in PlaybackCallback switch expression"),
                 },
                 MediaState.Finished => OnDone(),
@@ -99,12 +99,12 @@ namespace Melodica.Services.Playback
 
         private IVoiceChannel GetUserVoiceChannel() => ((SocketGuildUser)Context.User).VoiceChannel;
 
-        private Embed CreateMediaEmbed(string embedTitle, MediaMetadata mediaInfo, SubRequestInfo? subInfo, Color? color = null, string? description = null, string? footerText = null)
+        private Embed CreateMediaEmbed(MediaMetadata mediaInfo, SubRequestInfo? subInfo, Color? color = null, string? footerText = null)
         {
             return new EmbedBuilder()
                    .WithColor(color ?? Color.DarkGrey)
-                   .WithTitle(embedTitle)
-                   .WithDescription(subInfo.HasValue ? $"__{description ?? mediaInfo.Title}__\n{subInfo.Value.ParentRequestInfo!.Title}" : description ?? mediaInfo.Title)
+                   .WithTitle(mediaInfo.Artist)
+                   .WithDescription(subInfo.HasValue ? $"__{mediaInfo.Title}__\n{subInfo.Value.ParentRequestInfo!.Title}" : mediaInfo.Title)
                    .WithFooter(mediaInfo.Duration != TimeSpan.Zero ?
                                subInfo.HasValue ?
                                $"{mediaInfo.Duration} | {subInfo.Value.ParentRequestInfo!.Duration}" :
@@ -254,7 +254,11 @@ namespace Melodica.Services.Playback
         {
             // If index is null (default) then remove the last element.
             var removed = index == null ? Jukebox.RemoveFromQueue(^0) : Jukebox.RemoveFromQueue(index.Value - 1);
-            await ReplyAsync(null, false, CreateMediaEmbed("Removed", removed, null));
+            await ReplyAsync(null, false, new EmbedBuilder() 
+            { 
+                Title = "**Removed**",
+                Description = removed.Title
+            }.Build());
         }
 
         [Command("Queue"), Summary("Shows current queue.")]

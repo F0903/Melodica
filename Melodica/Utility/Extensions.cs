@@ -1,12 +1,15 @@
 ﻿using AngleSharp.Text;
+
 using Discord;
 using Discord.WebSocket;
+
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+
 using YoutubeExplode;
 
 namespace Melodica.Utility.Extensions
@@ -17,6 +20,14 @@ namespace Melodica.Utility.Extensions
         {
             '<'
         };
+
+        public static (string artist, string newTitle) SeperateArtistName(this string songTitle)
+        {
+            int charIndx = songTitle.IndexOf('-');
+            int spaceIndx;
+            int endIndx = charIndx != -1 ? charIndx - 1 : (spaceIndx = songTitle.IndexOf(' ')) != -1 ? spaceIndx : songTitle.Length;
+            return (songTitle[0..endIndx], songTitle[(endIndx + (charIndx != -1 ? 3 : 1))..songTitle.Length]);
+        }
 
         public static string ExtractArtistName(this string songTitle)
         {
@@ -31,7 +42,7 @@ namespace Melodica.Utility.Extensions
             return input.Replace(" ", whitespaceReplacement);
         }
 
-        public async static Task<TimeSpan> GetTotalDurationAsync(this YoutubeExplode.Playlists.Playlist pl, YoutubeExplode.YoutubeClient? client = null) 
+        public async static Task<TimeSpan> GetTotalDurationAsync(this YoutubeExplode.Playlists.Playlist pl, YoutubeExplode.YoutubeClient? client = null)
         {
             client ??= new YoutubeExplode.YoutubeClient();
             var videos = client.Playlists.GetVideosAsync(pl.Id);

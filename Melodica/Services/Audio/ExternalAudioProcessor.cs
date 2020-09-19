@@ -17,7 +17,7 @@ namespace Melodica.Services.Audio
         {
             this.processorProcess = ConstructExternal(mediaPath, bufferSize, format);
             this.processorProcess.Start();
-            this.processorProcess.PriorityClass = BotSettings.ProcessPriority;
+            this.processorProcess.PriorityClass = BotSettings.ProcessPriority; 
         }
 
         ~ExternalAudioProcessor()
