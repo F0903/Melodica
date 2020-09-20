@@ -16,7 +16,6 @@ using Melodica.Utility.Extensions;
 
 namespace Melodica.Services.Playback
 {
-    //[Group("Services.Jukebox"), Alias("J")]
     public class JukeboxCommands : ModuleBase<SocketCommandContext>
     {
         public JukeboxCommands(JukeboxProvider jukeboxProvider, DownloaderProvider downloader)

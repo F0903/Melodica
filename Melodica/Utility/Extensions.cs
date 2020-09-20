@@ -61,20 +61,6 @@ namespace Melodica.Utility.Extensions
             return video.Thumbnails.MediumResUrl;
         }
 
-        public static string Unfold<T>(this IEnumerable<T> str, char? seperatorChar = null)
-        {
-            if (str.Count() == 0)
-                return str.ElementAtOrDefault(0)?.ToString()!;
-            var sb = new StringBuilder();
-            foreach (var item in str)
-            {
-                sb.Append(item!.ToString() + seperatorChar.GetValueOrDefault() + ' ');
-            }
-            var removeNum = seperatorChar != null ? 2 : 1;
-            sb.Remove(sb.Length - removeNum, removeNum);
-            return sb.ToString();
-        }
-
         public static TimeSpan Sum<T>(this IEnumerable<T> input, Func<T, TimeSpan> selector)
         {
             TimeSpan sum = new TimeSpan();
