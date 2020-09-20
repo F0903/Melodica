@@ -53,7 +53,7 @@ namespace Melodica.Core.Commands
             var fields = new List<EmbedFieldBuilder>(cachedCommandInfo.Count);
 
             var startIndx = page * maxElemsPerPage;
-            var endIndx = (cachedCommandInfo.Count - startIndx) < maxElemsPerPage ? cachedCommandInfo.Count : maxElemsPerPage;
+            var endIndx = (cachedCommandInfo.Count - startIndx) <= maxElemsPerPage ? cachedCommandInfo.Count : startIndx + maxElemsPerPage;
             for (int i = startIndx; i < endIndx; i++)
             {
                 var command = cachedCommandInfo[i];
