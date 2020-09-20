@@ -25,7 +25,7 @@ namespace Melodica.Core.Commands
         private static List<CommandInfo>? cachedCommandInfo;
 
         [Command("Help"), Summary("Prints out all available commands.")]
-        public async Task HelpAsync(int page = 0) //TODO: Fix and tidy up
+        public async Task HelpAsync(int page = 0)
         {
             if (page < 0)
             {
