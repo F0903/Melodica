@@ -150,8 +150,6 @@ namespace Melodica.Services.Downloaders.Spotify
 
                     var lastTotalDuration = totalDuration;
 
-
-                    //TODO: investigate issue with this playlist (https://open.spotify.com/playlist/5pDrljlTLbGEH4d9yw24fB?si=kekfNg64S_-yBLs2ynFGeg)
                     playlistTracks[i] = new MediaMetadata()
                     {
                         MediaOrigin = MediaOrigin.Spotify,
