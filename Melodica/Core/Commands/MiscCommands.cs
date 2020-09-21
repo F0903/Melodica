@@ -61,7 +61,7 @@ namespace Melodica.Core.Commands
                 fields.Add(new EmbedFieldBuilder() 
                 { 
                     IsInline = false, 
-                    Name = $"**{command.Name}**, { commandAliases.Aggregate<string, (string str, int indx)>(("", 0), (current, nextString) => (current.str += nextString + (current.indx != commandAliases.Count - 1 ? ", " : ""), ++current.indx)).str }", 
+                    Name = $"**{command.Name}**, { commandAliases.ToArray().SeperateStrings() }", 
                     Value = !string.IsNullOrEmpty(command.Summary) ? command.Summary : "No summary." 
                 });
             }

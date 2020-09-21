@@ -21,6 +21,19 @@ namespace Melodica.Utility.Extensions
             '<'
         };
 
+        public static string SeperateStrings(this string[] strings, string seperator = ", ")
+        {
+            StringBuilder sb = new StringBuilder(strings.Length * 5);
+            for (int i = 0; i < strings.Length; i++)
+            {
+                sb.Append(strings[i]);
+                if (i == strings.Length - 1) 
+                    break;
+                sb.Append(seperator);
+            }
+            return sb.ToString();
+        }
+
         public static (string artist, string newTitle) SeperateArtistName(this string songTitle, string backupTitle = " ")
         {
             int charIndx = songTitle.IndexOf('-');
