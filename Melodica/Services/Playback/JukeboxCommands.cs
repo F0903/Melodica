@@ -217,7 +217,7 @@ namespace Melodica.Services.Playback
             return Task.CompletedTask;
         }
 
-        [Command("Pause", RunMode = RunMode.Sync), Alias("Unpause"), Summary("Pauses playback.")]
+        [Command("Pause", RunMode = RunMode.Sync), Summary("Pauses playback.")]
         public Task PauseAsync()
         {
             Jukebox.Paused = true;
