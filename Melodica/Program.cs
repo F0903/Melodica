@@ -15,7 +15,7 @@ namespace Melodica
 
         private static async Task Main()
         {
-            await currentBot.ConnectAsync($"{BotSettings.DefaultPrefix}play", Discord.ActivityType.Listening, true);
+            await currentBot.ConnectAsync($"{BotSettings.DefaultPrefix}play | {BotSettings.DefaultPrefix}help", Discord.ActivityType.Listening, true);
             AppDomain.CurrentDomain.ProcessExit += CurrentDomain_ProcessExit;
             Process.GetCurrentProcess().PriorityClass = BotSettings.ProcessPriority;
             

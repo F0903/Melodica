@@ -248,7 +248,7 @@ namespace Melodica.Services.Playback
             await ReplyAsync("Cleared queue.");
         }
 
-        [Command("Remove"), Summary("Removes song from queue by index.")]
+        [Command("Remove"), Summary("Removes song from queue by index, or removes the last element if no parameter is given.")]
         public async Task RemoveSongFromQueue(int? index = null)
         {
             // If index is null (default) then remove the last element.
