@@ -258,7 +258,7 @@ namespace Melodica.Services.Playback
         /// <returns></returns>
         public async Task PlayAsync(MediaRequestBase request, IAudioChannel channel, bool switchSong = false, bool loop = false, Action<(MediaMetadata info, SubRequestInfo? subInfo, MediaState state)>? callback = null)
         {
-            //TODO: Perhaps refactor this into seperate functions for switching and queueing/playing?
+            //TODO: Refactor this function to seperate ones.
 
             if (switching = switchSong)
                 Paused = false;
@@ -335,9 +335,10 @@ namespace Melodica.Services.Playback
             PlayableMedia? song = null;
             try
             {
+                bool playingBeforeDownload = Playing;
                 Playing = true;
 
-                if (IsRequestDownloadable() && !Loop)
+                if (IsRequestDownloadable() && !Loop && !playingBeforeDownload)
                     callback?.Invoke((currentRequest.GetInfo(), currentRequest.SubRequestInfo, MediaState.Downloading));
 
                 song = await currentRequest.GetMediaAsync();

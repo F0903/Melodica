@@ -177,6 +177,7 @@ namespace Melodica.Services.Playback
         {
             if (!string.IsNullOrEmpty(query))
             {
+                //TODO: Fix not getting a message
                 await InternalPlayAsync(query, true, true);
                 return;
             }
