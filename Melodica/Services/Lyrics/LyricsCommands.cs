@@ -1,4 +1,7 @@
-﻿using System.ComponentModel;
+﻿using System;
+using System.ComponentModel;
+using System.Diagnostics;
+using System.IO;
 using System.Threading.Tasks;
 
 using Discord;
@@ -20,8 +23,6 @@ namespace Melodica.Services.Lyrics
         readonly LyricsProvider lyrics;
         readonly JukeboxProvider jukebox;
 
-        private IVoiceChannel GetUserVoiceChannel() => ((SocketGuildUser)Context.User).VoiceChannel;
-
         [Command("Lyrics"), Description("Gets lyrics for a search term.")]
         public async Task GetLyrics([Remainder] string? songName = null)
         {
@@ -35,26 +36,31 @@ namespace Melodica.Services.Lyrics
                 return;
             }
 
-            songName ??= juke!.GetSong().info.Title;
+            if (songName == null)
+            {
+                var songInfo = juke!.GetSong().info;
+                songName = $"{songInfo.Artist} {songInfo.Title}";
+            }
 
+            Stopwatch timer = new Stopwatch();
             var lyrs = await lyrics.GetLyricsAsync(songName);
-
-            string text = lyrs.Lyrics;
+            var text = lyrs.Lyrics;
             int count = 0;
             int i = 0;
-            while (count != text.Length)
+            while (count < text.Length)
             {
-                string currentString = text[count..(text.Length - count < 2048 ? text.Length : 2048)];
-                count += currentString.Length;
-                EmbedBuilder eb = new EmbedBuilder()
+                timer.Start();
+                var outText = text.Substring(i * 2048, Math.Min(2048, text.Length - count));
+                await ReplyAsync(null, false, new EmbedBuilder()
                 {
                     Title = i == 0 ? lyrs.Title : "",
-                    Description = currentString,
-                    ThumbnailUrl = i == 0 ? lyrs.Image : ""
-                };
-                await ReplyAsync(null, false, eb.Build());
-                i++;
+                    ThumbnailUrl = i == 0 ? lyrs.Image : "",
+                    Description = outText
+                }.Build());
+                count += outText.Length;
+                ++i;
             }
+            timer.Stop();
         }
     }
 }

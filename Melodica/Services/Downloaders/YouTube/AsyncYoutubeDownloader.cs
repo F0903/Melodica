@@ -191,7 +191,7 @@ namespace Melodica.Services.Downloaders.YouTube
                     bool isLive = vid.Duration == TimeSpan.Zero;
                     return Task.FromResult(isLive ? MediaType.Livestream : MediaType.Video);
                 }
-                catch (Exception) { throw new DownloaderException("ID might not be valid."); }
+                catch (Exception) { throw new DownloaderException("Could not get video. ID might not be valid."); }
             }
 
             if (IsPlaylistAsync(input))
