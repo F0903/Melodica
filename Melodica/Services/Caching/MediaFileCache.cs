@@ -1,16 +1,14 @@
-﻿using Melodica.Services.Models;
-using Melodica.Utility.Extensions;
-using Discord;
-using System;
-using System.Collections.Concurrent;
+﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Runtime.Serialization;
 using System.Threading.Tasks;
-using System.Diagnostics;
+
 using Melodica.Core;
 using Melodica.Services.Downloaders.Exceptions;
+using Melodica.Services.Models;
+using Melodica.Utility.Extensions;
 
 namespace Melodica.Services.Services
 {
@@ -32,7 +30,7 @@ namespace Melodica.Services.Services
 
         public const string RootCacheLocation = @"./Mediacache/";
 
-        private readonly static List<MediaFileCache> cacheInstances = new List<MediaFileCache>(); // Keep track of all instances so we can clear all cache.
+        private static readonly List<MediaFileCache> cacheInstances = new List<MediaFileCache>(); // Keep track of all instances so we can clear all cache.
 
 
         private readonly string cacheLocation;
@@ -57,7 +55,7 @@ namespace Melodica.Services.Services
 
         private Task LoadPreexistingFilesAsync()
         {
-            foreach (FileInfo metaFile in Directory.EnumerateFileSystemEntries(cacheLocation, $"*{MediaMetadata.MetaFileExtension}", SearchOption.AllDirectories).Convert(x => new FileInfo(x)))
+            foreach (var metaFile in Directory.EnumerateFileSystemEntries(cacheLocation, $"*{MediaMetadata.MetaFileExtension}", SearchOption.AllDirectories).Convert(x => new FileInfo(x)))
             {
                 try
                 {
@@ -77,7 +75,7 @@ namespace Melodica.Services.Services
             if (file.Extension == MediaMetadata.MetaFileExtension)
             {
                 file.Delete();
-                foreach (var dirFile in Directory.EnumerateFiles(file.DirectoryName, $"{Path.ChangeExtension(file.Name, null)}.*"))
+                foreach (string? dirFile in Directory.EnumerateFiles(file.DirectoryName, $"{Path.ChangeExtension(file.Name, null)}.*"))
                 {
                     File.Delete(dirFile);
                 }
@@ -95,7 +93,7 @@ namespace Melodica.Services.Services
             return Task.FromResult(files.AsParallel().Convert(x => new FileInfo(x)).Sum(f => f.Length));
         }
 
-        public bool Contains(string id) => cache.Any(x => x.Id == id);     
+        public bool Contains(string id) => cache.Any(x => x.Id == id);
 
         public async Task<(int deletedFiles, int filesInUse, long msDuration)> PruneCacheAsync(bool forceClear = false)
         {
@@ -106,7 +104,7 @@ namespace Melodica.Services.Services
             int filesInUse = 0;
 
             var files = Directory.EnumerateFiles(cacheLocation).Convert(x => new FileInfo(x));
-            Stopwatch sw = new Stopwatch();
+            var sw = new Stopwatch();
             sw.Start();
             Parallel.ForEach<FileInfo>(files, (file, loop) =>
             {
@@ -116,7 +114,7 @@ namespace Melodica.Services.Services
                 {
                     DeleteMediaFile(file);
                     var cacheElement = cache.SingleOrDefault(x => x.Id == Path.ChangeExtension(file.Name, null));
-                    if(cacheElement != null) cache.Remove(cacheElement);
+                    if (cacheElement != null) cache.Remove(cacheElement);
                     deletedFiles++;
                 }
                 catch

@@ -1,16 +1,13 @@
-﻿using Discord;
-using Discord.Commands;
-using Discord.WebSocket;
-using Melodica.Core;
-using Melodica.Services;
-using Melodica.Services.Logging;
-using Melodica.Services.Settings;
-using Melodica.Utility.Extensions;
-using System;
-using System.Collections.Generic;
-using System.Linq;
+﻿using System;
 using System.Reflection;
 using System.Threading.Tasks;
+
+using Discord;
+using Discord.Commands;
+using Discord.WebSocket;
+
+using Melodica.Services.Logging;
+using Melodica.Services.Settings;
 
 namespace Melodica.Core.CommandHandlers
 {
@@ -36,7 +33,7 @@ namespace Melodica.Core.CommandHandlers
         {
             if (!info.IsSpecified)
                 return;
-            
+
             if (result.Error.HasValue)
             {
                 var embed = new EmbedBuilder().WithTitle("**Error!**")
@@ -86,7 +83,7 @@ namespace Melodica.Core.CommandHandlers
             int argPos = 0;
 
             var guildSettings = await settings.GetSettingsAsync(context.Guild.Id);
-            var prefix = guildSettings.Prefix;
+            string? prefix = guildSettings.Prefix;
             if (!context.Message.HasStringPrefix(prefix, ref argPos))
                 return;
 

@@ -19,7 +19,7 @@ namespace Melodica.Services.Playback.Requests
             if (dl.IsUrlPlaylistAsync(query))
             {
                 SubRequests = new List<MediaRequestBase>();
-                var (playlistInfo, videos) = this.downloader.DownloadPlaylistInfoAsync(this.query).Result;
+                var (playlistInfo, videos) = downloader.DownloadPlaylistInfoAsync(this.query).Result;
                 info = playlistInfo;
                 for (int i = 0; i < videos.Count(); i++)
                 {
@@ -32,7 +32,7 @@ namespace Melodica.Services.Playback.Requests
         private DownloadRequest(MediaMetadata info, MediaMetadata parentRequestInfo, AsyncDownloaderBase dl)
         {
             this.info = info;
-            this.query = info.Url!;
+            query = info.Url!;
 
             SubRequestInfo = new SubRequestInfo()
             {
@@ -57,14 +57,14 @@ namespace Melodica.Services.Playback.Requests
         private MediaMetadata? info;
         public override MediaMetadata GetInfo() => info ??= downloader.GetMediaInfoAsync(query).Result;
 
-        public async override Task<PlayableMedia> GetMediaAsync()
+        public override async Task<PlayableMedia> GetMediaAsync()
         {
             Task<PlayableMedia> GetVideoAsync(string? id = null)
             {
                 PlayableMedia media;
                 try
                 {
-                    if(info != null && info!.MediaType == MediaType.Livestream) // Quicker than the alternative as livestreams don't need downloads, and skips uneccesary calls to APIs
+                    if (info != null && info!.MediaType == MediaType.Livestream) // Quicker than the alternative as livestreams don't need downloads, and skips uneccesary calls to APIs
                         return Task.FromResult(new PlayableMedia(info, null));
 
                     media = info != null ? downloader.DownloadAsync(info).Result : downloader.DownloadAsync(query).Result;
@@ -83,6 +83,6 @@ namespace Melodica.Services.Playback.Requests
                 return Task.FromResult(media);
             }
             return await GetVideoAsync();
-        }        
+        }
     }
 }

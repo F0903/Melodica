@@ -1,12 +1,10 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace Melodica.Utility
 {
     public static class Assert
     {
-        class AssertionException : Exception
+        private class AssertionException : Exception
         {
             public AssertionException(string? msg = "Assertion failed.") : base(msg)
             { }

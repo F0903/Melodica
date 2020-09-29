@@ -21,9 +21,12 @@ namespace Melodica.Services.Playback.Requests
                 info = EvalInfo(new FileInfo(uri));
                 return;
             }
-            else if (!Directory.Exists(uri)) throw new CriticalException("Directory does not exist.");
+            else if (!Directory.Exists(uri))
+            {
+                throw new CriticalException("Directory does not exist.");
+            }
 
-            var dirName = GetDirName(uri);
+            string? dirName = GetDirName(uri);
             info = new MediaMetadata()
             {
                 Id = dirName,
@@ -56,8 +59,7 @@ namespace Melodica.Services.Playback.Requests
             ".mp4",
             ".wav"
         };
-
-        readonly MediaMetadata info;
+        private readonly MediaMetadata info;
 
         private string GetDirName(string name)
         {
@@ -67,7 +69,7 @@ namespace Melodica.Services.Playback.Requests
             int start, end;
             if (endingSlash)
             {
-                var altName = name.Remove(name.Length - 1, 1);
+                string? altName = name.Remove(name.Length - 1, 1);
                 start = forwardSlash ? altName.LastIndexOf('/') + 1 : altName.LastIndexOf('\\') + 1;
                 end = forwardSlash ? name.LastIndexOf('/') : name.LastIndexOf('\\');
             }
@@ -92,14 +94,8 @@ namespace Melodica.Services.Playback.Requests
             return meta;
         }
 
-        public override MediaMetadata GetInfo()
-        {
-            return info;
-        }
+        public override MediaMetadata GetInfo() => info;
 
-        public override Task<PlayableMedia> GetMediaAsync()
-        {
-            return Task.FromResult(new PlayableMedia(info, null));
-        }
+        public override Task<PlayableMedia> GetMediaAsync() => Task.FromResult(new PlayableMedia(info, null));
     }
 }

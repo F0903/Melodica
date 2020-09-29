@@ -3,10 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
-using Melodica.Core.Exceptions;
 using Melodica.Services.Downloaders.Exceptions;
 using Melodica.Services.Models;
-using Melodica.Services.Services;
 using Melodica.Utility.Extensions;
 
 using SpotifyAPI.Web;
@@ -15,13 +13,13 @@ namespace Melodica.Services.Downloaders.Spotify
 {
     public class AsyncSpotifyDownloader : AsyncDownloaderBase
     {
-        static readonly SpotifyClient spotify = new SpotifyClient(SpotifyClientConfig
+        private static readonly SpotifyClient spotify = new SpotifyClient(SpotifyClientConfig
                                                                   .CreateDefault()
                                                                   .WithAuthenticator(new ClientCredentialsAuthenticator("f8ecc5fd441249e4bc1471c5bfbb7cbd",
                                                                                                                         "83890edde8014ffd927bf98b6394d4a2")));
 
         // Tie this to the default downloader (can't download directly from Spotify)
-        readonly AsyncDownloaderBase dlHelper = Default;
+        private readonly AsyncDownloaderBase dlHelper = Default;
 
         public override bool IsUrlSupported(string url) => url.StartsWith("https://open.spotify.com/") ||
                                                            url.StartsWith("http://open.spotify.com/") ||
@@ -30,7 +28,7 @@ namespace Melodica.Services.Downloaders.Spotify
 
         private string SeperateArtistNames(List<SimpleArtist> artists)
         {
-            var nameArray = artists.ToArray().Convert(x => x.Name).ToArray();
+            string[]? nameArray = artists.ToArray().Convert(x => x.Name).ToArray();
             return nameArray.SeperateStrings();
         }
 
@@ -38,10 +36,10 @@ namespace Melodica.Services.Downloaders.Spotify
         {
             if (!(url.StartsWith("https://") || url.StartsWith("http://")))
                 return Task.FromResult(url); // Just return, cause the url is probably already an id.
-            var startIndex = url.LastIndexOf('/') + 1;
-            var qIndx = url.IndexOf('?');
-            var stopIndex = qIndx == -1 ? url.Length : qIndx;
-            var id = url[startIndex..stopIndex];
+            int startIndex = url.LastIndexOf('/') + 1;
+            int qIndx = url.IndexOf('?');
+            int stopIndex = qIndx == -1 ? url.Length : qIndx;
+            string? id = url[startIndex..stopIndex];
             return Task.FromResult(id);
         }
 
@@ -56,16 +54,13 @@ namespace Melodica.Services.Downloaders.Spotify
             return video;
         }
 
-        public override Task<PlayableMedia> DownloadAsync(MediaMetadata info)
+        public override Task<PlayableMedia> DownloadAsync(MediaMetadata info) => info.MediaType switch
         {
-            return info.MediaType switch
-            {
-                MediaType.Video => DownloadVideo(info),
-                MediaType.Playlist => throw new NotSupportedException(), // Playlist is not specified here due to the interface.
-                MediaType.Livestream => throw new NotSupportedException(),
-                _ => throw new NotSupportedException(),
-            };
-        }
+            MediaType.Video => DownloadVideo(info),
+            MediaType.Playlist => throw new NotSupportedException(), // Playlist is not specified here due to the interface.
+            MediaType.Livestream => throw new NotSupportedException(),
+            _ => throw new NotSupportedException(),
+        };
 
         public override Task<PlayableMedia> DownloadAsync(string url)
         {
@@ -75,7 +70,7 @@ namespace Melodica.Services.Downloaders.Spotify
 
         private List<FullTrack> ToTrackList(List<PlaylistTrack<IPlayableItem>> tracks)
         {
-            List<FullTrack> tracklist = new List<FullTrack>();
+            var tracklist = new List<FullTrack>();
             foreach (var plTrack in tracks)
             {
                 var track = plTrack.Track;
@@ -88,7 +83,7 @@ namespace Melodica.Services.Downloaders.Spotify
 
         public override async Task<(MediaMetadata playlist, IEnumerable<MediaMetadata> videos)> DownloadPlaylistInfoAsync(string url)
         {
-            var id = await ParseURLToIdAsync(url);
+            string? id = await ParseURLToIdAsync(url);
 
             bool isAlbum = false;
 
@@ -111,7 +106,7 @@ namespace Melodica.Services.Downloaders.Spotify
 
             var itemImages = isAlbum ? spotifyAlbum!.Images : spotifyPlaylist!.Images;
             var playlistTracks = new MediaMetadata[isAlbum ? spotifyAlbum!.Tracks.Items!.Count : spotifyPlaylist!.Tracks!.Items!.Count];
-            TimeSpan totalDuration = TimeSpan.Zero;
+            var totalDuration = TimeSpan.Zero;
 
             if (isAlbum)
             {
@@ -180,7 +175,7 @@ namespace Melodica.Services.Downloaders.Spotify
 
         public async Task<MediaMetadata> DownloadVideoInfoAsync(string url)
         {
-            var id = await ParseURLToIdAsync(url);
+            string? id = await ParseURLToIdAsync(url);
             var track = await spotify.Tracks.Get(id);
             var trackImages = track.Album.Images;
 

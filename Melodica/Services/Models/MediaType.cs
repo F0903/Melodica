@@ -1,6 +1,6 @@
 ﻿public enum MediaType
 {
     Video,
-    Playlist, 
+    Playlist,
     Livestream
 }

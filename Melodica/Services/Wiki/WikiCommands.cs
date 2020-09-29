@@ -1,16 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net.NetworkInformation;
-using System.Text;
-using System.Text.RegularExpressions;
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
 
 using Discord;
 using Discord.Commands;
 
 using Melodica.Services.Playback;
-using Melodica.Utility.Extensions;
 
 namespace Melodica.Services.Wiki
 {
@@ -19,12 +12,13 @@ namespace Melodica.Services.Wiki
         public WikiCommands(WikiProvider wiki, JukeboxProvider jukebox)
         {
             this.wiki = wiki;
-            this.jukeboxProvider = jukebox;
+            jukeboxProvider = jukebox;
         }
 
-        readonly WikiProvider wiki;
-        readonly JukeboxProvider jukeboxProvider;
-        Jukebox Jukebox => jukeboxProvider.GetJukeboxAsync(Context.Guild).Result;
+        private readonly WikiProvider wiki;
+        private readonly JukeboxProvider jukeboxProvider;
+
+        private Jukebox Jukebox => jukeboxProvider.GetJukeboxAsync(Context.Guild).Result;
 
         [Command("Info"), Summary("Gets info from a wiki for the specified page.")]
         public async Task InfoAsync([Remainder] string? pageTitle = null)
@@ -38,11 +32,14 @@ namespace Melodica.Services.Wiki
             WikiElement info;
             if (pageTitle == null && Jukebox.Playing)
             {
-                var artist = Jukebox.GetSong().info.Artist;
-                
+                string? artist = Jukebox.GetSong().info.Artist;
+
                 info = await wiki.GetInfoAsync(artist);
             }
-            else info = await wiki.GetInfoAsync(pageTitle!);
+            else
+            {
+                info = await wiki.GetInfoAsync(pageTitle!);
+            }
 
             await ReplyAsync(null, false, new EmbedBuilder()
             {

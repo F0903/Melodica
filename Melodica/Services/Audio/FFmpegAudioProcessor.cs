@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Text;
+﻿using System.Diagnostics;
 
 using Melodica.Core.Exceptions;
 using Melodica.Services.Services;
@@ -11,7 +8,7 @@ namespace Melodica.Services.Audio
     public class FFmpegAudioProcessor : ExternalAudioProcessor
     {
         public FFmpegAudioProcessor(string mediaPath, string? format = null) : base(mediaPath, 0, format)
-        {}
+        { }
 
         protected override Process ConstructExternal(string path, int bufferSize = 0, string? format = null)
         {

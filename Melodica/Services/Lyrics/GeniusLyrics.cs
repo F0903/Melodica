@@ -38,7 +38,7 @@ namespace Melodica.Services.Lyrics
 
         private async Task<LyricsInfo> SearchForSongAsync(string query)
         {
-            var fixedQuery = query.FixURLWhitespace();
+            string? fixedQuery = query.FixURLWhitespace();
             var req = WebRequest.CreateHttp($"https://api.genius.com/search?q={fixedQuery}");
             req.Headers = new WebHeaderCollection
             {
@@ -54,7 +54,7 @@ namespace Melodica.Services.Lyrics
             var responseStream = response.GetResponseStream();
             using var fullResponse = await JsonDocument.ParseAsync(responseStream);
 
-            var responseSection = fullResponse.RootElement.GetProperty("response"); 
+            var responseSection = fullResponse.RootElement.GetProperty("response");
 
             JsonElement GetElement(int index = 0)
             {
@@ -71,9 +71,9 @@ namespace Melodica.Services.Lyrics
             }
 
             var songInfo = GetElement();
-            var songTitle = songInfo.GetProperty("full_title").GetString();
-            var songImg = songInfo.GetProperty("header_image_url").GetString();
-            var songLyrics = await ParseLyricsAsync(songInfo.GetProperty("url").GetString());
+            string? songTitle = songInfo.GetProperty("full_title").GetString();
+            string? songImg = songInfo.GetProperty("header_image_url").GetString();
+            string? songLyrics = await ParseLyricsAsync(songInfo.GetProperty("url").GetString());
 
             return new LyricsInfo { Image = songImg, Title = songTitle, Lyrics = songLyrics };
         }

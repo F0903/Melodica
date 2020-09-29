@@ -1,24 +1,18 @@
-﻿using Discord;
+﻿using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+
+using Discord;
 using Discord.Commands;
-using Discord.WebSocket;
 
 using Melodica.Utility.Extensions;
-
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Melodica.Core.Commands
 {
     [Name("Misc")]
     public class MiscCommands : ModuleBase<SocketCommandContext>
     {
-        public MiscCommands(CommandService cmService)
-        {
-            this.commandService = cmService;
-        }
+        public MiscCommands(CommandService cmService) => commandService = cmService;
 
         private readonly CommandService commandService;
 
@@ -41,10 +35,10 @@ namespace Melodica.Core.Commands
                     cachedCommandInfo.AddRange(module.Commands);
             }
 
-            var maxElemsPerPage = 20;
-            var totalPages = cachedCommandInfo.Count / maxElemsPerPage;
+            int maxElemsPerPage = 20;
+            int totalPages = cachedCommandInfo.Count / maxElemsPerPage;
 
-            if(page > totalPages)
+            if (page > totalPages)
             {
                 await ReplyAsync($"Page number cannot be more than {totalPages}");
                 return;
@@ -52,17 +46,17 @@ namespace Melodica.Core.Commands
 
             var fields = new List<EmbedFieldBuilder>(cachedCommandInfo.Count);
 
-            var startIndx = page * maxElemsPerPage;
-            var endIndx = (cachedCommandInfo.Count - startIndx) <= maxElemsPerPage ? cachedCommandInfo.Count : startIndx + maxElemsPerPage;
+            int startIndx = page * maxElemsPerPage;
+            int endIndx = (cachedCommandInfo.Count - startIndx) <= maxElemsPerPage ? cachedCommandInfo.Count : startIndx + maxElemsPerPage;
             for (int i = startIndx; i < endIndx; i++)
             {
                 var command = cachedCommandInfo[i];
                 var commandAliases = command.Aliases;
-                fields.Add(new EmbedFieldBuilder() 
-                { 
-                    IsInline = false, 
-                    Name = $"**{command.Name}**, { commandAliases.ToArray().SeperateStrings() }", 
-                    Value = !string.IsNullOrEmpty(command.Summary) ? command.Summary : "No summary." 
+                fields.Add(new EmbedFieldBuilder()
+                {
+                    IsInline = false,
+                    Name = $"**{command.Name}**, { commandAliases.ToArray().SeperateStrings() }",
+                    Value = !string.IsNullOrEmpty(command.Summary) ? command.Summary : "No summary."
                 });
             }
 

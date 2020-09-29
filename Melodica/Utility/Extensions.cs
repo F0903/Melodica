@@ -1,14 +1,14 @@
-﻿using AngleSharp.Text;
-
-using Discord;
-using Discord.WebSocket;
-
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+
+using AngleSharp.Text;
+
+using Discord;
+using Discord.WebSocket;
 
 using YoutubeExplode;
 
@@ -23,11 +23,11 @@ namespace Melodica.Utility.Extensions
 
         public static string SeperateStrings(this string[] strings, string seperator = ", ")
         {
-            StringBuilder sb = new StringBuilder(strings.Length * 5);
+            var sb = new StringBuilder(strings.Length * 5);
             for (int i = 0; i < strings.Length; i++)
             {
                 sb.Append(strings[i]);
-                if (i == strings.Length - 1) 
+                if (i == strings.Length - 1)
                     break;
                 sb.Append(seperator);
             }
@@ -50,16 +50,13 @@ namespace Melodica.Utility.Extensions
             return songTitle[0..endIndx];
         }
 
-        public static string FixURLWhitespace(this string input, string whitespaceReplacement = "%20")
-        {
-            return input.Replace(" ", whitespaceReplacement);
-        }
+        public static string FixURLWhitespace(this string input, string whitespaceReplacement = "%20") => input.Replace(" ", whitespaceReplacement);
 
-        public async static Task<TimeSpan> GetTotalDurationAsync(this YoutubeExplode.Playlists.Playlist pl, YoutubeExplode.YoutubeClient? client = null)
+        public static async Task<TimeSpan> GetTotalDurationAsync(this YoutubeExplode.Playlists.Playlist pl, YoutubeExplode.YoutubeClient? client = null)
         {
             client ??= new YoutubeExplode.YoutubeClient();
             var videos = client.Playlists.GetVideosAsync(pl.Id);
-            TimeSpan ts = new TimeSpan();
+            var ts = new TimeSpan();
             await foreach (var video in videos)
             {
                 ts += video.Duration;
@@ -67,7 +64,7 @@ namespace Melodica.Utility.Extensions
             return ts;
         }
 
-        public async static Task<string> GetPlaylistThumbnail(this YoutubeExplode.Playlists.Playlist pl, YoutubeExplode.YoutubeClient? client = null)
+        public static async Task<string> GetPlaylistThumbnail(this YoutubeExplode.Playlists.Playlist pl, YoutubeExplode.YoutubeClient? client = null)
         {
             client ??= new YoutubeExplode.YoutubeClient();
             var video = (await client.Playlists.GetVideosAsync(pl.Id).BufferAsync(1)).First();
@@ -76,7 +73,7 @@ namespace Melodica.Utility.Extensions
 
         public static TimeSpan Sum<T>(this IEnumerable<T> input, Func<T, TimeSpan> selector)
         {
-            TimeSpan sum = new TimeSpan();
+            var sum = new TimeSpan();
             foreach (var item in input)
                 sum += selector(item);
             return sum;
@@ -99,7 +96,7 @@ namespace Melodica.Utility.Extensions
 
         public static string ReplaceIllegalCharacters(this string str, string replacement = "_")
         {
-            var newStr = Path.GetInvalidFileNameChars().Union(CustomIllegalChars).Aggregate(str, (current, c) => current.Replace(c.ToString(), replacement));
+            string? newStr = Path.GetInvalidFileNameChars().Union(CustomIllegalChars).Aggregate(str, (current, c) => current.Replace(c.ToString(), replacement));
             if (newStr[^1] == '.')
                 newStr.Remove(newStr.Length - 1, 1);
             return newStr;
@@ -117,7 +114,7 @@ namespace Melodica.Utility.Extensions
 
             int numOfSmall = 0;
             int numOfLarge = 0;
-            foreach (var letter in str)
+            foreach (char letter in str)
             {
                 if (letter == ' ')
                     return false;

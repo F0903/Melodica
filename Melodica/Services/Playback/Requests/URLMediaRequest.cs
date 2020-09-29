@@ -14,7 +14,7 @@ namespace Melodica.Services.Playback.Requests
     {
         public URLMediaRequest(string? mediaName, string mediaUrl, bool directStream)
         {
-            this.mediaFormat = Utility.Utils.GetUrlResourceFormat(mediaUrl);
+            mediaFormat = Utility.Utils.GetUrlResourceFormat(mediaUrl);
             this.mediaName = mediaName ?? $"External {mediaFormat.ToUpper()} {(directStream ? "Stream" : "File")}";
             this.mediaUrl = mediaUrl;
             this.directStream = directStream;
@@ -52,7 +52,7 @@ namespace Melodica.Services.Playback.Requests
 
             var tSrc = new CancellationTokenSource(20000);
 
-            var data = await Task.Run(() => web.DownloadData(mediaUrl), tSrc.Token);
+            byte[]? data = await Task.Run(() => web.DownloadData(mediaUrl), tSrc.Token);
             if (tSrc.IsCancellationRequested)
                 throw new CriticalException("Direct media could not be downloaded. (Timer exceeded 20 seconds)");
 

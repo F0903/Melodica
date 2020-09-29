@@ -1,12 +1,10 @@
 ﻿using System;
 using System.ComponentModel;
 using System.Diagnostics;
-using System.IO;
 using System.Threading.Tasks;
 
 using Discord;
 using Discord.Commands;
-using Discord.WebSocket;
 
 using Melodica.Services.Playback;
 
@@ -20,8 +18,8 @@ namespace Melodica.Services.Lyrics
             this.jukebox = jukebox;
         }
 
-        readonly LyricsProvider lyrics;
-        readonly JukeboxProvider jukebox;
+        private readonly LyricsProvider lyrics;
+        private readonly JukeboxProvider jukebox;
 
         [Command("Lyrics"), Description("Gets lyrics for a search term.")]
         public async Task GetLyrics([Remainder] string? songName = null)
@@ -42,15 +40,15 @@ namespace Melodica.Services.Lyrics
                 songName = $"{songInfo.Artist} {songInfo.Title}";
             }
 
-            Stopwatch timer = new Stopwatch();
+            var timer = new Stopwatch();
             var lyrs = await lyrics.GetLyricsAsync(songName);
-            var text = lyrs.Lyrics;
+            string? text = lyrs.Lyrics;
             int count = 0;
             int i = 0;
             while (count < text.Length)
             {
                 timer.Start();
-                var outText = text.Substring(i * 2048, Math.Min(2048, text.Length - count));
+                string? outText = text.Substring(i * 2048, Math.Min(2048, text.Length - count));
                 await ReplyAsync(null, false, new EmbedBuilder()
                 {
                     Title = i == 0 ? lyrs.Title : "",

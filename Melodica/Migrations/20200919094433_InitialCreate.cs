@@ -4,9 +4,7 @@ namespace Melodica.Migrations
 {
     public partial class InitialCreate : Migration
     {
-        protected override void Up(MigrationBuilder migrationBuilder)
-        {
-            migrationBuilder.CreateTable(
+        protected override void Up(MigrationBuilder migrationBuilder) => migrationBuilder.CreateTable(
                 name: "GuildSettings",
                 columns: table => new
                 {
@@ -18,12 +16,8 @@ namespace Melodica.Migrations
                 {
                     table.PrimaryKey("PK_GuildSettings", x => x.GuildID);
                 });
-        }
 
-        protected override void Down(MigrationBuilder migrationBuilder)
-        {
-            migrationBuilder.DropTable(
+        protected override void Down(MigrationBuilder migrationBuilder) => migrationBuilder.DropTable(
                 name: "GuildSettings");
-        }
     }
 }

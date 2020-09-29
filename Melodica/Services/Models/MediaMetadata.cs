@@ -1,11 +1,5 @@
 ﻿using System;
-using System.Threading.Tasks;
-using System.Collections.Generic;
-using System.IO;
-using System.Text;
-using System.Runtime.Serialization;
-using Melodica.Services.Services;
-using Melodica.Services;
+
 using Melodica.Services.Downloaders;
 using Melodica.Services.Serialization;
 
@@ -26,10 +20,7 @@ namespace Melodica.Services.Models
 
         private static readonly BinarySerializer bs = new BinarySerializer();
 
-        public static MediaMetadata LoadFromFile(string fullPath)
-        {
-            return bs.DeserializeFileAsync<MediaMetadata>(fullPath).GetAwaiter().GetResult();
-        }
+        public static MediaMetadata LoadFromFile(string fullPath) => bs.DeserializeFileAsync<MediaMetadata>(fullPath).GetAwaiter().GetResult();
 
         public const string MetaFileExtension = ".meta";
 

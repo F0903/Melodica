@@ -29,10 +29,7 @@ namespace Melodica.Services.Playback
 
     public sealed class Jukebox
     {
-        public Jukebox(SongQueue? queue = null)
-        {
-            this.queue = queue ?? new SongQueue();
-        }
+        public Jukebox(SongQueue? queue = null) => this.queue = queue ?? new SongQueue();
 
         private bool skip = false;
 
@@ -128,10 +125,14 @@ namespace Melodica.Services.Playback
             int bitrate;
             if (channel is SocketVoiceChannel ch)
             {
-                var chFullBitrate = ch.Bitrate / 1000 * 1024;
+                int chFullBitrate = ch.Bitrate / 1000 * 1024;
                 bitrate = useChannelMaxBitrate || Bitrate > chFullBitrate ? chFullBitrate : Bitrate;
             }
-            else bitrate = Bitrate;
+            else
+            {
+                bitrate = Bitrate;
+            }
+
             return audioClient!.CreatePCMStream(AudioApplication.Music, bitrate, 100, 0);
         }
 
@@ -147,7 +148,10 @@ namespace Melodica.Services.Playback
 
             playbackToken = new CancellationTokenSource();
 
-            bool BreakConditions() => skip || switching || playbackToken!.IsCancellationRequested;
+            bool BreakConditions()
+            {
+                return skip || switching || playbackToken!.IsCancellationRequested;
+            }
 
             void Write()
             {
@@ -161,7 +165,7 @@ namespace Melodica.Services.Playback
                     Playing = true;
                     while ((bytesRead = inS!.Read(buffer, 0, buffer.Length)) != 0)
                     {
-                        var shouldBreak = BreakConditions();
+                        bool shouldBreak = BreakConditions();
                         if (IsAlone()) throw new EmptyChannelException();
 
                         while (Paused && !shouldBreak)
@@ -173,6 +177,7 @@ namespace Melodica.Services.Playback
                             break;
 
                         if (volume != MaxVolume) // Basic volume control
+                        {
                             for (int i = 0; i < buffer.Length; i += 2 /*16LE is 2 bytes*/)
                             {
                                 short sample = BitConverter.ToInt16(buffer, i);
@@ -181,13 +186,14 @@ namespace Melodica.Services.Playback
                                 byte[] sampleBytes = BitConverter.GetBytes(sample);
                                 if (!BitConverter.IsLittleEndian) // Convert to little endian.
                                 {
-                                    var first = sampleBytes[0];
+                                    byte first = sampleBytes[0];
                                     sampleBytes[0] = sampleBytes[1];
                                     sampleBytes[1] = first;
                                 }
                                 buffer[i] = sampleBytes[^2];
                                 buffer[i + 1] = sampleBytes[^1];
                             }
+                        }
 
                         discordOut!.Write(buffer, 0, bytesRead);
                     }
@@ -327,7 +333,10 @@ namespace Melodica.Services.Playback
                     throw new CriticalException("Unknown error happened in RequestType switch.");
             }
 
-            bool IsRequestDownloadable() => !(request is LocalMediaRequest) && !(request is AttachmentMediaRequest) && requestInfo.MediaType != MediaType.Livestream;
+            bool IsRequestDownloadable()
+            {
+                return !(request is LocalMediaRequest) && !(request is AttachmentMediaRequest) && requestInfo.MediaType != MediaType.Livestream;
+            }
 
             await writeLock.WaitAsync();
             currentRequest = await queue.DequeueAsync();

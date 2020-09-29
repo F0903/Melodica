@@ -21,18 +21,18 @@ namespace Melodica.Services.Playback
         public JukeboxCommands(JukeboxProvider jukeboxProvider, DownloaderProvider downloader)
         {
             this.jukeboxProvider = jukeboxProvider;
-            this.downloaderProvider = downloader;
+            downloaderProvider = downloader;
         }
 
-        readonly JukeboxProvider jukeboxProvider;
-        Jukebox Jukebox => jukeboxProvider.GetJukeboxAsync(Context.Guild).GetAwaiter().GetResult();
+        private readonly JukeboxProvider jukeboxProvider;
 
-        readonly DownloaderProvider downloaderProvider;
+        private Jukebox Jukebox => jukeboxProvider.GetJukeboxAsync(Context.Guild).GetAwaiter().GetResult();
 
-        Embed? playbackEmbed;
-        IUserMessage? playbackMessage;
-        IUserMessage? playbackPlaylistMessage;
-        readonly SemaphoreSlim playbackLock = new SemaphoreSlim(1);
+        private readonly DownloaderProvider downloaderProvider;
+        private Embed? playbackEmbed;
+        private IUserMessage? playbackMessage;
+        private IUserMessage? playbackPlaylistMessage;
+        private readonly SemaphoreSlim playbackLock = new SemaphoreSlim(1);
 
         //TODO: Refactor this class and perhaps outsource some of these functions to services.
 
@@ -80,7 +80,9 @@ namespace Melodica.Services.Playback
                         await playbackPlaylistMessage.ModifyAsync(x => x.Embed = playbackEmbed);
                 }
                 else
+                {
                     playbackMessage = await ReplyAsync(null, false, playbackEmbed);
+                }
             }
             else
             {
@@ -98,9 +100,7 @@ namespace Melodica.Services.Playback
 
         private IVoiceChannel GetUserVoiceChannel() => ((SocketGuildUser)Context.User).VoiceChannel;
 
-        private Embed CreateMediaEmbed(MediaMetadata mediaInfo, SubRequestInfo? subInfo, Color? color = null, string? footerText = null)
-        {
-            return new EmbedBuilder()
+        private Embed CreateMediaEmbed(MediaMetadata mediaInfo, SubRequestInfo? subInfo, Color? color = null, string? footerText = null) => new EmbedBuilder()
                    .WithColor(color ?? Color.DarkGrey)
                    .WithTitle(mediaInfo.Artist)
                    .WithDescription(subInfo.HasValue ? $"__{mediaInfo.Title}__\n{subInfo.Value.ParentRequestInfo!.Title}" : mediaInfo.Title)
@@ -109,7 +109,6 @@ namespace Melodica.Services.Playback
                                $"{mediaInfo.Duration} | {subInfo.Value.ParentRequestInfo!.Duration}" :
                                footerText ?? mediaInfo.Duration.ToString() : "")
                    .WithThumbnailUrl(mediaInfo.Thumbnail).Build();
-        }
 
         private Task<MediaRequestBase> GetRequestAsync(string query)
         {
@@ -254,8 +253,8 @@ namespace Melodica.Services.Playback
         {
             // If index is null (default) then remove the last element.
             var removed = index == null ? Jukebox.RemoveFromQueue(^0) : Jukebox.RemoveFromQueue(index.Value - 1);
-            await ReplyAsync(null, false, new EmbedBuilder() 
-            { 
+            await ReplyAsync(null, false, new EmbedBuilder()
+            {
                 Title = "**Removed**",
                 Description = removed.Title
             }.Build());
@@ -266,7 +265,7 @@ namespace Melodica.Services.Playback
         {
             var queue = Jukebox.GetQueue();
 
-            EmbedBuilder eb = new EmbedBuilder();
+            var eb = new EmbedBuilder();
             if (queue.IsEmpty)
             {
                 eb.WithTitle("**Queue**")
@@ -319,7 +318,7 @@ namespace Melodica.Services.Playback
         public async Task ContinueAsync()
         {
             //TODO: Maybe continue from a timestamp?
-            if(Jukebox.Playing)
+            if (Jukebox.Playing)
             {
                 await ReplyAsync("The bot is still playing. (If this is incorrect, please report it to the owner)");
                 return;
@@ -333,7 +332,7 @@ namespace Melodica.Services.Playback
             }
 
             var voice = GetUserVoiceChannel();
-            if(voice == null)
+            if (voice == null)
             {
                 await ReplyAsync("You need to be in a voice channel!");
                 return;
@@ -343,16 +342,10 @@ namespace Melodica.Services.Playback
         }
 
         [Command("Switch"), Summary("Changes the current song.")]
-        public Task SwitchAsync([Remainder] string? mediaQuery = null)
-        {
-            return InternalPlayAsync(mediaQuery, true, false);
-        }
+        public Task SwitchAsync([Remainder] string? mediaQuery = null) => InternalPlayAsync(mediaQuery, true, false);
 
         [Command("Play"), Summary("Plays the specified song.")]
-        public Task PlayAsync([Remainder] string? mediaQuery = null)
-        {
-            return InternalPlayAsync(mediaQuery, false, false);
-        }
+        public Task PlayAsync([Remainder] string? mediaQuery = null) => InternalPlayAsync(mediaQuery, false, false);
 
         // Used to play an audio file on the server. Mainly used when youtube is down.
         [Command("PlayLocal"), RequireOwner]

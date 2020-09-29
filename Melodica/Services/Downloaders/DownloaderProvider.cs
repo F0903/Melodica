@@ -2,26 +2,23 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using System.Text;
 
 using Melodica.Services.Downloaders;
 using Melodica.Services.Downloaders.Exceptions;
-using Melodica.Services.Downloaders.Spotify;
-using Melodica.Services.Downloaders.YouTube;
 using Melodica.Utility.Extensions;
 
 namespace Melodica.Services.Services.Downloaders
 {
     public class DownloaderProvider
     {
-        static IEnumerable<AsyncDownloaderBase>? cachedSubtypes;
+        private static IEnumerable<AsyncDownloaderBase>? cachedSubtypes;
 
         private static IEnumerable<AsyncDownloaderBase> GetDownloaderSubTypesDynamically()
         {
             var asm = Assembly.GetExecutingAssembly();
             var types = asm.GetTypes();
             var subtypeInfoElems = types.Where(x => x.IsSubclassOf(typeof(AsyncDownloaderBase)));
-            var subtypeInfoCount = subtypeInfoElems.Count();
+            int subtypeInfoCount = subtypeInfoElems.Count();
 
             var subtypeObjs = new AsyncDownloaderBase[subtypeInfoCount];
             for (int i = 0; i < subtypeInfoCount; i++)
@@ -35,7 +32,7 @@ namespace Melodica.Services.Services.Downloaders
 
         public AsyncDownloaderBase? GetDownloaderFromQuery(string query)
         {
-            if(!query.IsUrl())
+            if (!query.IsUrl())
                 return AsyncDownloaderBase.Default;
 
             cachedSubtypes ??= GetDownloaderSubTypesDynamically();

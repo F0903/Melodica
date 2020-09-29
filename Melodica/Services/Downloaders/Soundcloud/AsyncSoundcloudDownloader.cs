@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Net;
-using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
@@ -14,23 +13,18 @@ using SoundCloud.Api;
 using SoundCloud.Api.Entities;
 using SoundCloud.Api.Entities.Enums;
 
-using SpotifyAPI.Web;
-
 namespace Melodica.Services.Downloaders.Soundcloud
 {
     public class AsyncSoundCloudDownloader : AsyncDownloaderBase
     {
-        readonly ISoundCloudClient soundcloud = SoundCloudClient.CreateUnauthorized("1mJh51hV11v1prDWhy9hLmGaqvfrauWc");
-
-        readonly Regex playlistRegex = new Regex(@"https:\/\/soundcloud\.com\/.+\/sets\/", RegexOptions.Compiled);
-
-        readonly WebClient web = new WebClient();
-
-        readonly MediaFileCache cache = new MediaFileCache("SoundCloud");
+        private readonly ISoundCloudClient soundcloud = SoundCloudClient.CreateUnauthorized("1mJh51hV11v1prDWhy9hLmGaqvfrauWc");
+        private readonly Regex playlistRegex = new Regex(@"https:\/\/soundcloud\.com\/.+\/sets\/", RegexOptions.Compiled);
+        private readonly WebClient web = new WebClient();
+        private readonly MediaFileCache cache = new MediaFileCache("SoundCloud");
 
         private async Task<PlayableMedia> DownloadTrackAsync(long trackId)
         {
-            var stringId = trackId.ToString();
+            string? stringId = trackId.ToString();
             if (cache.Contains(stringId))
                 await cache.GetAsync(stringId);
 
@@ -40,7 +34,7 @@ namespace Melodica.Services.Downloaders.Soundcloud
             if (track.Downloadable.HasValue && !track.Downloadable.Value)
                 throw new MediaUnavailableException("Track is not downloadable.");
 
-            var trackBytes = web.DownloadData(track.DownloadUrl);
+            byte[]? trackBytes = web.DownloadData(track.DownloadUrl);
             var trackData = new MemoryStream(trackBytes);
 
             var media = new PlayableMedia(trackInfo, trackData);
@@ -85,7 +79,7 @@ namespace Melodica.Services.Downloaders.Soundcloud
                 Origin = MediaOrigin.SoundCloud
             };
 
-            MediaMetadata[] tracks = new MediaMetadata[playlist.TrackCount];
+            var tracks = new MediaMetadata[playlist.TrackCount];
             for (int i = 0; i < playlist.TrackCount; i++)
             {
                 var plTrack = playlist.Tracks[i];
@@ -97,28 +91,25 @@ namespace Melodica.Services.Downloaders.Soundcloud
 
         public override Task<string> GetLivestreamAsync(string streamURL) => throw new NotSupportedException("SoundCloud does not support livestreams.");
 
-        MediaMetadata GetTrackInfo(Track track)
+        private MediaMetadata GetTrackInfo(Track track) => new MediaMetadata()
         {
-            return new MediaMetadata()
-            {
-                Artist = track.User.Username,
-                Duration = TimeSpan.FromSeconds(track.Duration),
-                Id = track.Id.ToString(),
-                Title = track.Title,
-                MediaType = MediaType.Video,
-                Thumbnail = track.ArtworkUrl.AbsoluteUri,
-                Url = track.PermalinkUrl.AbsoluteUri,
-                Origin = MediaOrigin.SoundCloud
-            };
-        }
+            Artist = track.User.Username,
+            Duration = TimeSpan.FromSeconds(track.Duration),
+            Id = track.Id.ToString(),
+            Title = track.Title,
+            MediaType = MediaType.Video,
+            Thumbnail = track.ArtworkUrl.AbsoluteUri,
+            Url = track.PermalinkUrl.AbsoluteUri,
+            Origin = MediaOrigin.SoundCloud
+        };
 
-        Task<MediaMetadata> GetTrackInfoAsync(long id)
+        private Task<MediaMetadata> GetTrackInfoAsync(long id)
         {
             var track = soundcloud.Tracks.GetAsync(id).Result;
             return Task.FromResult(GetTrackInfo(track));
         }
 
-        async Task<MediaMetadata> GetPlaylistInfoAsync(long id)
+        private async Task<MediaMetadata> GetPlaylistInfoAsync(long id)
         {
             var playlist = await soundcloud.Playlists.GetAsync(id);
             return new MediaMetadata()
@@ -143,7 +134,7 @@ namespace Melodica.Services.Downloaders.Soundcloud
                 Kind.Track => GetTrackInfoAsync(entt.Id),
                 _ => throw new NotSupportedException("SoundCloud entity type is not supported. Please either try with a track or playlist/album.")
             };
-        }       
+        }
 
         public override bool IsUrlPlaylistAsync(string url) => playlistRegex.IsMatch(url);
 
@@ -153,7 +144,7 @@ namespace Melodica.Services.Downloaders.Soundcloud
         {
             if (url.Contains("https://soundcloud.com/"))
                 return Task.FromResult(true);
-            throw new UnrecognizedUrlException();  
+            throw new UnrecognizedUrlException();
         }
 
         protected override async Task<MediaType> EvaluateMediaTypeAsync(string url)

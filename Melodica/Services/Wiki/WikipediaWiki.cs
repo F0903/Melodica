@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Net;
-using System.Text;
+﻿using System.Net;
 using System.Text.Json;
 using System.Threading.Tasks;
 
@@ -16,7 +13,7 @@ namespace Melodica.Services.Wiki
 
         private WikiElement GetSummary(string pageName)
         {
-            var fullEndpoint = $"{wikipediaSummaryEndpoint}{pageName}?redirect=false";
+            string? fullEndpoint = $"{wikipediaSummaryEndpoint}{pageName}?redirect=false";
             var request = WebRequest.CreateHttp(fullEndpoint);
             request.Method = "GET";
 
@@ -28,7 +25,7 @@ namespace Melodica.Services.Wiki
             catch (WebException ex) when (ex.Status == WebExceptionStatus.ProtocolError)
             { throw new WebException($"Page was not found. Query was: \"{pageName}\"\nRemember that the name is case-sensitive."); }
             if (response == null) throw new WebException("Response from Wikipedia was null.");
-            
+
             var status = response.StatusCode;
             if (status != HttpStatusCode.OK) throw new WebException($"Wikipedia returned code {status}");
 
@@ -38,10 +35,10 @@ namespace Melodica.Services.Wiki
             catch { throw new JsonException("Could not parse the response stream."); }
             var root = doc.RootElement;
 
-            var title = root.GetProperty("title").GetString();
+            string? title = root.GetProperty("title").GetString();
             string? imageUrl = null;
             try { imageUrl = root.GetProperty("thumbnail").GetProperty("source").GetString(); } catch { }
-            var summary = root.GetProperty("extract").GetString();
+            string? summary = root.GetProperty("extract").GetString();
             response.Close();
             doc.Dispose();
 
@@ -53,9 +50,6 @@ namespace Melodica.Services.Wiki
             };
         }
 
-        public override Task<WikiElement> GetInfoAsync(string query)
-        {
-            return Task.FromResult(GetSummary(query.FixURLWhitespace("_")));
-        }
+        public override Task<WikiElement> GetInfoAsync(string query) => Task.FromResult(GetSummary(query.FixURLWhitespace("_")));
     }
 }

@@ -1,10 +1,11 @@
 ﻿using System;
-using System.Linq;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
-using Melodica.Utility.Extensions;
-using Melodica.Services.Playback.Requests;
+
 using Melodica.Services.Models;
+using Melodica.Services.Playback.Requests;
+using Melodica.Utility.Extensions;
 
 namespace Melodica.Services.Playback
 {
@@ -14,14 +15,11 @@ namespace Melodica.Services.Playback
 
         private readonly List<MediaRequestBase> list = new List<MediaRequestBase>();
 
-        public bool IsEmpty { get => list.Count == 0; }
+        public bool IsEmpty => list.Count == 0;
 
-        public int Length { get => list.Count; }
+        public int Length => list.Count;
 
-        public MediaRequestBase this[int i]
-        {
-            get => list[i];
-        }
+        public MediaRequestBase this[int i] => list[i];
 
         public TimeSpan GetTotalDuration() => list.Sum(x => x.GetInfo().Duration);
 
@@ -64,7 +62,7 @@ namespace Melodica.Services.Playback
             lock (locker)
             {
                 item = list[rng.Next(0, list.Count)];
-                if(!keep) list.Remove(item);
+                if (!keep) list.Remove(item);
             }
             return Task.FromResult(item);
         }
@@ -75,7 +73,7 @@ namespace Melodica.Services.Playback
             lock (locker)
             {
                 item = list[0];
-                if(!keep) list.Remove(item);
+                if (!keep) list.Remove(item);
             }
             return Task.FromResult(item);
         }

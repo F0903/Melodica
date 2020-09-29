@@ -1,7 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using Melodica.Services.Downloaders;
 
 namespace Melodica.Services.Downloaders.Spotify
 {
@@ -9,5 +6,5 @@ namespace Melodica.Services.Downloaders.Spotify
     public sealed class SpotifyOrigin : MediaOrigin
     {
         public SpotifyOrigin() : base(serviceName: "Spotify", supportsDownloads: true) { } // Set handlesDownloads to true because the downloader class has cross-wiring logic to handle it.
-    }   
+    }
 }

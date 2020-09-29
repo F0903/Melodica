@@ -4,10 +4,6 @@ using System.IO;
 using System.Threading.Tasks;
 
 using Melodica.Core;
-using Melodica.Core.Exceptions;
-using Melodica.Services.Services;
-
-using SpotifyAPI.Web;
 
 namespace Melodica.Services.Audio
 {
@@ -15,9 +11,9 @@ namespace Melodica.Services.Audio
     {
         protected ExternalAudioProcessor(string mediaPath, int bufferSize = 1024, string? format = null)
         {
-            this.processorProcess = ConstructExternal(mediaPath, bufferSize, format);
-            this.processorProcess.Start();
-            this.processorProcess.PriorityClass = BotSettings.ProcessPriority; 
+            processorProcess = ConstructExternal(mediaPath, bufferSize, format);
+            processorProcess.Start();
+            processorProcess.PriorityClass = BotSettings.ProcessPriority;
         }
 
         ~ExternalAudioProcessor()

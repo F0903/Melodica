@@ -11,14 +11,11 @@ namespace Melodica.Services.Models
     {
         public PlayableMedia(MediaMetadata meta, Stream? data)
         {
-            this.Info = meta;
-            this.rawMediaData = data;
+            Info = meta;
+            rawMediaData = data;
         }
 
-        private PlayableMedia(MediaMetadata meta)
-        {
-            Info = meta;
-        }
+        private PlayableMedia(MediaMetadata meta) => Info = meta;
 
         public static Task<PlayableMedia> LoadFromFileAsync(string songPath)
         {
@@ -43,7 +40,7 @@ namespace Melodica.Services.Models
                 return;
 
             // Write the media data to file.
-            var mediaLocation = Path.Combine(saveDir ?? throw new NullReferenceException("SaveDir was not set."), (Info.Id ?? throw new Exception("Tried to save media with empty ID.")).ReplaceIllegalCharacters() + Info.DataInformation.FileExtension);  
+            string? mediaLocation = Path.Combine(saveDir ?? throw new NullReferenceException("SaveDir was not set."), (Info.Id ?? throw new Exception("Tried to save media with empty ID.")).ReplaceIllegalCharacters() + Info.DataInformation.FileExtension);
             using var file = File.OpenWrite(mediaLocation);
             await rawMediaData.CopyToAsync(file);
             await file.FlushAsync();
@@ -53,9 +50,9 @@ namespace Melodica.Services.Models
             rawMediaData = null;
 
             // Serialize the metadata.
-            var metaLocation = Path.Combine(saveDir!, (Info.Id ?? throw new NullReferenceException("Tried to save media with empty ID.")).ReplaceIllegalCharacters() + MediaMetadata.MetaFileExtension);
+            string? metaLocation = Path.Combine(saveDir!, (Info.Id ?? throw new NullReferenceException("Tried to save media with empty ID.")).ReplaceIllegalCharacters() + MediaMetadata.MetaFileExtension);
             var bs = new BinarySerializer();
-            await bs.SerializeToFileAsync(metaLocation, Info);            
+            await bs.SerializeToFileAsync(metaLocation, Info);
         }
     }
 }

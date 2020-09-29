@@ -1,9 +1,6 @@
-﻿using System;
-using System.Threading.Tasks;
-using System.Collections.Generic;
-using System.Text;
+﻿using System.IO;
+
 using Melodica.Services.Services;
-using System.IO;
 
 namespace Melodica.Services.Models
 {
@@ -11,8 +8,8 @@ namespace Melodica.Services.Models
     {
         public TempMedia(MediaMetadata meta, Stream data) : base(meta, data)
         {
-            var toSave = Path.Combine(MediaFileCache.RootCacheLocation, $"temp/{meta.Title}");
-            var toSaveDir = Path.GetDirectoryName(toSave);
+            string? toSave = Path.Combine(MediaFileCache.RootCacheLocation, $"temp/{meta.Title}");
+            string? toSaveDir = Path.GetDirectoryName(toSave);
 
             if (!Directory.Exists(toSaveDir))
                 Directory.CreateDirectory(toSaveDir);
@@ -26,11 +23,8 @@ namespace Melodica.Services.Models
             Destroy();
         }
 
-        readonly string saveLocation;
+        private readonly string saveLocation;
 
-        private void Destroy()
-        {
-            File.Delete(saveLocation);
-        }
+        private void Destroy() => File.Delete(saveLocation);
     }
 }

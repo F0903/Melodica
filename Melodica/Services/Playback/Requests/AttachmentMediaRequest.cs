@@ -8,14 +8,11 @@ using Melodica.Services.Models;
 
 namespace Melodica.Services.Playback.Requests
 {
-    class AttachmentMediaRequest : MediaRequestBase
+    internal class AttachmentMediaRequest : MediaRequestBase
     {
-        public AttachmentMediaRequest(Discord.Attachment[] attachments)
-        {
-            attachment = attachments[0];
-        }
+        public AttachmentMediaRequest(Discord.Attachment[] attachments) => attachment = attachments[0];
 
-        readonly Discord.Attachment? attachment;
+        private readonly Discord.Attachment? attachment;
 
         private MediaMetadata? info;
 
@@ -32,7 +29,7 @@ namespace Melodica.Services.Playback.Requests
         public override Task<PlayableMedia> GetMediaAsync()
         {
             using var web = new WebClient();
-            var data = web.DownloadData(attachment!.Url);
+            byte[]? data = web.DownloadData(attachment!.Url);
 
             return Task.FromResult((PlayableMedia)new TempMedia(GetInfo(), new MemoryStream(data)));
         }

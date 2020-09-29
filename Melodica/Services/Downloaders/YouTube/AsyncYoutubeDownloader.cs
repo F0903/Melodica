@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
-using Melodica.Core.Exceptions;
 using Melodica.Services.Downloaders.Exceptions;
 using Melodica.Services.Models;
 using Melodica.Services.Services;
@@ -19,9 +18,8 @@ namespace Melodica.Services.Downloaders.YouTube
 {
     public class AsyncYoutubeDownloader : AsyncDownloaderBase
     {
-        readonly YoutubeClient yt = new YoutubeClient();
-
-        readonly MediaFileCache cache = new MediaFileCache("YouTube");
+        private readonly YoutubeClient yt = new YoutubeClient();
+        private readonly MediaFileCache cache = new MediaFileCache("YouTube");
 
         public override bool IsUrlSupported(string url) => url.StartsWith("https://www.youtube.com/") || url.StartsWith("http://www.youtube.com/");
 
@@ -46,9 +44,9 @@ namespace Melodica.Services.Downloaders.YouTube
         {
             if (!(url.StartsWith("https://") || url.StartsWith("http://")))
                 return Task.FromResult(url); // Just return, cause the url is probably already an id.
-            var startIndex = url.IndexOf("?v=") + 3;
-            var stopIndex = url.Contains('&') ? url.IndexOf('&') : url.Length;
-            var id = url[startIndex..stopIndex];
+            int startIndex = url.IndexOf("?v=") + 3;
+            int stopIndex = url.Contains('&') ? url.IndexOf('&') : url.Length;
+            string? id = url[startIndex..stopIndex];
             return Task.FromResult(id);
         }
 
@@ -120,7 +118,7 @@ namespace Melodica.Services.Downloaders.YouTube
             var plMeta = await GetPlaylistMetadataAsync(pl);
 
             var plVideos = yt.Playlists.GetVideosAsync(pl.Id);
-            List<MediaMetadata> plVideoMeta = new List<MediaMetadata>(10);
+            var plVideoMeta = new List<MediaMetadata>(10);
             int i = 0;
             await foreach (var video in plVideos)
             {
@@ -130,10 +128,7 @@ namespace Melodica.Services.Downloaders.YouTube
             return (plMeta, plVideoMeta);
         }
 
-        public override Task<string> GetLivestreamAsync(string streamURL)
-        {
-            return yt.Videos.Streams.GetHttpLiveStreamUrlAsync(streamURL);
-        }
+        public override Task<string> GetLivestreamAsync(string streamURL) => yt.Videos.Streams.GetHttpLiveStreamUrlAsync(streamURL);
 
         private Task<MediaMetadata> GetVideoMetadataAsync(Video video)
         {
@@ -175,11 +170,13 @@ namespace Melodica.Services.Downloaders.YouTube
             if (!input.IsUrl())
             {
                 if (input.LikeYouTubeId()) // If input looks like an ID
+                {
                     return Task.FromResult(input.Length == 11 ?
                         MediaType.Video :
                         input.Length == 34 ?
                         MediaType.Playlist :
                         MediaType.Video); // If input was mistaken for an ID.
+                }
                 else return Task.FromResult(MediaType.Video);
             }
 
@@ -201,7 +198,7 @@ namespace Melodica.Services.Downloaders.YouTube
         }
 
         public override Task<MediaMetadata> GetMediaInfoAsync(string input)
-        {          
+        {
             MediaMetadata GetLivestream()
             {
                 var vidInfo = SearchOrGetVideo(input).Result;

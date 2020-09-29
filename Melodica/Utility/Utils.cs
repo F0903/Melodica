@@ -1,15 +1,15 @@
-﻿using Discord;
-using Discord.WebSocket;
-using System;
-using System.Collections.Generic;
+﻿using System;
 using System.Threading.Tasks;
+
+using Discord;
+using Discord.WebSocket;
 
 namespace Melodica.Utility
 {
     public static class Utils
     {
         public static Task<IUser> GetAppOwnerAsync() =>
-            Task.FromResult(IoC.Kernel.Get<DiscordSocketClient>().GetApplicationInfoAsync().Result.Owner);      
+            Task.FromResult(IoC.Kernel.Get<DiscordSocketClient>().GetApplicationInfoAsync().Result.Owner);
 
         public static Task<int?> GetURLArgumentIntAsync(string url, string argName, bool throwOnNull = true)
         {
@@ -33,7 +33,7 @@ namespace Melodica.Utility
                         diff = i - x;
                 }
 
-                var sub = url.Substring(x, diff);
+                string? sub = url.Substring(x, diff);
                 return Task.FromResult((int?)Convert.ToInt32(sub));
             }
             throw new Exception($"Unexpected parse of url argument '{argName}'");
@@ -42,8 +42,8 @@ namespace Melodica.Utility
         public static string GetUrlResourceFormat(string url)
         {
             string format = "";
-            var start = url.LastIndexOf('.') + 1;
-            foreach (var ch in url[start..])
+            int start = url.LastIndexOf('.') + 1;
+            foreach (char ch in url[start..])
             {
                 if (ch == '?' || ch == '/' || ch == '\\') break;
                 format += ch;
