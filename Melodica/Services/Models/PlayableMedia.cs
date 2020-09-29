@@ -43,7 +43,7 @@ namespace Melodica.Services.Models
                 return;
 
             // Write the media data to file.
-            var mediaLocation = Path.Combine(saveDir ?? throw new NullReferenceException("SaveDir was not set."), (Info.ID ?? throw new Exception("Tried to save media with empty ID.")).ReplaceIllegalCharacters() + Info.DataInformation.FileExtension);  
+            var mediaLocation = Path.Combine(saveDir ?? throw new NullReferenceException("SaveDir was not set."), (Info.Id ?? throw new Exception("Tried to save media with empty ID.")).ReplaceIllegalCharacters() + Info.DataInformation.FileExtension);  
             using var file = File.OpenWrite(mediaLocation);
             await rawMediaData.CopyToAsync(file);
             await file.FlushAsync();
@@ -53,7 +53,7 @@ namespace Melodica.Services.Models
             rawMediaData = null;
 
             // Serialize the metadata.
-            var metaLocation = Path.Combine(saveDir!, (Info.ID ?? throw new NullReferenceException("Tried to save media with empty ID.")).ReplaceIllegalCharacters() + MediaMetadata.MetaFileExtension);
+            var metaLocation = Path.Combine(saveDir!, (Info.Id ?? throw new NullReferenceException("Tried to save media with empty ID.")).ReplaceIllegalCharacters() + MediaMetadata.MetaFileExtension);
             var bs = new BinarySerializer();
             await bs.SerializeToFileAsync(metaLocation, Info);            
         }

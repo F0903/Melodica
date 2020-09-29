@@ -6,7 +6,7 @@ namespace Melodica.Services.Downloaders.Exceptions
 {
     public class MediaUnavailableException : DownloaderException
     {
-        public MediaUnavailableException() : base("Media was unavailable.", null)
+        public MediaUnavailableException(string? msg = "Media was unavailable.", Exception? inner = null) : base(msg, inner)
         { }
     }
 }

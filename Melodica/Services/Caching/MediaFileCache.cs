@@ -95,7 +95,7 @@ namespace Melodica.Services.Services
             return Task.FromResult(files.AsParallel().Convert(x => new FileInfo(x)).Sum(f => f.Length));
         }
 
-        public bool Contains(string id) => cache.Any(x => x.ID == id);     
+        public bool Contains(string id) => cache.Any(x => x.Id == id);     
 
         public async Task<(int deletedFiles, int filesInUse, long msDuration)> PruneCacheAsync(bool forceClear = false)
         {
@@ -115,7 +115,7 @@ namespace Melodica.Services.Services
                 try
                 {
                     DeleteMediaFile(file);
-                    var cacheElement = cache.SingleOrDefault(x => x.ID == Path.ChangeExtension(file.Name, null));
+                    var cacheElement = cache.SingleOrDefault(x => x.Id == Path.ChangeExtension(file.Name, null));
                     if(cacheElement != null) cache.Remove(cacheElement);
                     deletedFiles++;
                 }
@@ -137,7 +137,7 @@ namespace Melodica.Services.Services
             PlayableMedia media;
             try
             {
-                media = await PlayableMedia.LoadFromFileAsync(cache.Single(x => x.ID == id).DataInformation.MediaPath!);
+                media = await PlayableMedia.LoadFromFileAsync(cache.Single(x => x.Id == id).DataInformation.MediaPath!);
             }
             catch (FileNotFoundException)
             {
@@ -153,7 +153,7 @@ namespace Melodica.Services.Services
             if (pruneCache)
                 await PruneCacheAsync();
 
-            if (!Contains(med.Info.ID ?? throw new NullReferenceException("Media ID was null.")))
+            if (!Contains(med.Info.Id ?? throw new NullReferenceException("Media ID was null.")))
             {
                 cache.Add(med.Info);
                 await med.SaveDataAsync(cacheLocation);

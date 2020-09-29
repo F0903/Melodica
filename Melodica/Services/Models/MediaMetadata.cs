@@ -33,7 +33,7 @@ namespace Melodica.Services.Models
 
         public const string MetaFileExtension = ".meta";
 
-        public MediaOrigin MediaOrigin { get; set; } = new MediaOrigin("External", false);
+        public MediaOrigin Origin { get; set; } = new MediaOrigin("External", false);
 
         public MediaType MediaType { get; set; }
 
@@ -45,9 +45,9 @@ namespace Melodica.Services.Models
 
         public string? Thumbnail { get; set; }
 
-        public string? URL { get; set; }
+        public string? Url { get; set; }
 
-        public string? ID { get; set; }
+        public string? Id { get; set; }
 
         public DataInfo DataInformation = new DataInfo();
     }

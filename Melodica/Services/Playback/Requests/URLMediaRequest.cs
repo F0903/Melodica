@@ -22,7 +22,7 @@ namespace Melodica.Services.Playback.Requests
             info = new MediaMetadata()
             {
                 MediaType = directStream ? MediaType.Livestream : MediaType.Video,
-                URL = this.mediaUrl,
+                Url = this.mediaUrl,
                 Title = this.mediaName,
                 DataInformation = new MediaMetadata.DataInfo()
                 {

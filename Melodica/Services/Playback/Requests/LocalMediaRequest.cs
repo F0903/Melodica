@@ -26,7 +26,7 @@ namespace Melodica.Services.Playback.Requests
             var dirName = GetDirName(uri);
             info = new MediaMetadata()
             {
-                ID = dirName,
+                Id = dirName,
                 Title = dirName,
                 MediaType = MediaType.Playlist
             };
@@ -84,7 +84,7 @@ namespace Melodica.Services.Playback.Requests
             var meta = new MediaMetadata()
             {
                 Title = file.Name,
-                ID = file.Name,
+                Id = file.Name,
                 MediaType = MediaType.Video
             };
             meta.DataInformation.Format = file.Extension.Remove(0, 1);

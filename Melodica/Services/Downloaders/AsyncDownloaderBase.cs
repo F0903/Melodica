@@ -14,11 +14,11 @@ namespace Melodica.Services.Downloaders
 
         public abstract bool IsUrlSupported(string url);
 
-        public abstract Task<bool> VerifyURLAsync(string url);
+        public abstract Task<bool> VerifyUrlAsync(string url);
 
         public abstract Task<(MediaMetadata playlist, IEnumerable<MediaMetadata> videos)> DownloadPlaylistInfoAsync(string url);
        
-        public abstract bool IsPlaylistAsync(string url);
+        public abstract bool IsUrlPlaylistAsync(string url);
 
         public abstract Task<MediaMetadata> GetMediaInfoAsync(string input);
 

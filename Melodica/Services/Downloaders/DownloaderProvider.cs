@@ -5,6 +5,7 @@ using System.Reflection;
 using System.Text;
 
 using Melodica.Services.Downloaders;
+using Melodica.Services.Downloaders.Exceptions;
 using Melodica.Services.Downloaders.Spotify;
 using Melodica.Services.Downloaders.YouTube;
 using Melodica.Utility.Extensions;
@@ -43,13 +44,7 @@ namespace Melodica.Services.Services.Downloaders
                 if (type.IsUrlSupported(query))
                     return type;
             }
-            throw new Exception("URL is not supported.");
-
-            //if (AsyncYoutubeDownloader.IsUrlSupported(url))
-            //    return new AsyncYoutubeDownloader();
-            //else if (AsyncSpotifyDownloader.IsUrlSupported(url))
-            //    return new AsyncSpotifyDownloader();
-            //else return null;
+            throw new UnrecognizedUrlException("URL is not supported.");
         }
     }
 }

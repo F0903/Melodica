@@ -24,7 +24,7 @@ namespace Melodica.Services.Playback.Requests
 
         public override MediaMetadata GetInfo()
         {
-            info ??= new MediaMetadata() { Duration = TimeSpan.Zero, ID = Path.ChangeExtension(attachment!.Filename, null), Thumbnail = null, Title = attachment!.Filename };
+            info ??= new MediaMetadata() { Duration = TimeSpan.Zero, Id = Path.ChangeExtension(attachment!.Filename, null), Thumbnail = null, Title = attachment!.Filename };
             info.DataInformation.Format = Path.GetExtension(attachment!.Filename).Replace(".", "");
             return info;
         }

@@ -16,7 +16,7 @@ namespace Melodica.Services.Playback.Requests
             downloader = dl;
             this.query = query;
 
-            if (dl.IsPlaylistAsync(query))
+            if (dl.IsUrlPlaylistAsync(query))
             {
                 SubRequests = new List<MediaRequestBase>();
                 var (playlistInfo, videos) = this.downloader.DownloadPlaylistInfoAsync(this.query).Result;
@@ -24,7 +24,7 @@ namespace Melodica.Services.Playback.Requests
                 for (int i = 0; i < videos.Count(); i++)
                 {
                     var item = videos.ElementAt(i);
-                    SubRequests!.Add(new DownloadRequest(item, info, item.MediaOrigin.SupportsDirectDownloads ? downloader : AsyncDownloaderBase.Default));
+                    SubRequests!.Add(new DownloadRequest(item, info, item.Origin.SupportsDirectDownloads ? downloader : AsyncDownloaderBase.Default));
                 }
             }
         }
@@ -32,7 +32,7 @@ namespace Melodica.Services.Playback.Requests
         private DownloadRequest(MediaMetadata info, MediaMetadata parentRequestInfo, AsyncDownloaderBase dl)
         {
             this.info = info;
-            this.query = info.URL!;
+            this.query = info.Url!;
 
             SubRequestInfo = new SubRequestInfo()
             {

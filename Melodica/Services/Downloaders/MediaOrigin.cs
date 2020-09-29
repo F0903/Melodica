@@ -15,6 +15,7 @@ namespace Melodica.Services.Downloaders
 
         public static MediaOrigin Spotify = new Spotify.SpotifyOrigin();
         public static MediaOrigin YouTube = new YouTube.YouTubeOrigin();
+        public static MediaOrigin SoundCloud = new Soundcloud.SoundCloudOrigin();
 
         public string ServiceName { get; }
 
