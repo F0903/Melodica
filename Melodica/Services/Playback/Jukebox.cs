@@ -152,7 +152,7 @@ namespace Melodica.Services.Playback
             void Write()
             {
                 var reqInfo = (currentRequest ?? throw new Exception("currentRequest was null in write loop. Please contact owner.")).GetInfo();
-                var inS = audio.GetOutput();
+                using var inS = audio.GetOutput();
                 byte[] buffer = new byte[BufferSize];
                 int bytesRead;
                 try
@@ -202,9 +202,8 @@ namespace Melodica.Services.Playback
                 {
                     durationTimer.Reset();
                     Playing = false;
-                    inS!.Flush();
-                    discordOut!.Flush();
                     audio.Dispose();
+                    discordOut!.Flush();
                 }
             }
             return new Thread(Write)
