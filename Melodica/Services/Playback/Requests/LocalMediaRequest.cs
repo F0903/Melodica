@@ -9,7 +9,7 @@ using Melodica.Utility.Extensions;
 
 namespace Melodica.Services.Playback.Requests
 {
-    public class LocalMediaRequest : MediaRequestBase
+    public class LocalMediaRequest : MediaRequest
     {
         public LocalMediaRequest(string uri)
         {
@@ -34,7 +34,7 @@ namespace Melodica.Services.Playback.Requests
                 MediaType = MediaType.Playlist
             };
 
-            SubRequests = new List<MediaRequestBase>();
+            SubRequests = new List<MediaRequest>();
             foreach (var file in Directory.EnumerateFiles(uri).Convert(x => new FileInfo(x)))
             {
                 if (!AllowedMediaExts.Any(x => x == file.Extension))
@@ -45,7 +45,7 @@ namespace Melodica.Services.Playback.Requests
         }
 
         public override SubRequestInfo? SubRequestInfo { get; protected set; }
-        public override List<MediaRequestBase>? SubRequests { get; set; }
+        public override List<MediaRequest>? SubRequests { get; set; }
 
         private LocalMediaRequest(FileInfo file, MediaMetadata parentMeta)
         {

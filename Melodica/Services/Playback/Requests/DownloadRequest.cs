@@ -9,7 +9,7 @@ using Melodica.Services.Models;
 
 namespace Melodica.Services.Playback.Requests
 {
-    public class DownloadRequest : MediaRequestBase
+    public class DownloadRequest : MediaRequest
     {
         public DownloadRequest(string query, AsyncDownloaderBase dl)
         {
@@ -18,7 +18,7 @@ namespace Melodica.Services.Playback.Requests
 
             if (dl.IsUrlPlaylistAsync(query))
             {
-                SubRequests = new List<MediaRequestBase>();
+                SubRequests = new List<MediaRequest>();
                 var (playlistInfo, videos) = downloader.DownloadPlaylistInfoAsync(this.query).Result;
                 info = playlistInfo;
                 for (int i = 0; i < videos.Count(); i++)
@@ -52,7 +52,7 @@ namespace Melodica.Services.Playback.Requests
 
         public override SubRequestInfo? SubRequestInfo { get; protected set; }
 
-        public override List<MediaRequestBase>? SubRequests { get; set; }
+        public override List<MediaRequest>? SubRequests { get; set; }
 
         private MediaMetadata? info;
         public override MediaMetadata GetInfo() => info ??= downloader.GetMediaInfoAsync(query).Result;

@@ -26,7 +26,7 @@ namespace Melodica.Services.Playback
 
         private readonly JukeboxProvider jukeboxProvider;
 
-        private Jukebox Jukebox => jukeboxProvider.GetJukeboxAsync(Context.Guild).GetAwaiter().GetResult();
+        private NewJukebox Jukebox => jukeboxProvider.GetJukeboxAsyncNew(Context.Guild, () => new NewJukebox(MediaCallback)).GetAwaiter().GetResult();
 
         private readonly DownloaderProvider downloaderProvider;
         private Embed? playbackEmbed;
@@ -36,7 +36,7 @@ namespace Melodica.Services.Playback
 
         //TODO: Refactor this class and perhaps outsource some of these functions to services.
 
-        private async void PlaybackCallback((MediaMetadata info, SubRequestInfo? subInfo, MediaState state) ctx)
+        private async void MediaCallback(MediaMetadata info, MediaState state, SubRequestInfo? subInfo)
         {
             await playbackLock.WaitAsync(); // Use a this to make sure no threads send multiple messages at the same time.    
 
@@ -45,25 +45,25 @@ namespace Melodica.Services.Playback
             Embed OnDone()
             {
                 reset = true;
-                return CreateMediaEmbed(ctx.info, ctx.subInfo, Color.LighterGrey);
+                return CreateMediaEmbed(info, subInfo, Color.LighterGrey);
             }
 
             Embed OnUnavailable()
             {
                 reset = true;
-                return CreateMediaEmbed(ctx.info, ctx.subInfo, Color.Red);
+                return CreateMediaEmbed(info, subInfo, Color.Red);
             }
 
-            playbackEmbed = ctx.state switch
+            playbackEmbed = state switch
             {
                 MediaState.Error => OnUnavailable(),
-                MediaState.Downloading => CreateMediaEmbed(ctx.info!, ctx.subInfo, Color.Blue),
-                MediaState.Queued => CreateMediaEmbed(ctx.info!, ctx.subInfo, null, ctx.info.MediaType == MediaType.Livestream ? '\u221E'.ToString() : null),
-                MediaState.Playing => ctx.info.MediaType switch
+                MediaState.Downloading => CreateMediaEmbed(info!, subInfo, Color.Blue),
+                MediaState.Queued => CreateMediaEmbed(info!, subInfo, null, info.MediaType == MediaType.Livestream ? '\u221E'.ToString() : null),
+                MediaState.Playing => info.MediaType switch
                 {
-                    MediaType.Video => CreateMediaEmbed(ctx.info!, ctx.subInfo, Color.Green),
-                    MediaType.Playlist => CreateMediaEmbed(ctx.info!, ctx.subInfo, Color.Green),
-                    MediaType.Livestream => CreateMediaEmbed(ctx.info!, ctx.subInfo, Color.DarkGreen, '\u221E'.ToString()),
+                    MediaType.Video => CreateMediaEmbed(info!, subInfo, Color.Green),
+                    MediaType.Playlist => CreateMediaEmbed(info!, subInfo, Color.Green),
+                    MediaType.Livestream => CreateMediaEmbed(info!, subInfo, Color.DarkGreen, '\u221E'.ToString()),
                     _ => throw new Exception("Unknown error in PlaybackCallback switch expression"),
                 },
                 MediaState.Finished => OnDone(),
@@ -72,7 +72,7 @@ namespace Melodica.Services.Playback
 
             if (playbackMessage == null)
             {
-                if (ctx.info.MediaType == MediaType.Playlist)
+                if (info.MediaType == MediaType.Playlist)
                 {
                     if (playbackPlaylistMessage == null)
                         playbackPlaylistMessage = await ReplyAsync(null, false, playbackEmbed);
@@ -110,17 +110,17 @@ namespace Melodica.Services.Playback
                                footerText ?? mediaInfo.Duration.ToString() : "")
                    .WithThumbnailUrl(mediaInfo.Thumbnail).Build();
 
-        private Task<MediaRequestBase> GetRequestAsync(string query)
+        private Task<MediaRequest> GetRequestAsync(string query)
         {
             var attach = Context.Message.Attachments;
             if (attach.Count != 0)
             {
-                return Task.FromResult(new AttachmentMediaRequest(attach.ToArray()) as MediaRequestBase);
+                return Task.FromResult(new AttachmentMediaRequest(attach.ToArray()) as MediaRequest);
             }
             else
             {
                 var downloader = downloaderProvider.GetDownloaderFromQuery(query) ?? (query.IsUrl() ? null : AsyncDownloaderBase.Default);
-                return Task.FromResult(downloader == null ? new URLMediaRequest(null, query, true) : new DownloadRequest(query!, downloader) as MediaRequestBase);
+                return Task.FromResult(downloader == null ? new URLMediaRequest(null, query, true) : new DownloadRequest(query!, downloader) as MediaRequest);
             }
         }
 
@@ -174,13 +174,6 @@ namespace Melodica.Services.Playback
         [Command("Loop"), Summary("Toggles loop on the current song.")]
         public async Task SetLoopingAsync([Remainder] string? query = null)
         {
-            if (!string.IsNullOrEmpty(query))
-            {
-                //TODO: Fix not getting a message
-                await InternalPlayAsync(query, true, true);
-                return;
-            }
-
             bool state = Jukebox.Loop = !Jukebox.Loop;
             await ReplyAsync($"Loop {(state ? "On" : "Off")}");
         }
@@ -206,7 +199,7 @@ namespace Melodica.Services.Playback
             }
 
             var dur = Jukebox.Duration;
-            var songDur = Jukebox.GetSong().info.Duration;
+            var songDur = Jukebox.CurrentSong!.Value.info.Duration;
             await ReplyAsync($"**__{dur}__\n{songDur}**");
         }
 
@@ -227,24 +220,23 @@ namespace Melodica.Services.Playback
         [Command("Skip", RunMode = RunMode.Sync), Summary("Skips current song.")]
         public Task SkipAsync()
         {
-            Jukebox.Skip();
-            return Task.CompletedTask;
+            return Jukebox.SkipAsync();
         }
 
         [Command("Volume", RunMode = RunMode.Sync), Alias("Vol"), Summary("Sets volume.")]
         public Task VolumeAsync(int value)
         {
-            if (value > Jukebox.MaxVolume) return ReplyAsync($"Volume cannot be higher than {Jukebox.MaxVolume}");
-            if (value < Jukebox.MinVolume) return ReplyAsync($"Volume cannot be lower than {Jukebox.MinVolume}");
+            if (value > NewJukebox.MaxVolume) return ReplyAsync($"Volume cannot be higher than {NewJukebox.MaxVolume}");
+            if (value < NewJukebox.MinVolume) return ReplyAsync($"Volume cannot be lower than {NewJukebox.MinVolume}");
 
-            Jukebox.Volume = value;
+            //NewJukebox.Volume = value;
             return ReplyAsync($"Volume set to {value}");
         }
 
         [Command("Clear"), Summary("Clears queue.")]
         public async Task ClearQueue()
         {
-            await Jukebox.ClearQueueAsync();
+            await Jukebox.Queue.ClearAsync();
             await ReplyAsync("Cleared queue.");
         }
 
@@ -252,18 +244,18 @@ namespace Melodica.Services.Playback
         public async Task RemoveSongFromQueue(int? index = null)
         {
             // If index is null (default) then remove the last element.
-            var removed = index == null ? Jukebox.RemoveFromQueue(^0) : Jukebox.RemoveFromQueue(index.Value - 1);
+            var removed = index == null ? await Jukebox.Queue.RemoveAtAsync(^0) : await Jukebox.Queue.RemoveAtAsync(index.Value - 1);
             await ReplyAsync(null, false, new EmbedBuilder()
             {
                 Title = "**Removed**",
-                Description = removed.Title
+                Description = removed.GetInfo().Title
             }.Build());
         }
 
         [Command("Queue"), Summary("Shows current queue.")]
         public async Task QueueAsync()
         {
-            var queue = Jukebox.GetQueue();
+            var queue = Jukebox.Queue;
 
             var eb = new EmbedBuilder();
             if (queue.IsEmpty)
@@ -293,27 +285,6 @@ namespace Melodica.Services.Playback
             await Context.Channel.SendMessageAsync(null, false, eb.Build());
         }
 
-        private async Task InternalPlayAsync(string? query, bool switchPlayback, bool loop)
-        {
-            var userVoice = GetUserVoiceChannel();
-            if (userVoice == null)
-            {
-                await ReplyAsync("You need to be in a voice channel!");
-                return;
-            }
-
-            CheckForPermissions(userVoice);
-
-            if (query == null && Context.Message.Attachments.Count == 0)
-            {
-                await ReplyAsync("You need to specify a url, search query or upload a file.");
-                return;
-            }
-
-            try { await Jukebox.PlayAsync(await GetRequestAsync(query!), userVoice, switchPlayback, loop, PlaybackCallback); }
-            catch (EmptyChannelException) { await ReplyAsync("All users have left the channel. Disconnecting..."); }
-        }
-
         [Command("Continue"), Summary("Continues the current queue if the bot has disconnected.")]
         public async Task ContinueAsync()
         {
@@ -324,7 +295,7 @@ namespace Melodica.Services.Playback
                 return;
             }
 
-            var queue = Jukebox.GetQueue();
+            var queue = Jukebox.Queue;
             if (queue.IsEmpty)
             {
                 await ReplyAsync("Cannot continue from an empty queue.");
@@ -338,14 +309,52 @@ namespace Melodica.Services.Playback
                 return;
             }
 
-            await Jukebox.PlayAsync(await queue.DequeueAsync(), voice, false, false, PlaybackCallback);
+            await Jukebox.PlayAsync(await queue.DequeueAsync(), voice);
         }
 
         [Command("Switch"), Summary("Changes the current song.")]
-        public Task SwitchAsync([Remainder] string? mediaQuery = null) => InternalPlayAsync(mediaQuery, true, false);
+        public async Task SwitchAsync([Remainder] string? mediaQuery = null)
+        {
+            var userVoice = GetUserVoiceChannel();
+            if (userVoice == null)
+            {
+                await ReplyAsync("You need to be in a voice channel!");
+                return;
+            }
+
+            CheckForPermissions(userVoice);
+
+            if (mediaQuery == null && Context.Message.Attachments.Count == 0)
+            {
+                await ReplyAsync("You need to specify a url, search query or upload a file.");
+                return;
+            }
+
+            try { await Jukebox.SwitchAsync(await GetRequestAsync(mediaQuery!), userVoice); }
+            catch (EmptyChannelException) { await ReplyAsync("All users have left the channel. Disconnecting..."); }
+        }
 
         [Command("Play"), Summary("Plays the specified song.")]
-        public Task PlayAsync([Remainder] string? mediaQuery = null) => InternalPlayAsync(mediaQuery, false, false);
+        public async Task PlayAsync([Remainder] string? mediaQuery = null)
+        {
+            var userVoice = GetUserVoiceChannel();
+            if (userVoice == null)
+            {
+                await ReplyAsync("You need to be in a voice channel!");
+                return;
+            }
+
+            CheckForPermissions(userVoice);
+
+            if (mediaQuery == null && Context.Message.Attachments.Count == 0)
+            {
+                await ReplyAsync("You need to specify a url, search query or upload a file.");
+                return;
+            }
+
+            try { await Jukebox.PlayAsync(await GetRequestAsync(mediaQuery!), userVoice); }
+            catch (EmptyChannelException) { await ReplyAsync("All users have left the channel. Disconnecting..."); }
+        }
 
         // Used to play an audio file on the server. Mainly used when youtube is down.
         [Command("PlayLocal"), RequireOwner]
@@ -355,7 +364,7 @@ namespace Melodica.Services.Playback
             CheckForPermissions(userVoice);
 
             var req = new LocalMediaRequest(directUrl);
-            await Jukebox.PlayAsync(req, userVoice, true, false, PlaybackCallback);
+            await Jukebox.PlayAsync(req, userVoice);
         }
 
         [Command("Stop"), Summary("Stops playback.")]

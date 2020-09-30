@@ -10,11 +10,11 @@ namespace Melodica.Services.Playback.Requests
         public MediaMetadata ParentRequestInfo { get; set; }
     }
 
-    public abstract class MediaRequestBase
+    public abstract class MediaRequest
     {
         public abstract SubRequestInfo? SubRequestInfo { get; protected set; }
 
-        public abstract List<MediaRequestBase>? SubRequests { get; set; }
+        public abstract List<MediaRequest>? SubRequests { get; set; }
 
         public abstract MediaMetadata GetInfo();
 

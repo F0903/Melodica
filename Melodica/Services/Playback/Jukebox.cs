@@ -29,8 +29,6 @@ namespace Melodica.Services.Playback
 
     public sealed class Jukebox
     {
-        public Jukebox(SongQueue? queue = null) => this.queue = queue ?? new SongQueue();
-
         private bool skip = false;
 
         private volatile bool switching = false;
@@ -41,13 +39,13 @@ namespace Melodica.Services.Playback
 
         private Thread? playbackThread;
 
-        private readonly SongQueue queue;
+        private readonly SongQueue queue = new SongQueue();
 
         private IAudioChannel? channel;
 
         private IAudioClient? audioClient;
 
-        private MediaRequestBase? currentRequest;
+        private MediaRequest? currentRequest;
 
         private readonly SemaphoreSlim writeLock = new SemaphoreSlim(1);
 
@@ -261,7 +259,7 @@ namespace Melodica.Services.Playback
         /// <param name="loop"> Should this media be put on loop? </param>
         /// <param name="callbacks"> Callbacks for different states. </param>
         /// <returns></returns>
-        public async Task PlayAsync(MediaRequestBase request, IAudioChannel channel, bool switchSong = false, bool loop = false, Action<(MediaMetadata info, SubRequestInfo? subInfo, MediaState state)>? callback = null)
+        public async Task PlayAsync(MediaRequest request, IAudioChannel channel, bool switchSong = false, bool loop = false, Action<(MediaMetadata info, SubRequestInfo? subInfo, MediaState state)>? callback = null)
         {
             //TODO: Refactor this function to seperate ones.
 

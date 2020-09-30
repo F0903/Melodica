@@ -219,6 +219,19 @@ namespace Melodica.Services.Downloaders.YouTube
                 return meta;
             }
 
+            if (input.IsUrl())
+            {
+                var id = ParseURLToIdAsync(input).Result;
+                if (cache.Contains(id))
+                    return Task.FromResult(cache.GetAsync(id).Result.Info);
+            }
+
+            if (input.LikeYouTubeId())
+            {
+                if (cache.Contains(input))
+                   return Task.FromResult(cache.GetAsync(input).Result.Info);
+            }
+
             var mType = EvaluateMediaTypeAsync(input).Result;
 
             // This whole object casting thing smells a bit bad

@@ -10,7 +10,7 @@ using Melodica.Services.Models;
 
 namespace Melodica.Services.Playback.Requests
 {
-    public class URLMediaRequest : MediaRequestBase
+    public class URLMediaRequest : MediaRequest
     {
         public URLMediaRequest(string? mediaName, string mediaUrl, bool directStream)
         {
@@ -33,7 +33,7 @@ namespace Melodica.Services.Playback.Requests
         }
 
         public override SubRequestInfo? SubRequestInfo { get; protected set; }
-        public override List<MediaRequestBase>? SubRequests { get; set; }
+        public override List<MediaRequest>? SubRequests { get; set; }
 
 
         private readonly string mediaName;
