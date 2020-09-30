@@ -9,6 +9,7 @@ using Discord.WebSocket;
 
 using Melodica.Services.Downloaders;
 using Melodica.Services.Models;
+using Melodica.Services.Playback.Exceptions;
 using Melodica.Services.Playback.Requests;
 using Melodica.Services.Services;
 using Melodica.Services.Services.Downloaders;
@@ -26,9 +27,10 @@ namespace Melodica.Services.Playback
 
         private readonly JukeboxProvider jukeboxProvider;
 
-        private NewJukebox Jukebox => jukeboxProvider.GetJukeboxAsyncNew(Context.Guild, () => new NewJukebox(MediaCallback)).GetAwaiter().GetResult();
+        private Jukebox Jukebox => jukeboxProvider.GetOrCreateJukeboxAsync(Context.Guild, () => new Jukebox(MediaCallback)).GetAwaiter().GetResult();
 
         private readonly DownloaderProvider downloaderProvider;
+
         private Embed? playbackEmbed;
         private IUserMessage? playbackMessage;
         private IUserMessage? playbackPlaylistMessage;
@@ -54,7 +56,7 @@ namespace Melodica.Services.Playback
                 return CreateMediaEmbed(info, subInfo, Color.Red);
             }
 
-            playbackEmbed = state switch
+            var newEmbed = state switch
             {
                 MediaState.Error => OnUnavailable(),
                 MediaState.Downloading => CreateMediaEmbed(info!, subInfo, Color.Blue),
@@ -75,19 +77,30 @@ namespace Melodica.Services.Playback
                 if (info.MediaType == MediaType.Playlist)
                 {
                     if (playbackPlaylistMessage == null)
-                        playbackPlaylistMessage = await ReplyAsync(null, false, playbackEmbed);
+                        playbackPlaylistMessage = await ReplyAsync(null, false, newEmbed);
                     else
-                        await playbackPlaylistMessage.ModifyAsync(x => x.Embed = playbackEmbed);
+                        await playbackPlaylistMessage.ModifyAsync(x => x.Embed = newEmbed);
                 }
                 else
                 {
-                    playbackMessage = await ReplyAsync(null, false, playbackEmbed);
+                    playbackMessage = await ReplyAsync(null, false, newEmbed);
                 }
             }
             else
             {
-                await playbackMessage.ModifyAsync(x => x.Embed = playbackEmbed);
+                if (state == MediaState.Queued)
+                {
+                    await ReplyAsync(null, false, newEmbed);
+                    playbackLock.Release();
+                    return;
+                }
+                else
+                {
+                    await playbackMessage.ModifyAsync(x => x.Embed = newEmbed);
+                }
             }
+
+            playbackEmbed = newEmbed;
 
             if (reset)
             {
@@ -172,7 +185,7 @@ namespace Melodica.Services.Playback
         }
 
         [Command("Loop"), Summary("Toggles loop on the current song.")]
-        public async Task SetLoopingAsync([Remainder] string? query = null)
+        public async Task SetLoopingAsync()
         {
             bool state = Jukebox.Loop = !Jukebox.Loop;
             await ReplyAsync($"Loop {(state ? "On" : "Off")}");
@@ -199,8 +212,8 @@ namespace Melodica.Services.Playback
             }
 
             var dur = Jukebox.Duration;
-            var songDur = Jukebox.CurrentSong!.Value.info.Duration;
-            await ReplyAsync($"**__{dur}__\n{songDur}**");
+            var songDur = Jukebox.Song!.Value.info.Duration;
+            await ReplyAsync($"**__{dur}__" + (songDur != TimeSpan.Zero ? $"\n{songDur}**" : ""));
         }
 
         [Command("Resume", RunMode = RunMode.Sync), Summary("Resumes playback.")]
@@ -221,16 +234,6 @@ namespace Melodica.Services.Playback
         public Task SkipAsync()
         {
             return Jukebox.SkipAsync();
-        }
-
-        [Command("Volume", RunMode = RunMode.Sync), Alias("Vol"), Summary("Sets volume.")]
-        public Task VolumeAsync(int value)
-        {
-            if (value > NewJukebox.MaxVolume) return ReplyAsync($"Volume cannot be higher than {NewJukebox.MaxVolume}");
-            if (value < NewJukebox.MinVolume) return ReplyAsync($"Volume cannot be lower than {NewJukebox.MinVolume}");
-
-            //NewJukebox.Volume = value;
-            return ReplyAsync($"Volume set to {value}");
         }
 
         [Command("Clear"), Summary("Clears queue.")]
@@ -330,7 +333,14 @@ namespace Melodica.Services.Playback
                 return;
             }
 
-            try { await Jukebox.SwitchAsync(await GetRequestAsync(mediaQuery!), userVoice); }
+            try
+            {
+                var jukebox = Jukebox;
+                if (jukebox.Playing)
+                    await jukebox.SwitchAsync(await GetRequestAsync(mediaQuery!));
+                else
+                    await jukebox.PlayAsync(await GetRequestAsync(mediaQuery!), userVoice);
+            }
             catch (EmptyChannelException) { await ReplyAsync("All users have left the channel. Disconnecting..."); }
         }
 
@@ -375,7 +385,7 @@ namespace Melodica.Services.Playback
                 await ReplyAsync("No song is playing.");
                 return;
             }
-            await Jukebox.StopAsync();
+            await Jukebox.DisconnectAsync();
         }
     }
 }

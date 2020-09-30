@@ -14,6 +14,7 @@ namespace Melodica.Core
 
         public const ProcessPriorityClass ProcessPriority = ProcessPriorityClass.High;
 
-        public const LogSeverity LogLevel = LogSeverity.Debug;
+        // Avoid setting this to debug, as it will spam a debug message when playing audio, slowing the bot down.
+        public const LogSeverity LogLevel = LogSeverity.Verbose;
     }
 }

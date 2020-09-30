@@ -15,17 +15,17 @@ namespace Melodica.Services.Lyrics
         public LyricsCommands(LyricsProvider lyrics, JukeboxProvider jukebox)
         {
             this.lyrics = lyrics;
-            this.jukebox = jukebox;
+            this.jukeboxProvider = jukebox;
         }
 
         private readonly LyricsProvider lyrics;
-        private readonly JukeboxProvider jukebox;
+        private readonly JukeboxProvider jukeboxProvider;
 
         [Command("Lyrics"), Description("Gets lyrics for a search term.")]
         public async Task GetLyrics([Remainder] string? songName = null)
         {
             Jukebox? juke;
-            try { juke = await jukebox.GetJukeboxAsync(Context.Guild, true); }
+            try { juke = await jukeboxProvider.GetJukeboxAsync(Context.Guild); }
             catch (System.Exception) { juke = null; }
 
             if (songName == null && !(juke != null && juke.Playing))
@@ -36,7 +36,7 @@ namespace Melodica.Services.Lyrics
 
             if (songName == null)
             {
-                var songInfo = juke!.GetSong().info;
+                var songInfo = juke!.Song!.Value.info;
                 songName = $"{songInfo.Artist} {songInfo.Title}";
             }
 

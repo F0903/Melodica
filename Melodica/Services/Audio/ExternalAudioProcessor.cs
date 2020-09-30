@@ -37,16 +37,18 @@ namespace Melodica.Services.Audio
 
         public virtual void Dispose()
         {
+            if (processorProcess == null)
+                return;
+            processorProcess.CloseMainWindow();
+            
             if (inputAvailable)
                 processorProcess.StandardInput.Dispose();
             if (outputAvailable)
                 processorProcess.StandardOutput.Dispose();
 
-            if (processorProcess == null)
-                return;
-            processorProcess.Kill();
             if (!processorProcess.HasExited)
-                processorProcess.WaitForExit();
+                if (!processorProcess.WaitForExit(1000))
+                    processorProcess.Kill();
         }
     }
 }

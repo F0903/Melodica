@@ -21,6 +21,18 @@ namespace Melodica.Utility.Extensions
             '<'
         };
 
+        public static bool IsOverSize<T>(this IEnumerable<T> list, int exclusiveLimit)
+        {
+            int i = 0;
+            foreach (var item in list)
+            {
+                ++i;
+                if (i > exclusiveLimit)
+                    return true;
+            }
+            return false;
+        }
+
         public static string SeperateStrings(this string[] strings, string seperator = ", ")
         {
             var sb = new StringBuilder(strings.Length * 5);

@@ -12,7 +12,6 @@ namespace Melodica.Services.Audio
 
         protected override Process ConstructExternal(string path, int bufferSize = 0, string? format = null)
         {
-            //TODO: Experiement with feeding ffmpeg direct data instead of a filepath. This might fix the discord interpolation issue that causes audio from a previous song to play briefly.
             if (path == null || path == string.Empty)
             {
                 MediaFileCache.PruneAllCachesAsync().Wait();

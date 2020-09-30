@@ -43,7 +43,7 @@ namespace Melodica.Services.Playback
             return Task.CompletedTask;
         }
 
-        public Task PutFirst(MediaRequest item)
+        public Task PutFirstAsync(MediaRequest item)
         {
             list.Insert(0, item);
             return Task.CompletedTask;
