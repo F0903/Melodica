@@ -213,7 +213,7 @@ namespace Melodica.Services.Playback
 
             var dur = Jukebox.Duration;
             var songDur = Jukebox.Song!.Value.info.Duration;
-            await ReplyAsync($"**__{dur}__" + (songDur != TimeSpan.Zero ? $"\n{songDur}**" : ""));
+            await ReplyAsync($"__{dur}__" + (songDur != TimeSpan.Zero ? $"\n{songDur}" : ""));
         }
 
         [Command("Resume", RunMode = RunMode.Sync), Summary("Resumes playback.")]

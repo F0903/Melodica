@@ -20,7 +20,7 @@ namespace Melodica.Services.Wiki
 
         private Jukebox GetJukebox => jukeboxProvider.GetJukeboxAsync(Context.Guild).Result;
 
-        [Command("Info"), Summary("Gets info from a wiki for the specified page.")]
+        [Command("Info"), Alias("Wiki"), Summary("Gets info from a wiki for the specified page.")]
         public async Task InfoAsync([Remainder] string? pageTitle = null)
         {
             Jukebox juke;
