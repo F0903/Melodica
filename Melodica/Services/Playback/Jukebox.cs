@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Diagnostics;
 using System.Linq;
+using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -12,6 +13,7 @@ using Melodica.Core.Exceptions;
 using Melodica.Services.Audio;
 using Melodica.Services.Downloaders.Exceptions;
 using Melodica.Services.Models;
+using Melodica.Services.Playback.Exceptions;
 using Melodica.Services.Playback.Requests;
 using Melodica.Utility.Extensions;
 
@@ -90,12 +92,17 @@ namespace Melodica.Services.Playback
 
         private Task SendDataAsync(ExternalAudioProcessor audioProcessor, IAudioChannel channel, int bitrate)
         {
-            bool BreakConditions() => stopRequested || CheckIfAloneAsync(channel).Result;
+            bool isAlone = false;
+            bool BreakConditions() => stopRequested || isAlone;
 
+            //TODO: Prevent the discord web expired exception from breaking the bot.
             var writeThread = new Thread(() =>
             {
                 using var input = audioProcessor.GetOutput();
                 using var output = audioClient!.CreatePCMStream(AudioApplication.Music, bitrate, 100, 0);
+                
+                using var aloneTimer = new Timer(x => isAlone = CheckIfAloneAsync(channel).Result, null, 0, 5000);
+
                 int count = 0;
                 byte[] buffer = new byte[1024];
                 try
@@ -105,6 +112,7 @@ namespace Melodica.Services.Playback
                     while ((count = input!.Read(buffer, 0, buffer.Length)) != 0)
                     {
                         bool shouldBreak = BreakConditions();
+
                         while (Paused && !shouldBreak) { Thread.Sleep(1000); }
 
                         output.Write(buffer, 0, count);
@@ -124,11 +132,17 @@ namespace Melodica.Services.Playback
             writeThread.Name = "AudioWriteThread";
             writeThread.IsBackground = false;
             writeThread.Priority = ThreadPriority.Highest;
-
+            
             writeThread.Start();
             Playing = true;
             writeThread.Join();
             Playing = false;
+
+            if (isAlone)
+            {
+                DisconnectAsync().ConfigureAwait(false);
+                throw new EmptyChannelException();
+            }
 
             if (stopRequested) stopRequested = false;
 
@@ -177,6 +191,7 @@ namespace Melodica.Services.Playback
                 throw new Exception("No song is playing.");
             await Queue.PutFirstAsync(request);
             Shuffle = false;
+            Loop = false;
             stopRequested = true;
         }
 
@@ -267,7 +282,10 @@ namespace Melodica.Services.Playback
 
             mediaCallback(media.Info, MediaState.Playing, subRequest?.SubRequestInfo ?? request.SubRequestInfo);
             using var audioProcessor = new FFmpegAudioProcessor(media.Info.DataInformation.MediaPath ?? throw new NullReferenceException("MediaPath was null."), media.Info.DataInformation.Format);
-            await SendDataAsync(audioProcessor, audioChannel, GetChannelBitrate(audioChannel));
+
+            try { await SendDataAsync(audioProcessor, audioChannel, GetChannelBitrate(audioChannel)); }
+            catch (WebException) { } // Attempt to catch discord disconnects.
+
             if (Loop)
             {
                 var next = request.GetInfo().MediaType == MediaType.Playlist ? subRequest ?? throw new CriticalException("Sub request was null.") : request;

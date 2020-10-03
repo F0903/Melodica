@@ -2,6 +2,7 @@
 using System.Net;
 using System.Net.Http;
 using System.Text.Json;
+using System.Threading;
 using System.Threading.Tasks;
 
 using AngleSharp;
@@ -26,11 +27,12 @@ namespace Melodica.Services.Lyrics
             while (lyricElement == null)
             {
                 if (tries > 5)
-                    throw new CriticalException("GeniusLyrics exceeded max attempts. Could not get lyrics.");
+                    throw new CriticalException("GeniusLyrics exceeded max attempts. Could not get lyrics content from html.");
 
-                var doc = await context.OpenAsync(url);
+                using var doc = await context.OpenAsync(url);
                 lyricElement = doc.QuerySelector("div.lyrics");
 
+                Thread.Sleep(250 * tries);
                 ++tries;
             }
             return lyricElement.TextContent;
