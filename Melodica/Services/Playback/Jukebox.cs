@@ -151,10 +151,10 @@ namespace Melodica.Services.Playback
 
         public async Task DisconnectAsync()
         {
-            await StopAsync();
-
             Song = null;
             await Queue.ClearAsync();
+
+            await StopAsync();          
 
             if (audioClient == null)
                 return;
@@ -255,7 +255,7 @@ namespace Melodica.Services.Playback
 
                 Song = (media.Info, request.SubRequestInfo);
             }
-            catch (Exception ex)
+            catch
             {
                 if (requestInfo != null)
                 {
@@ -265,14 +265,16 @@ namespace Melodica.Services.Playback
                     mediaCallback(requestInfo, MediaState.Error, request.SubRequestInfo);
                 }
 
-                if (ex is MediaUnavailableException)
-                    throw ex;
-
-                if (Queue.IsEmpty) throw;
+                if (Queue.IsEmpty)
+                {
+                    await DisconnectAsync();
+                    throw;
+                }
                 else
                 {
+                    downloading = false;
                     var next = Shuffle ? await Queue.DequeueRandomAsync(Repeat) : await Queue.DequeueAsync(Repeat);
-                    await PlayAsync(next, audioChannel);
+                    await PlayAsync(next, audioChannel).ConfigureAwait(false);
                     return;
                 }
             }
