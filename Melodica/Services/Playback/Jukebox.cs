@@ -195,14 +195,6 @@ namespace Melodica.Services.Playback
             stopRequested = true;
         }
 
-        public async Task RemoveFromQueueAsync(Index index)
-        {
-            var removed = await Queue.RemoveAtAsync(index);
-            // Subtract subrequest duration from parent request.
-            if (removed.ParentRequestInfo != null)
-                removed.ParentRequestInfo.Duration -= removed.GetInfo().Duration;
-        }
-
         async Task QueueAsync(MediaRequest request)
         {
             if (request.GetInfo().MediaType == MediaType.Playlist)

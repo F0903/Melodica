@@ -97,6 +97,8 @@ namespace Melodica.Services.Playback
                 item = list[index];
                 list.RemoveAt(index);
             }
+            if (item.ParentRequestInfo != null) // Subtract duration.
+                item.ParentRequestInfo.Duration -= item.GetInfo().Duration;
             return Task.FromResult(item);
         }
 
