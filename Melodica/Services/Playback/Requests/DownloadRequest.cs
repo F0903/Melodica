@@ -34,10 +34,7 @@ namespace Melodica.Services.Playback.Requests
             this.info = info;
             query = info.Url!;
 
-            SubRequestInfo = new SubRequestInfo()
-            {
-                ParentRequestInfo = parentRequestInfo
-            };
+            ParentRequestInfo = parentRequestInfo;
 
             downloader = dl;
             this.info = info;
@@ -50,7 +47,7 @@ namespace Melodica.Services.Playback.Requests
 
         private readonly string query;
 
-        public override SubRequestInfo? SubRequestInfo { get; protected set; }
+        public override MediaMetadata? ParentRequestInfo { get; protected set; }
 
         public override List<MediaRequest>? SubRequests { get; set; }
 

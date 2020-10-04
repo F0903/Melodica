@@ -38,7 +38,7 @@ namespace Melodica.Services.Playback
 
         //TODO: Refactor this class and perhaps outsource some of these functions to services.
 
-        private async void MediaCallback(MediaMetadata info, MediaState state, SubRequestInfo? subInfo)
+        private async void MediaCallback(MediaMetadata info, MediaState state, MediaMetadata? parentInfo)
         {
             await playbackLock.WaitAsync(); // Use a this to make sure no threads send multiple messages at the same time.    
 
@@ -47,25 +47,25 @@ namespace Melodica.Services.Playback
             Embed OnDone()
             {
                 reset = true;
-                return CreateMediaEmbed(info, subInfo, Color.LighterGrey);
+                return CreateMediaEmbed(info, parentInfo, Color.LighterGrey);
             }
 
             Embed OnUnavailable()
             {
                 reset = true;
-                return CreateMediaEmbed(info, subInfo, Color.Red);
+                return CreateMediaEmbed(info, parentInfo, Color.Red);
             }
 
             var newEmbed = state switch
             {
                 MediaState.Error => OnUnavailable(),
-                MediaState.Downloading => CreateMediaEmbed(info!, subInfo, Color.Blue),
-                MediaState.Queued => CreateMediaEmbed(info!, subInfo, null, info.MediaType == MediaType.Livestream ? '\u221E'.ToString() : null),
+                MediaState.Downloading => CreateMediaEmbed(info!, parentInfo, Color.Blue),
+                MediaState.Queued => CreateMediaEmbed(info!, parentInfo, null, info.MediaType == MediaType.Livestream ? '\u221E'.ToString() : null),
                 MediaState.Playing => info.MediaType switch
                 {
-                    MediaType.Video => CreateMediaEmbed(info!, subInfo, Color.Green),
-                    MediaType.Playlist => CreateMediaEmbed(info!, subInfo, Color.Green),
-                    MediaType.Livestream => CreateMediaEmbed(info!, subInfo, Color.DarkGreen, '\u221E'.ToString()),
+                    MediaType.Video => CreateMediaEmbed(info!, parentInfo, Color.Green),
+                    MediaType.Playlist => CreateMediaEmbed(info!, parentInfo, Color.Green),
+                    MediaType.Livestream => CreateMediaEmbed(info!, parentInfo, Color.DarkGreen, '\u221E'.ToString()),
                     _ => throw new Exception("Unknown error in PlaybackCallback switch expression"),
                 },
                 MediaState.Finished => OnDone(),
@@ -113,13 +113,13 @@ namespace Melodica.Services.Playback
 
         private IVoiceChannel GetUserVoiceChannel() => ((SocketGuildUser)Context.User).VoiceChannel;
 
-        private Embed CreateMediaEmbed(MediaMetadata mediaInfo, SubRequestInfo? subInfo, Color? color = null, string? footerText = null) => new EmbedBuilder()
+        private Embed CreateMediaEmbed(MediaMetadata mediaInfo, MediaMetadata? parentInfo, Color? color = null, string? footerText = null) => new EmbedBuilder()
                    .WithColor(color ?? Color.DarkGrey)
                    .WithTitle(mediaInfo.Artist)
-                   .WithDescription(subInfo.HasValue ? $"__{mediaInfo.Title}__\n{subInfo.Value.ParentRequestInfo!.Title}" : mediaInfo.Title)
+                   .WithDescription(parentInfo != null ? $"__{mediaInfo.Title}__\n{parentInfo.Title}" : mediaInfo.Title)
                    .WithFooter(mediaInfo.Duration != TimeSpan.Zero ?
-                               subInfo.HasValue ?
-                               $"{mediaInfo.Duration} | {subInfo.Value.ParentRequestInfo!.Duration}" :
+                               parentInfo != null ?
+                               $"{mediaInfo.Duration} | {parentInfo.Duration}" :
                                footerText ?? mediaInfo.Duration.ToString() : "")
                    .WithThumbnailUrl(mediaInfo.Thumbnail).Build();
 

@@ -44,13 +44,13 @@ namespace Melodica.Services.Playback.Requests
             }
         }
 
-        public override SubRequestInfo? SubRequestInfo { get; protected set; }
+        public override MediaMetadata? ParentRequestInfo { get; protected set; }
         public override List<MediaRequest>? SubRequests { get; set; }
 
         private LocalMediaRequest(FileInfo file, MediaMetadata parentMeta)
         {
             info = EvalInfo(file);
-            SubRequestInfo = new SubRequestInfo() { ParentRequestInfo = parentMeta };
+            ParentRequestInfo = parentMeta;
         }
 
         private static readonly string[] AllowedMediaExts =

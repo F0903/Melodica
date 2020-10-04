@@ -16,7 +16,7 @@ namespace Melodica.Services.Playback.Requests
 
         private MediaMetadata? info;
 
-        public override SubRequestInfo? SubRequestInfo { get; protected set; }
+        public override MediaMetadata? ParentRequestInfo { get; protected set; }
         public override List<MediaRequest>? SubRequests { get; set; }
 
         public override MediaMetadata GetInfo()

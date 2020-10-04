@@ -37,7 +37,7 @@ namespace Melodica.Services.Playback
             this.mediaCallback = mediaCallback;
         }
 
-        public delegate void MediaCallback(MediaMetadata info, MediaState state, SubRequestInfo? subRequestInfo);
+        public delegate void MediaCallback(MediaMetadata info, MediaState state, MediaMetadata? parentRequestInfo);
 
         private bool loop;
         public bool Loop
@@ -69,7 +69,7 @@ namespace Melodica.Services.Playback
 
         public SongQueue Queue { get; } = new SongQueue();
 
-        public (MediaMetadata info, SubRequestInfo? subInfo)? Song { get; private set; }
+        public (MediaMetadata info, MediaMetadata? parentInfo)? Song { get; private set; }
 
         public TimeSpan Duration => new TimeSpan(durationTimer.Elapsed.Hours, durationTimer.Elapsed.Minutes, durationTimer.Elapsed.Seconds);
 
@@ -100,7 +100,7 @@ namespace Melodica.Services.Playback
             {
                 using var input = audioProcessor.GetOutput();
                 using var output = audioClient!.CreatePCMStream(AudioApplication.Music, bitrate, 100, 0);
-                
+
                 using var aloneTimer = new Timer(x => isAlone = CheckIfAloneAsync(channel).Result, null, 0, 5000);
 
                 int count = 0;
@@ -132,7 +132,7 @@ namespace Melodica.Services.Playback
             writeThread.Name = "AudioWriteThread";
             writeThread.IsBackground = false;
             writeThread.Priority = ThreadPriority.Highest;
-            
+
             writeThread.Start();
             Playing = true;
             writeThread.Join();
@@ -154,7 +154,7 @@ namespace Melodica.Services.Playback
             Song = null;
             await Queue.ClearAsync();
 
-            await StopAsync();          
+            await StopAsync();
 
             if (audioClient == null)
                 return;
@@ -195,20 +195,28 @@ namespace Melodica.Services.Playback
             stopRequested = true;
         }
 
+        public async Task RemoveFromQueueAsync(Index index)
+        {
+            var removed = await Queue.RemoveAtAsync(index);
+            // Subtract subrequest duration from parent request.
+            if (removed.ParentRequestInfo != null)
+                removed.ParentRequestInfo.Duration -= removed.GetInfo().Duration;
+        }
+
         async Task QueueAsync(MediaRequest request)
         {
             if (request.GetInfo().MediaType == MediaType.Playlist)
                 await Queue.EnqueueAsync(request.SubRequests!);
             else
                 await Queue.EnqueueAsync(request);
-            mediaCallback(request.GetInfo(), MediaState.Queued, request.SubRequestInfo);
+            mediaCallback(request.GetInfo(), MediaState.Queued, request.ParentRequestInfo);
         }
 
         async Task<MediaRequest> QueueSubRequestsAsync(MediaRequest request)
         {
             await Queue.EnqueueAsync(request.SubRequests!);
             var first = await Queue.DequeueAsync();
-            mediaCallback(request.GetInfo(), MediaState.Queued, request.SubRequestInfo);
+            mediaCallback(request.GetInfo(), MediaState.Queued, request.ParentRequestInfo);
             return first;
         }
 
@@ -240,12 +248,12 @@ namespace Melodica.Services.Playback
             {
                 downloading = true;
                 requestInfo = request.GetInfo();
-                mediaCallback(requestInfo, MediaState.Downloading, request.SubRequestInfo);
+                mediaCallback(requestInfo, MediaState.Downloading, request.ParentRequestInfo);
 
                 if (requestInfo.MediaType == MediaType.Playlist)
                 {
                     subRequest = await QueueSubRequestsAsync(request);
-                    mediaCallback(subRequest.GetInfo(), MediaState.Downloading, subRequest.SubRequestInfo);
+                    mediaCallback(subRequest.GetInfo(), MediaState.Downloading, subRequest.ParentRequestInfo);
                     media = await subRequest.GetMediaAsync();
                 }
                 else
@@ -253,16 +261,17 @@ namespace Melodica.Services.Playback
                     media = await request.GetMediaAsync();
                 }
 
-                Song = (media.Info, request.SubRequestInfo);
+                Song = (media.Info, request.ParentRequestInfo);
             }
             catch
             {
                 if (requestInfo != null)
                 {
-                    if (subRequest != null) // Subtract playlist duration by current media duration.
-                        subRequest.SubRequestInfo!.Value.ParentRequestInfo.Duration -= requestInfo.Duration;
+                    if (subRequest != null)
+                        if (subRequest.ParentRequestInfo != null)
+                            subRequest.ParentRequestInfo.Duration -= requestInfo.Duration; // Subtract playlist duration by current media duration.
 
-                    mediaCallback(requestInfo, MediaState.Error, request.SubRequestInfo);
+                    mediaCallback(requestInfo, MediaState.Error, request.ParentRequestInfo);
                 }
 
                 if (Queue.IsEmpty)
@@ -282,7 +291,7 @@ namespace Melodica.Services.Playback
 
             await ConnectAsync(audioChannel);
 
-            mediaCallback(media.Info, MediaState.Playing, subRequest?.SubRequestInfo ?? request.SubRequestInfo);
+            mediaCallback(media.Info, MediaState.Playing, subRequest?.ParentRequestInfo ?? request.ParentRequestInfo);
             using var audioProcessor = new FFmpegAudioProcessor(media.Info.DataInformation.MediaPath ?? throw new NullReferenceException("MediaPath was null."), media.Info.DataInformation.Format);
 
             try { await SendDataAsync(audioProcessor, audioChannel, GetChannelBitrate(audioChannel)); }
@@ -293,12 +302,13 @@ namespace Melodica.Services.Playback
                 var next = request.GetInfo().MediaType == MediaType.Playlist ? subRequest ?? throw new CriticalException("Sub request was null.") : request;
                 await PlayAsync(next, audioChannel);
             }
-            mediaCallback(media.Info, MediaState.Finished, subRequest?.SubRequestInfo ?? request.SubRequestInfo);
+            mediaCallback(media.Info, MediaState.Finished, subRequest?.ParentRequestInfo ?? request.ParentRequestInfo);
 
-            if (request.SubRequestInfo.HasValue) // Subtract playlist duration by current media duration.
-                request.SubRequestInfo.Value.ParentRequestInfo.Duration -= media.Info.Duration;
+            if (request.ParentRequestInfo != null) // Subtract playlist duration by current media duration.
+                request.ParentRequestInfo.Duration -= media.Info.Duration;
             else if (subRequest != null)
-                subRequest.SubRequestInfo!.Value.ParentRequestInfo.Duration -= media.Info.Duration;
+                if (subRequest.ParentRequestInfo != null)
+                    subRequest.ParentRequestInfo.Duration -= media.Info.Duration;
 
             if (!Queue.IsEmpty)
             {
