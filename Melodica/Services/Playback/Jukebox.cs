@@ -113,7 +113,12 @@ namespace Melodica.Services.Playback
                     {
                         bool shouldBreak = BreakConditions();
 
-                        while (Paused && !shouldBreak) { Thread.Sleep(1000); }
+                        if (Paused)
+                        {
+                            durationTimer.Stop();
+                            while (Paused && !shouldBreak) { Thread.Sleep(1000); }
+                            durationTimer.Start();
+                        }
 
                         output.Write(buffer, 0, count);
 
