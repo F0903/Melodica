@@ -95,7 +95,7 @@ namespace Melodica.Services.Playback
             bool isAlone = false;
             bool BreakConditions() => stopRequested || isAlone;
 
-            //TODO: Prevent the discord web expired exception from breaking the bot.
+            //TODO: Test how the bot handles disconnect events.
             var writeThread = new Thread(() =>
             {
                 using var input = audioProcessor.GetOutput();

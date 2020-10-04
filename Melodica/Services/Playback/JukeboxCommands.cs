@@ -291,7 +291,6 @@ namespace Melodica.Services.Playback
         [Command("Continue"), Summary("Continues the current queue if the bot has disconnected.")]
         public async Task ContinueAsync()
         {
-            //TODO: Maybe continue from a timestamp?
             if (Jukebox.Playing)
             {
                 await ReplyAsync("The bot is still playing. (If this is incorrect, please report it to the owner)");
