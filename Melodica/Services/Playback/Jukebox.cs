@@ -171,6 +171,8 @@ namespace Melodica.Services.Playback
         {
             if (!Playing)
                 return;
+            Loop = false;
+            Shuffle = false;
             stopRequested = true;
             await writeLock.WaitAsync();
             writeLock.Release();
