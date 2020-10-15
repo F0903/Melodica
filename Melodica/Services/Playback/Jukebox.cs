@@ -124,11 +124,11 @@ namespace Melodica.Services.Playback
 
                         if (shouldBreak) break;
                     }
+                    output.Flush();
                 }
                 catch { }
                 finally
-                {
-                    output.Flush();
+                {                 
                     durationTimer.Reset();
                     writeLock.Release();
                 }
@@ -294,7 +294,7 @@ namespace Melodica.Services.Playback
             using var audioProcessor = new FFmpegAudioProcessor(media.Info.DataInformation.MediaPath ?? throw new NullReferenceException("MediaPath was null."), media.Info.DataInformation.Format);
 
             try { await SendDataAsync(audioProcessor, audioChannel, GetChannelBitrate(audioChannel)); }
-            catch (WebException) { await DisconnectAsync().ConfigureAwait(false); } // Attempt to catch discord disconnects.
+            catch (WebException) { await StopAsync(); } // Attempt to catch discord disconnects.
 
             if (Loop)
             {
