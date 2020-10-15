@@ -104,7 +104,7 @@ namespace Melodica.Services.Playback
 
         public Task<MediaRequest> RemoveAtAsync(Index index)
         {
-            return RemoveAtAsync(index.GetOffset(list.Count));
+            return RemoveAtAsync(index.GetOffset(list.Count - 1));
         }
     }
 }
