@@ -294,7 +294,7 @@ namespace Melodica.Services.Playback
             using var audioProcessor = new FFmpegAudioProcessor(media.Info.DataInformation.MediaPath ?? throw new NullReferenceException("MediaPath was null."), media.Info.DataInformation.Format);
 
             try { await SendDataAsync(audioProcessor, audioChannel, GetChannelBitrate(audioChannel)); }
-            catch (WebException) { } // Attempt to catch discord disconnects.
+            catch (WebException) { await DisconnectAsync().ConfigureAwait(false); } // Attempt to catch discord disconnects.
 
             if (Loop)
             {
