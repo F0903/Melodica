@@ -104,7 +104,7 @@ namespace Melodica.Services.Playback
                 using var aloneTimer = new Timer(x => isAlone = CheckIfAloneAsync(channel).Result, null, 0, 5000);
 
                 int count = 0;
-                byte[] buffer = new byte[1024];
+                Span<byte> buffer = stackalloc byte[1024];
                 try
                 {
                     durationTimer.Start();
@@ -120,7 +120,7 @@ namespace Melodica.Services.Playback
                             durationTimer.Start();
                         }
 
-                        output.Write(buffer.AsSpan(0, count));
+                        output.Write(buffer.Slice(0, count));
 
                         if (shouldBreak) break;
                     }
