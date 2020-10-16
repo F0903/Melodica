@@ -25,9 +25,8 @@ namespace Melodica.Services.Downloaders.YouTube
 
         private async Task<PlayableMedia> DownloadVideo(MediaMetadata meta)
         {
-            var vidStreams = await yt.Videos.Streams.GetManifestAsync(meta.Id ?? throw new DownloaderException("ID was null in DownloadVideo"));
-            var vidAudioStream = vidStreams.GetAudioOnly().WithHighestBitrate();
-            Assert.NotNull(vidAudioStream);
+            var vidStreams = await yt.Videos.Streams.GetManifestAsync(meta.Id ?? throw new DownloaderException("ID was null in DownloadVideo."));
+            var vidAudioStream = vidStreams.GetAudioOnly().WithHighestBitrate() ?? throw new DownloaderException("Could not get audio stream from video.");
 
             var rawStream = await yt.Videos.Streams.GetAsync(vidAudioStream!);
 
@@ -82,10 +81,10 @@ namespace Melodica.Services.Downloaders.YouTube
             try
             {
                 if (meta!.MediaType == MediaType.Playlist)
-                    throw new NotSupportedException();
+                    throw new NotSupportedException(); // Something went very wrong.
 
                 if (meta.MediaType == MediaType.Livestream)
-                    return new PlayableMedia(meta, null);
+                    return new PlayableMedia(meta, null); // Something went very wrong.
 
                 return await DownloadVideo(meta);
             }
@@ -100,15 +99,7 @@ namespace Melodica.Services.Downloaders.YouTube
 
         public override async Task<PlayableMedia> DownloadAsync(string query)
         {
-            MediaMetadata? meta;
-            if (query.IsUrl())
-            {
-                meta = await GetMediaInfoAsync(query);
-            }
-            else
-            {
-                meta = await GetMediaInfoAsync(query);
-            }
+            MediaMetadata? meta = await GetMediaInfoAsync(query);
             return await DownloadAsync(meta);
         }
 
@@ -169,13 +160,13 @@ namespace Melodica.Services.Downloaders.YouTube
             // if it is id, count the letters to determine
             if (!input.IsUrl())
             {
-                if (input.LikeYouTubeId()) // If input looks like an ID
+                if (input.AsSpan().LikeYouTubeId()) // If input looks like an ID
                 {
                     return Task.FromResult(input.Length == 11 ?
                         MediaType.Video :
                         input.Length == 34 ?
                         MediaType.Playlist :
-                        MediaType.Video); // If input was mistaken for an ID.
+                        MediaType.Video); // If input mismatched, just default to a video.
                 }
                 else return Task.FromResult(MediaType.Video);
             }
@@ -226,7 +217,7 @@ namespace Melodica.Services.Downloaders.YouTube
                     return Task.FromResult(cache.GetAsync(id).Result.Info);
             }
 
-            if (input.LikeYouTubeId())
+            if (input.AsSpan().LikeYouTubeId())
             {
                 if (cache.Contains(input))
                    return Task.FromResult(cache.GetAsync(input).Result.Info);

@@ -47,6 +47,8 @@ namespace Melodica.Services.Models
 
             Info.DataInformation.MediaPath = mediaLocation;
 
+            // Dispose of raw data, since it is now on the disk.
+            rawMediaData.Dispose();
             rawMediaData = null;
 
             // Serialize the metadata.

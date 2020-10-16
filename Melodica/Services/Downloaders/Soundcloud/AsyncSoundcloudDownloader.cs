@@ -17,8 +17,8 @@ namespace Melodica.Services.Downloaders.Soundcloud
 {
     public class AsyncSoundCloudDownloader : AsyncDownloaderBase
     {
+        private static readonly Regex playlistRegex = new Regex(@"https:\/\/soundcloud\.com\/.+\/sets\/", RegexOptions.Compiled);
         private readonly ISoundCloudClient soundcloud = SoundCloudClient.CreateUnauthorized("1mJh51hV11v1prDWhy9hLmGaqvfrauWc");
-        private readonly Regex playlistRegex = new Regex(@"https:\/\/soundcloud\.com\/.+\/sets\/", RegexOptions.Compiled);
         private readonly WebClient web = new WebClient();
         private readonly MediaFileCache cache = new MediaFileCache("SoundCloud");
 

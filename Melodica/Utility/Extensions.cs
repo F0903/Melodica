@@ -123,7 +123,7 @@ namespace Melodica.Utility.Extensions
                 && (uri.Scheme == Uri.UriSchemeHttp
                 || uri.Scheme == Uri.UriSchemeHttps);
 
-        public static bool LikeYouTubeId(this string str)
+        public static bool LikeYouTubeId(this ReadOnlySpan<char> str)
         {
             if (str.Length > 34)
                 return false;

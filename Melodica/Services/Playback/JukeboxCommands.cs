@@ -36,8 +36,6 @@ namespace Melodica.Services.Playback
         private IUserMessage? playbackPlaylistMessage;
         private readonly SemaphoreSlim playbackLock = new SemaphoreSlim(1);
 
-        //TODO: Refactor this class and perhaps outsource some of these functions to services.
-
         private async void MediaCallback(MediaMetadata info, MediaState state, MediaMetadata? parentInfo)
         {
             await playbackLock.WaitAsync(); // Use a this to make sure no threads send multiple messages at the same time.    
@@ -135,32 +133,6 @@ namespace Melodica.Services.Playback
                 var downloader = downloaderProvider.GetDownloaderFromQuery(query) ?? (query.IsUrl() ? null : AsyncDownloaderBase.Default);
                 return Task.FromResult(downloader == null ? new URLMediaRequest(null, query, true) : new DownloadRequest(query!, downloader) as MediaRequest);
             }
-        }
-
-        private void CheckForPermissions(IVoiceChannel voice)
-        {
-            var botGuildRoles = Context.Guild.GetUser(Context.Client.CurrentUser.Id).Roles;
-            foreach (var role in botGuildRoles) // Check through all roles.
-            {
-                if (role.Permissions.Administrator)
-                    return;
-                var guildRolePerms = voice.GetPermissionOverwrite(role);
-                if (guildRolePerms == null)
-                    continue;
-                var allowedGuildPerms = guildRolePerms!.Value.ToAllowList();
-                if (allowedGuildPerms.Contains(ChannelPermission.Connect) && allowedGuildPerms.Contains(ChannelPermission.Speak))
-                    return;
-            }
-
-            // Check for user role.
-            var botPerms = voice.GetPermissionOverwrite(Context.Client.CurrentUser);
-            if (botPerms != null)
-            {
-                var allowedBotPerms = botPerms!.Value.ToAllowList();
-                if (allowedBotPerms.Contains(ChannelPermission.Connect) && allowedBotPerms.Contains(ChannelPermission.Speak))
-                    return;
-            }
-            throw new Exception("I don't have explicit permission to connect and speak in this channel :(");
         }
 
         [Command("ClearCache"), Summary("Clears cache."), RequireOwner]
@@ -323,8 +295,8 @@ namespace Melodica.Services.Playback
                 await ReplyAsync("You need to be in a voice channel!");
                 return;
             }
-
-            CheckForPermissions(userVoice);
+            
+            SocketPermissionsChecker.CheckForVoicePermissions(Context.Guild, Context.Client.CurrentUser, userVoice);
 
             if (mediaQuery == null && Context.Message.Attachments.Count == 0)
             {
@@ -353,7 +325,7 @@ namespace Melodica.Services.Playback
                 return;
             }
 
-            CheckForPermissions(userVoice);
+            SocketPermissionsChecker.CheckForVoicePermissions(Context.Guild, Context.Client.CurrentUser, userVoice);
 
             if (mediaQuery == null && Context.Message.Attachments.Count == 0)
             {
@@ -370,7 +342,8 @@ namespace Melodica.Services.Playback
         public async Task PlayLocalMedia([Remainder] string directUrl)
         {
             var userVoice = GetUserVoiceChannel();
-            CheckForPermissions(userVoice);
+
+            SocketPermissionsChecker.CheckForVoicePermissions(Context.Guild, Context.Client.CurrentUser, userVoice);
 
             var req = new LocalMediaRequest(directUrl);
             await Jukebox.PlayAsync(req, userVoice);
