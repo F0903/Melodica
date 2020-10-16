@@ -11,35 +11,41 @@ namespace Melodica.Utility
         public static Task<IUser> GetAppOwnerAsync() =>
             Task.FromResult(IoC.Kernel.Get<DiscordSocketClient>().GetApplicationInfoAsync().Result.Owner);
 
-        public static Task<int?> GetURLArgumentIntAsync(string url, string argName, bool throwOnNull = true)
+        public static Task<string> GetURLArgumentAsync(Span<char> url, string argName)
         {
-            if (!url.Contains($"&{argName}"))
+            //Note: This algo is untested.
+            int startPos = 0;
+            int endPos = 0;
+            for (int i = 0; i < url.Length; i++)
             {
-                if (!throwOnNull)
-                    return Task.FromResult<int?>(null);
-                throw new Exception("URL does not contain such argument.");
-            }
-
-            for (int x = url.IndexOf(argName); x < url.Length; x++)
-            {
-                if (url[x] != '=')
-                    continue;
-                x++;
-
-                int diff = 1;
-                for (int i = x; i < url.Length; i++)
+                if(url[i] == '&')
                 {
-                    if (url[x] == '&')
-                        diff = i - x;
-                }
+                    bool match = true;
+                    for (int j = 0; j < argName.Length; j++)
+                    {
+                        if (url[i + j] != argName[j])
+                        {
+                            match = false;
+                            break;
+                        }
+                    }
 
-                string? sub = url.Substring(x, diff);
-                return Task.FromResult((int?)Convert.ToInt32(sub));
-            }
-            throw new Exception($"Unexpected parse of url argument '{argName}'");
+                    if (match)
+                    {
+                        startPos = i;
+                        endPos = argName.Length;
+                    }
+                    else
+                    {
+                        i += argName.Length;
+                        continue;
+                    }             
+                }
+            }          
+            return Task.FromResult(url[startPos..endPos].ToString());
         }
 
-        public static string GetUrlResourceFormat(string url)
+        public static string GetUrlResourceFormat(ReadOnlySpan<char> url)
         {
             string format = "";
             int start = url.LastIndexOf('.') + 1;

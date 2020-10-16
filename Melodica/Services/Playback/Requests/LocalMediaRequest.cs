@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
@@ -26,7 +27,9 @@ namespace Melodica.Services.Playback.Requests
                 throw new CriticalException("Directory does not exist.");
             }
 
-            string? dirName = GetDirName(uri);
+            string? dirName = Path.GetDirectoryName(uri);
+            if (dirName == null)
+                throw new Exception("Directory name returned null.");
             info = new MediaMetadata()
             {
                 Id = dirName,
@@ -60,26 +63,6 @@ namespace Melodica.Services.Playback.Requests
             ".wav"
         };
         private readonly MediaMetadata info;
-
-        private string GetDirName(string name)
-        {
-            bool forwardSlash = name.Contains('/');
-            bool endingSlash = forwardSlash ? name[^1] == '/' : name[^1] == '\\';
-
-            int start, end;
-            if (endingSlash)
-            {
-                string? altName = name.Remove(name.Length - 1, 1);
-                start = forwardSlash ? altName.LastIndexOf('/') + 1 : altName.LastIndexOf('\\') + 1;
-                end = forwardSlash ? name.LastIndexOf('/') : name.LastIndexOf('\\');
-            }
-            else
-            {
-                start = forwardSlash ? name.LastIndexOf('/') + 1 : name.LastIndexOf('\\') + 1;
-                end = name.Length;
-            }
-            return name[start..end];
-        }
 
         private MediaMetadata EvalInfo(FileInfo file)
         {

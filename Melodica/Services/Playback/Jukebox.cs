@@ -109,7 +109,7 @@ namespace Melodica.Services.Playback
                 {
                     durationTimer.Start();
                     writeLock.Wait();
-                    while ((count = input!.Read(buffer, 0, buffer.Length)) != 0)
+                    while ((count = input!.Read(buffer)) != 0)
                     {
                         bool shouldBreak = BreakConditions();
 
@@ -120,7 +120,7 @@ namespace Melodica.Services.Playback
                             durationTimer.Start();
                         }
 
-                        output.Write(buffer, 0, count);
+                        output.Write(buffer.AsSpan(0, count));
 
                         if (shouldBreak) break;
                     }

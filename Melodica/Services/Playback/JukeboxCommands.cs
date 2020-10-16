@@ -166,7 +166,7 @@ namespace Melodica.Services.Playback
         [Command("ClearCache"), Summary("Clears cache."), RequireOwner]
         public async Task ClearCacheAsync()
         {
-            var (deletedFiles, filesInUse, ms) = await MediaFileCache.PruneAllCachesAsync();
+            var (deletedFiles, filesInUse, ms) = await MediaFileCache.ClearAllCachesAsync();
             await ReplyAsync($"Deleted {deletedFiles} files. ({filesInUse} files in use) [{ms}ms]");
         }
 

@@ -14,7 +14,7 @@ namespace Melodica.Services.Audio
         {
             if (path == null || path == string.Empty)
             {
-                MediaFileCache.PruneAllCachesAsync().Wait();
+                MediaFileCache.ClearAllCachesAsync().Wait();
                 throw new CriticalException("Song path is empty... Clearing cache... (something went wrong here)");
             }
             return new Process()
@@ -27,7 +27,7 @@ namespace Melodica.Services.Audio
                     RedirectStandardError = false,
                     RedirectStandardInput = (inputAvailable = (path == null)),
                     RedirectStandardOutput = (outputAvailable = true),
-                    CreateNoWindow = false,
+                    CreateNoWindow = true,
                 }
             };
         }

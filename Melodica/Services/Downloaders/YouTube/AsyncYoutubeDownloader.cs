@@ -40,13 +40,13 @@ namespace Melodica.Services.Downloaders.YouTube
             ex is YoutubeExplode.Exceptions.VideoUnavailableException ||
             ex is YoutubeExplode.Exceptions.VideoRequiresPurchaseException;
 
-        private Task<string> ParseURLToIdAsync(string url)
+        private Task<string> ParseURLToIdAsync(ReadOnlySpan<char> url)
         {
             if (!(url.StartsWith("https://") || url.StartsWith("http://")))
-                return Task.FromResult(url); // Just return, cause the url is probably already an id.
+                return Task.FromResult(url.ToString()); // Just return, cause the url is probably already an id.
             int startIndex = url.IndexOf("?v=") + 3;
             int stopIndex = url.Contains('&') ? url.IndexOf('&') : url.Length;
-            string? id = url[startIndex..stopIndex];
+            string? id = url[startIndex..stopIndex].ToString();
             return Task.FromResult(id);
         }
 
@@ -132,7 +132,7 @@ namespace Melodica.Services.Downloaders.YouTube
 
         private Task<MediaMetadata> GetVideoMetadataAsync(Video video)
         {
-            var (artist, newTitle) = video.Title.SeperateArtistName();
+            var (artist, newTitle) = video.Title.AsSpan().SeperateArtistName();
             return Task.FromResult(new MediaMetadata()
             {
                 Origin = MediaOrigin.YouTube,
@@ -148,7 +148,7 @@ namespace Melodica.Services.Downloaders.YouTube
 
         private Task<MediaMetadata> GetPlaylistMetadataAsync(Playlist pl)
         {
-            var (artist, newTitle) = pl.Title.SeperateArtistName();
+            var (artist, newTitle) = pl.Title.AsSpan().SeperateArtistName();
             return Task.FromResult(new MediaMetadata()
             {
                 Origin = MediaOrigin.YouTube,
@@ -202,7 +202,7 @@ namespace Melodica.Services.Downloaders.YouTube
             MediaMetadata GetLivestream()
             {
                 var vidInfo = SearchOrGetVideo(input).Result;
-                var (artist, newTitle) = vidInfo.Title.SeperateArtistName();
+                var (artist, newTitle) = vidInfo.Title.AsSpan().SeperateArtistName();
                 var meta = new MediaMetadata()
                 {
                     Duration = vidInfo.Duration,

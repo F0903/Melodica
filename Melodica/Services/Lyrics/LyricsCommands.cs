@@ -26,7 +26,7 @@ namespace Melodica.Services.Lyrics
         {
             Jukebox? juke;
             try { juke = await jukeboxProvider.GetJukeboxAsync(Context.Guild); }
-            catch (System.Exception) { juke = null; }
+            catch (Exception) { juke = null; }
 
             if (songName == null && !(juke != null && juke.Playing))
             {
@@ -40,25 +40,19 @@ namespace Melodica.Services.Lyrics
                 songName = $"{songInfo.Artist} {songInfo.Title}";
             }
 
-            var timer = new Stopwatch();
             var lyrs = await lyrics.GetLyricsAsync(songName);
-            string? text = lyrs.Lyrics;
-            int count = 0;
-            int i = 0;
-            while (count < text.Length)
+            ReadOnlyMemory<char> text = lyrs.Lyrics.AsMemory();
+            const int pageSize = 2048;
+            for (int i = 0; i < text.Length; i += pageSize)
             {
-                timer.Start();
-                string? outText = text.Substring(i * 2048, Math.Min(2048, text.Length - count));
+                string pageText = text.Span.Slice(i, Math.Min(pageSize, text.Length - i)).ToString();
                 await ReplyAsync(null, false, new EmbedBuilder()
                 {
                     Title = i == 0 ? lyrs.Title : "",
                     ThumbnailUrl = i == 0 ? lyrs.Image : "",
-                    Description = outText
+                    Description = pageText
                 }.Build());
-                count += outText.Length;
-                ++i;
             }
-            timer.Stop();
         }
     }
 }

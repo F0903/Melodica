@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -16,10 +17,13 @@ namespace Melodica.Utility.Extensions
 {
     public static class Extensions
     {
-        public static char[] CustomIllegalChars { get; set; } =
+        static readonly char[] customIllegalChars =
         {
             '<'
         };
+
+        static char[]? cachedIllegalChars;
+
 
         public static bool IsOverSize<T>(this IEnumerable<T> list, int exclusiveLimit)
         {
@@ -46,25 +50,25 @@ namespace Melodica.Utility.Extensions
             return sb.ToString();
         }
 
-        public static (string artist, string newTitle) SeperateArtistName(this string songTitle, string backupTitle = " ")
+        public static (string artist, string newTitle) SeperateArtistName(this ReadOnlySpan<char> songTitle, string backupTitle = " ")
         {
             int charIndx = songTitle.IndexOf('-');
             int spaceIndx;
             int endIndx = charIndx != -1 ? charIndx - 1 : (spaceIndx = songTitle.IndexOf(' ')) != -1 ? spaceIndx : songTitle.Length;
-            return (songTitle[0..endIndx], endIndx != songTitle.Length ? songTitle[(endIndx + (charIndx != -1 ? 3 : 1))..songTitle.Length] : backupTitle);
+            return (songTitle[0..endIndx].ToString(), endIndx != songTitle.Length ? songTitle[(endIndx + (charIndx != -1 ? 3 : 1))..songTitle.Length].ToString() : backupTitle);
         }
 
-        public static string ExtractArtistName(this string songTitle)
+        public static string ExtractArtistName(this ReadOnlySpan<char> songTitle)
         {
             int charIndx = songTitle.IndexOf('-');
             int spaceIndx;
             int endIndx = charIndx != -1 ? charIndx - 1 : (spaceIndx = songTitle.IndexOf(' ')) != -1 ? spaceIndx : songTitle.Length;
-            return songTitle[0..endIndx];
+            return songTitle[0..endIndx].ToString();
         }
 
         public static string FixURLWhitespace(this string input, string whitespaceReplacement = "%20") => input.Replace(" ", whitespaceReplacement);
 
-        public static async Task<TimeSpan> GetTotalDurationAsync(this YoutubeExplode.Playlists.Playlist pl, YoutubeExplode.YoutubeClient? client = null)
+        public static async Task<TimeSpan> GetTotalDurationAsync(this YoutubeExplode.Playlists.Playlist pl, YoutubeClient? client = null)
         {
             client ??= new YoutubeExplode.YoutubeClient();
             var videos = client.Playlists.GetVideosAsync(pl.Id);
@@ -106,12 +110,12 @@ namespace Melodica.Utility.Extensions
         public static bool IsOwnerOfApp(this IUser user) =>
             user.Id == IoC.Kernel.Get<DiscordSocketClient>().GetApplicationInfoAsync().Result.Owner.Id;
 
-        public static string ReplaceIllegalCharacters(this string str, string replacement = "_")
+        public static string ReplaceIllegalCharacters(this string str, char replacer = '_')
         {
-            string? newStr = Path.GetInvalidFileNameChars().Union(CustomIllegalChars).Aggregate(str, (current, c) => current.Replace(c.ToString(), replacement));
-            if (newStr[^1] == '.')
-                newStr.Remove(newStr.Length - 1, 1);
-            return newStr;
+            cachedIllegalChars ??= Path.GetInvalidFileNameChars().Union(customIllegalChars).ToArray();
+
+            string outStr = cachedIllegalChars.Aggregate(str, (current, c) => current.Replace(c, replacer));
+            return outStr;
         }
 
         public static bool IsUrl(this string str) =>

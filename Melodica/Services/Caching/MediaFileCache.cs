@@ -38,8 +38,10 @@ namespace Melodica.Services.Services
         private readonly List<MediaMetadata> cache = new List<MediaMetadata>(MaxFilesInCache);
 
 
-        public static async Task<(int deletedFiles, int filesInUse, long msDuration)> PruneAllCachesAsync()
+        public static async Task<(int deletedFiles, int filesInUse, long msDuration)> ClearAllCachesAsync()
         {
+            if (cacheInstances.Count == 0)
+                throw new Exception("No cache instances have been instanciated. Please play a song first to create the caches.");
             int deletedFiles = 0, filesInUse = 0;
             long msDuration = 0;
             foreach (var cache in cacheInstances)

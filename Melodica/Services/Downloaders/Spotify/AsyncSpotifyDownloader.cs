@@ -32,14 +32,14 @@ namespace Melodica.Services.Downloaders.Spotify
             return nameArray.SeperateStrings();
         }
 
-        private Task<string> ParseURLToIdAsync(string url)
+        private Task<string> ParseURLToIdAsync(ReadOnlySpan<char> url)
         {
             if (!(url.StartsWith("https://") || url.StartsWith("http://")))
-                return Task.FromResult(url); // Just return, cause the url is probably already an id.
+                return Task.FromResult(url.ToString()); // Just return, cause the url is probably already an id.
             int startIndex = url.LastIndexOf('/') + 1;
             int qIndx = url.IndexOf('?');
             int stopIndex = qIndx == -1 ? url.Length : qIndx;
-            string? id = url[startIndex..stopIndex];
+            string? id = url[startIndex..stopIndex].ToString();
             return Task.FromResult(id);
         }
 
