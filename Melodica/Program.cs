@@ -16,15 +16,11 @@ namespace Melodica
 
         private static async Task Main()
         {
-            try
-            {
-                await currentBot.ConnectAsync($"{BotSettings.DefaultPrefix}play | {BotSettings.DefaultPrefix}help", Discord.ActivityType.Listening, true);
-            }
-            catch (Exception ex) 
-            {
-                File.WriteAllText("./error.txt", ex.ToString());
-            }
+            await currentBot.ConnectAsync($"{BotSettings.DefaultPrefix}play | {BotSettings.DefaultPrefix}help", Discord.ActivityType.Listening, true);
+
             AppDomain.CurrentDomain.ProcessExit += CurrentDomain_ProcessExit;
+            AppDomain.CurrentDomain.UnhandledException += (sender, args) => File.WriteAllText("./error.txt", (args.ExceptionObject as Exception)?.ToString() ?? "Exception was null.");
+
             Process.GetCurrentProcess().PriorityClass = BotSettings.ProcessPriority;
 
             await Task.Delay(-1);
