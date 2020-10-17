@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Diagnostics;
+using System.IO;
 using System.Threading.Tasks;
 
 using Melodica.Core;
@@ -15,7 +16,14 @@ namespace Melodica
 
         private static async Task Main()
         {
-            await currentBot.ConnectAsync($"{BotSettings.DefaultPrefix}play | {BotSettings.DefaultPrefix}help", Discord.ActivityType.Listening, true);
+            try
+            {
+                await currentBot.ConnectAsync($"{BotSettings.DefaultPrefix}play | {BotSettings.DefaultPrefix}help", Discord.ActivityType.Listening, true);
+            }
+            catch (Exception ex) 
+            {
+                File.WriteAllText("./error.txt", ex.ToString());
+            }
             AppDomain.CurrentDomain.ProcessExit += CurrentDomain_ProcessExit;
             Process.GetCurrentProcess().PriorityClass = BotSettings.ProcessPriority;
 
