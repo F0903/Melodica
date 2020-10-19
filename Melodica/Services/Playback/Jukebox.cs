@@ -198,6 +198,7 @@ namespace Melodica.Services.Playback
                 throw new Exception("No song is playing.");
             await Queue.PutFirstAsync(request);
             Paused = false;
+            Shuffle = false;
             Loop = false;
             stopRequested = true;
         }
@@ -269,8 +270,7 @@ namespace Melodica.Services.Playback
             {
                 if (requestInfo != null)
                 {
-                    if (subRequest != null)
-                        if (subRequest.ParentRequestInfo != null)
+                    if (subRequest != null && subRequest.ParentRequestInfo != null)
                             subRequest.ParentRequestInfo.Duration -= requestInfo.Duration; // Subtract playlist duration by current media duration.
 
                     mediaCallback(requestInfo, MediaState.Error, request.ParentRequestInfo);
@@ -295,7 +295,7 @@ namespace Melodica.Services.Playback
             using var audioProcessor = new FFmpegAudioProcessor(media.Info.DataInformation.MediaPath ?? throw new NullReferenceException("MediaPath was null."), media.Info.DataInformation.Format);
 
             try { await SendDataAsync(audioProcessor, audioChannel, GetChannelBitrate(audioChannel)); }
-            catch (WebException) { await StopAsync(); } // Attempt to catch discord disconnects.
+            catch { await StopAsync(); } // Attempt to catch discord disconnects.
 
             if (Loop)
             {

@@ -260,7 +260,26 @@ namespace Melodica.Services.Playback
             await Context.Channel.SendMessageAsync(null, false, eb.Build());
         }
 
-        [Command("Continue"), Summary("Continues the current queue if the bot has disconnected.")]
+        [Command("Next"), Summary("Sets the next song to play.")]
+        public async Task NextAsync([Remainder] string query)
+        {
+            if (!Jukebox.Playing)
+            {
+                await PlayAsync(query);
+                return;
+            }
+
+            var request = await GetRequestAsync(query);
+
+            // Get info to see if the request is actually valid.
+            var info = request.GetInfo();
+
+            Jukebox.Shuffle = false;
+            await Jukebox.Queue.PutFirstAsync(request);
+            await ReplyAsync(null, false, CreateMediaEmbed(info, null));
+        }
+
+        [Command("Continue"), Summary("Continues the current queue if the bot has disconnected early.")]
         public async Task ContinueAsync()
         {
             if (Jukebox.Playing)
@@ -295,7 +314,7 @@ namespace Melodica.Services.Playback
                 await ReplyAsync("You need to be in a voice channel!");
                 return;
             }
-            
+
             SocketPermissionsChecker.CheckForVoicePermissions(Context.Guild, Context.Client.CurrentUser, userVoice);
 
             if (mediaQuery == null && Context.Message.Attachments.Count == 0)
