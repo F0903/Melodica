@@ -197,7 +197,7 @@ namespace Melodica.Services.Playback
             if (!Playing)
                 throw new Exception("No song is playing.");
             await Queue.PutFirstAsync(request);
-            Shuffle = false;
+            Paused = false;
             Loop = false;
             stopRequested = true;
         }
@@ -246,6 +246,9 @@ namespace Melodica.Services.Playback
             try
             {
                 downloading = true;
+
+                await ConnectAsync(audioChannel);
+
                 requestInfo = request.GetInfo();
                 mediaCallback(requestInfo, MediaState.Downloading, request.ParentRequestInfo);
 
@@ -286,9 +289,7 @@ namespace Melodica.Services.Playback
                     return;
                 }
             }
-            finally { downloading = false; }
-
-            await ConnectAsync(audioChannel);
+            finally { downloading = false; }            
 
             mediaCallback(media.Info, MediaState.Playing, subRequest?.ParentRequestInfo ?? request.ParentRequestInfo);
             using var audioProcessor = new FFmpegAudioProcessor(media.Info.DataInformation.MediaPath ?? throw new NullReferenceException("MediaPath was null."), media.Info.DataInformation.Format);
