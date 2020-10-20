@@ -76,6 +76,7 @@ namespace Melodica.Services.Playback
         IAudioClient? audioClient;
         readonly MediaCallback mediaCallback;
         readonly Stopwatch durationTimer = new Stopwatch();
+        TimeSpan? lastDuration = null;
 
         bool stopRequested = false;
         bool downloading = false;
@@ -128,7 +129,8 @@ namespace Melodica.Services.Playback
                 }
                 catch { }
                 finally
-                {                 
+                {
+                    lastDuration = durationTimer.Elapsed;
                     durationTimer.Reset();
                     writeLock.Release();
                 }
@@ -229,7 +231,7 @@ namespace Melodica.Services.Playback
             };
         }
 
-        public async Task PlayAsync(MediaRequest request, IAudioChannel audioChannel)
+        public async Task PlayAsync(MediaRequest request, IAudioChannel audioChannel, TimeSpan? startingPoint = null)
         {
             if (downloading)
                 return;
@@ -289,13 +291,17 @@ namespace Melodica.Services.Playback
                     return;
                 }
             }
-            finally { downloading = false; }            
+            finally { downloading = false; }
 
             mediaCallback(media.Info, MediaState.Playing, subRequest?.ParentRequestInfo ?? request.ParentRequestInfo);
-            using var audioProcessor = new FFmpegAudioProcessor(media.Info.DataInformation.MediaPath ?? throw new NullReferenceException("MediaPath was null."), media.Info.DataInformation.Format);
+            using var audioProcessor = new FFmpegAudioProcessor(media.Info.DataInformation.MediaPath ?? throw new NullReferenceException("MediaPath was null."), media.Info.DataInformation.Format, startingPoint);
 
             try { await SendDataAsync(audioProcessor, audioChannel, GetChannelBitrate(audioChannel)); }
-            catch { await StopAsync(); } // Attempt to catch discord disconnects.
+            catch (Exception ex) when (!(ex is JukeboxException)) // Attempt to catch discord disconnects.
+            {
+                var next = request.GetInfo().MediaType == MediaType.Playlist ? subRequest ?? throw new CriticalException("Sub request was null.") : request;
+                await PlayAsync(next, audioChannel, lastDuration);
+            } 
 
             if (Loop)
             {

@@ -9,9 +9,9 @@ namespace Melodica.Services.Audio
 {
     public abstract class ExternalAudioProcessor : IDisposable
     {
-        protected ExternalAudioProcessor(string mediaPath, int bufferSize = 1024, string? format = null)
+        protected ExternalAudioProcessor(string mediaPath, string? format = null, TimeSpan? startingPoint = null)
         {
-            processorProcess = ConstructExternal(mediaPath, bufferSize, format);
+            processorProcess = ConstructExternal(mediaPath, format, startingPoint);
             processorProcess.Start();
             processorProcess.PriorityClass = BotSettings.ProcessPriority;
         }
@@ -21,7 +21,7 @@ namespace Melodica.Services.Audio
             Dispose();
         }
 
-        protected abstract Process ConstructExternal(string path, int bufferSize = 1024, string? format = null);
+        protected abstract Process ConstructExternal(string path, string? format = null, TimeSpan? startingPoint = null);
 
         protected readonly Process processorProcess;
 
