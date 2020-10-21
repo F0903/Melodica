@@ -19,14 +19,14 @@ namespace Melodica.Services.Playback
 
         public new void Reset()
         {
-            base.Reset();
             LastDuration = Elapsed;
+            base.Reset();
         }
 
         public new void Stop()
         {
-            base.Stop();
             LastDuration = Elapsed;
+            base.Stop();
         }
     }
 }

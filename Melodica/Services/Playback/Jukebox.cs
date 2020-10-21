@@ -90,8 +90,9 @@ namespace Melodica.Services.Playback
             else return false;
         }
 
-        private Task SendDataAsync(ExternalAudioProcessor audioProcessor, IAudioChannel channel, int bitrate)
+        private Task<bool> SendDataAsync(ExternalAudioProcessor audioProcessor, IAudioChannel channel, int bitrate)
         {
+            bool abort = false;
             bool isAlone = false;
             bool BreakConditions() => stopRequested || isAlone;
 
@@ -126,7 +127,7 @@ namespace Melodica.Services.Playback
                     }
                     output.Flush();
                 }
-                catch { }
+                catch { abort = true; }
                 finally
                 {
                     durationTimer.Reset();
@@ -140,7 +141,8 @@ namespace Melodica.Services.Playback
 
             writeThread.Start();
             Playing = true;
-            writeThread.Join();
+
+            writeThread.Join(); // Thread exit
             Playing = false;
 
             if (isAlone)
@@ -149,9 +151,13 @@ namespace Melodica.Services.Playback
                 throw new EmptyChannelException();
             }
 
-            if (stopRequested) stopRequested = false;
+            if (stopRequested)
+            {
+                stopRequested = false;
+                return Task.FromResult(true);
+            }
 
-            return Task.CompletedTask;
+            return Task.FromResult(abort);
         }
 
         public async Task DisconnectAsync()
@@ -230,7 +236,7 @@ namespace Melodica.Services.Playback
         }
 
         public async Task PlayAsync(MediaRequest request, IAudioChannel audioChannel, TimeSpan? startingPoint = null)
-        {
+        {                     
             if (downloading)
                 return;
 
@@ -271,7 +277,7 @@ namespace Melodica.Services.Playback
                 if (requestInfo != null)
                 {
                     if (subRequest != null && subRequest.ParentRequestInfo != null)
-                            subRequest.ParentRequestInfo.Duration -= requestInfo.Duration; // Subtract playlist duration by current media duration.
+                        subRequest.ParentRequestInfo.Duration -= requestInfo.Duration; // Subtract playlist duration by current media duration.
 
                     mediaCallback(requestInfo, MediaState.Error, request.ParentRequestInfo);
                 }
@@ -284,29 +290,36 @@ namespace Melodica.Services.Playback
                 else
                 {
                     downloading = false;
-                    var next = Shuffle ? await Queue.DequeueRandomAsync(Repeat) : await Queue.DequeueAsync(Repeat);
-                    await PlayAsync(next, audioChannel).ConfigureAwait(false);
+                    await PlayNext().ConfigureAwait(false);
                     return;
                 }
             }
             finally { downloading = false; }
 
-            mediaCallback(media.Info, MediaState.Playing, subRequest?.ParentRequestInfo ?? request.ParentRequestInfo);
-            using var audioProcessor = new FFmpegAudioProcessor(media.Info.DataInformation.MediaPath ?? throw new NullReferenceException("MediaPath was null."), media.Info.DataInformation.Format, startingPoint);
-
-            durationTimer.Elapsed += durationTimer.LastDuration;
-            try { await SendDataAsync(audioProcessor, audioChannel, GetChannelBitrate(audioChannel)); }
-            catch (Exception ex) when (!(ex is JukeboxException)) // Attempt to catch discord disconnects.
+            async Task PlayNext()
             {
-                var next = request.GetInfo().MediaType == MediaType.Playlist ? subRequest ?? throw new CriticalException("Sub request was null.") : request;
-                await PlayAsync(next, audioChannel, durationTimer.LastDuration);
-            } 
+                var next = Shuffle ? await Queue.DequeueRandomAsync(Repeat) : await Queue.DequeueAsync(Repeat);
+                await PlayAsync(next, audioChannel).ConfigureAwait(false);
+            }
 
-            if (Loop)
+            async Task PlaySame()
             {
                 var next = request.GetInfo().MediaType == MediaType.Playlist ? subRequest ?? throw new CriticalException("Sub request was null.") : request;
                 await PlayAsync(next, audioChannel);
             }
+
+            mediaCallback(media.Info, MediaState.Playing, subRequest?.ParentRequestInfo ?? request.ParentRequestInfo);
+            using var audioProcessor = new FFmpegAudioProcessor(media.Info.DataInformation.MediaPath ?? throw new NullReferenceException("MediaPath was null."), media.Info.DataInformation.Format, startingPoint);
+
+            durationTimer.Elapsed += durationTimer.LastDuration;
+
+            var faulted = await SendDataAsync(audioProcessor, audioChannel, GetChannelBitrate(audioChannel));
+            if (faulted || Loop)
+            {
+                await PlaySame().ConfigureAwait(false);
+                return;
+            }
+
             mediaCallback(media.Info, MediaState.Finished, subRequest?.ParentRequestInfo ?? request.ParentRequestInfo);
 
             if (request.ParentRequestInfo != null) // Subtract playlist duration by current media duration.
@@ -317,8 +330,7 @@ namespace Melodica.Services.Playback
 
             if (!Queue.IsEmpty)
             {
-                var next = Shuffle ? await Queue.DequeueRandomAsync(Repeat) : await Queue.DequeueAsync(Repeat);
-                await PlayAsync(next, audioChannel).ConfigureAwait(false);
+                await PlayNext().ConfigureAwait(false);
                 return;
             }
 
