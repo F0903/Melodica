@@ -75,8 +75,7 @@ namespace Melodica.Services.Playback
 
         IAudioClient? audioClient;
         readonly MediaCallback mediaCallback;
-        readonly Stopwatch durationTimer = new Stopwatch();
-        TimeSpan? lastDuration = null;
+        readonly PlaybackStopwatch durationTimer = new PlaybackStopwatch();
 
         bool stopRequested = false;
         bool downloading = false;
@@ -130,7 +129,6 @@ namespace Melodica.Services.Playback
                 catch { }
                 finally
                 {
-                    lastDuration = durationTimer.Elapsed;
                     durationTimer.Reset();
                     writeLock.Release();
                 }
@@ -296,11 +294,12 @@ namespace Melodica.Services.Playback
             mediaCallback(media.Info, MediaState.Playing, subRequest?.ParentRequestInfo ?? request.ParentRequestInfo);
             using var audioProcessor = new FFmpegAudioProcessor(media.Info.DataInformation.MediaPath ?? throw new NullReferenceException("MediaPath was null."), media.Info.DataInformation.Format, startingPoint);
 
+            durationTimer.Elapsed += durationTimer.LastDuration;
             try { await SendDataAsync(audioProcessor, audioChannel, GetChannelBitrate(audioChannel)); }
             catch (Exception ex) when (!(ex is JukeboxException)) // Attempt to catch discord disconnects.
             {
                 var next = request.GetInfo().MediaType == MediaType.Playlist ? subRequest ?? throw new CriticalException("Sub request was null.") : request;
-                await PlayAsync(next, audioChannel, lastDuration);
+                await PlayAsync(next, audioChannel, durationTimer.LastDuration);
             } 
 
             if (Loop)
