@@ -96,7 +96,6 @@ namespace Melodica.Services.Playback
             bool isAlone = false;
             bool BreakConditions() => stopRequested || isAlone;
 
-            //TODO: Test how the bot handles disconnect events.
             var writeThread = new Thread(() =>
             {
                 using var input = audioProcessor.GetOutput();
@@ -236,7 +235,7 @@ namespace Melodica.Services.Playback
         }
 
         public async Task PlayAsync(MediaRequest request, IAudioChannel audioChannel, TimeSpan? startingPoint = null)
-        {                     
+        {
             if (downloading)
                 return;
 
@@ -257,7 +256,7 @@ namespace Melodica.Services.Playback
                 await ConnectAsync(audioChannel);
 
                 requestInfo = request.GetInfo();
-                mediaCallback(requestInfo, MediaState.Downloading, request.ParentRequestInfo);
+                if (!Loop) mediaCallback(requestInfo, MediaState.Downloading, request.ParentRequestInfo);
 
                 if (requestInfo.MediaType == MediaType.Playlist)
                 {
@@ -308,7 +307,7 @@ namespace Melodica.Services.Playback
                 await PlayAsync(next, audioChannel, startFromLastPoint ? durationTimer.LastDuration : TimeSpan.Zero);
             }
 
-            mediaCallback(media.Info, MediaState.Playing, subRequest?.ParentRequestInfo ?? request.ParentRequestInfo);
+            if(!Loop) mediaCallback(media.Info, MediaState.Playing, subRequest?.ParentRequestInfo ?? request.ParentRequestInfo);
             using var audioProcessor = new FFmpegAudioProcessor(media.Info.DataInformation.MediaPath ?? throw new NullReferenceException("MediaPath was null."), media.Info.DataInformation.Format, startingPoint);
 
             durationTimer.Elapsed += durationTimer.LastDuration;
