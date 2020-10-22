@@ -315,7 +315,7 @@ namespace Melodica.Services.Playback
             var faulted = await SendDataAsync(audioProcessor, audioChannel, GetChannelBitrate(audioChannel));
             if (faulted || Loop)
             {
-                await PlaySame(true).ConfigureAwait(false);
+                await PlaySame(faulted).ConfigureAwait(false);
                 return;
             }
 
