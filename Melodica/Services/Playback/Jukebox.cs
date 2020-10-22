@@ -302,10 +302,10 @@ namespace Melodica.Services.Playback
                 await PlayAsync(next, audioChannel).ConfigureAwait(false);
             }
 
-            async Task PlaySame()
+            async Task PlaySame(bool startFromLastPoint = false)
             {
                 var next = request.GetInfo().MediaType == MediaType.Playlist ? subRequest ?? throw new CriticalException("Sub request was null.") : request;
-                await PlayAsync(next, audioChannel);
+                await PlayAsync(next, audioChannel, startFromLastPoint ? durationTimer.LastDuration : TimeSpan.Zero);
             }
 
             mediaCallback(media.Info, MediaState.Playing, subRequest?.ParentRequestInfo ?? request.ParentRequestInfo);
@@ -316,7 +316,7 @@ namespace Melodica.Services.Playback
             var faulted = await SendDataAsync(audioProcessor, audioChannel, GetChannelBitrate(audioChannel));
             if (faulted || Loop)
             {
-                await PlaySame().ConfigureAwait(false);
+                await PlaySame(true).ConfigureAwait(false);
                 return;
             }
 
