@@ -21,6 +21,7 @@ namespace Melodica.Services.Playback
         {
             LastDuration = Elapsed;
             base.Reset();
+            offset = TimeSpan.Zero;
         }
 
         public new void Stop()
