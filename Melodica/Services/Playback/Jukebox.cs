@@ -126,7 +126,7 @@ namespace Melodica.Services.Playback
                     }
                     output.Flush();
                 }
-                catch { abort = true; }
+                catch (Exception ex) when (!(ex is TaskCanceledException)) { abort = true; }
                 finally
                 {
                     durationTimer.Reset();
@@ -153,10 +153,10 @@ namespace Melodica.Services.Playback
             if (stopRequested)
             {
                 stopRequested = false;
-                return Task.FromResult(true);
+                return Task.FromResult(false);
             }
 
-            return Task.FromResult(abort);
+            return Task.FromResult(abort); // Returns true if an error occured.
         }
 
         public async Task DisconnectAsync()
@@ -307,7 +307,7 @@ namespace Melodica.Services.Playback
                 await PlayAsync(next, audioChannel, startFromLastPoint ? durationTimer.LastDuration : TimeSpan.Zero);
             }
 
-            if(!Loop) mediaCallback(media.Info, MediaState.Playing, subRequest?.ParentRequestInfo ?? request.ParentRequestInfo);
+            if (!Loop) mediaCallback(media.Info, MediaState.Playing, subRequest?.ParentRequestInfo ?? request.ParentRequestInfo);
             using var audioProcessor = new FFmpegAudioProcessor(media.Info.DataInformation.MediaPath ?? throw new NullReferenceException("MediaPath was null."), media.Info.DataInformation.Format, startingPoint);
 
             durationTimer.Elapsed += durationTimer.LastDuration;
