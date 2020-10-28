@@ -193,6 +193,7 @@ namespace Melodica.Services.Playback
 
         public Task SkipAsync()
         {
+            Loop = false;
             stopRequested = true;
             return Task.CompletedTask;
         }
