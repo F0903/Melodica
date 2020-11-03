@@ -97,16 +97,15 @@ namespace Melodica.Services.Playback
             bool BreakConditions() => stopRequested || isAlone;
 
             var writeThread = new Thread(() =>
-            {
-                using var input = audioProcessor.GetOutput();
-                using var output = audioClient!.CreatePCMStream(AudioApplication.Music, bitrate, 100, 0);
-
+            {             
                 using var aloneTimer = new Timer(x => isAlone = CheckIfAloneAsync(channel).Result, null, 0, 5000);
 
                 int count = 0;
                 Span<byte> buffer = stackalloc byte[1024];
                 try
                 {
+                    using var input = audioProcessor.GetOutput();
+                    using var output = audioClient!.CreatePCMStream(AudioApplication.Music, bitrate, 100, 0);
                     durationTimer.Start();
                     writeLock.Wait();
                     while ((count = input!.Read(buffer)) != 0)
