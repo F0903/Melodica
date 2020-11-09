@@ -20,12 +20,13 @@ jobs:
     - name: Setup Discord.Net MyGet Source
       run: dotnet nuget add source https://www.myget.org/F/discord-net/api/v3/index.json
     
-    - uses: actions/cache@v2
+    - name: Caching
+      uses: actions/cache@v2
       with:
-       path: ~/.nuget/packages
-       key: ${{ runner.os }}-nuget-${{ hashFiles('**/packages.lock.json') }}
-       restore-keys: |
-        ${{ runner.os }}-nuget-
+        path: ~/.nuget/packages
+        key: ${{ runner.os }}-nuget-${{ hashFiles('**/packages.lock.json') }}
+        restore-keys: |
+          ${{ runner.os }}-nuget-
     
     - name: Restore
       run: dotnet restore
