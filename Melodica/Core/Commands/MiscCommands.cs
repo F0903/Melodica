@@ -9,7 +9,6 @@ using Melodica.Utility.Extensions;
 
 namespace Melodica.Core.Commands
 {
-    [Name("Misc")]
     public class MiscCommands : ModuleBase<SocketCommandContext>
     {
         public MiscCommands(CommandService cmService) => commandService = cmService;
@@ -77,5 +76,8 @@ namespace Melodica.Core.Commands
             var owner = await Utility.Utils.GetAppOwnerAsync();
             await ReplyAsync(Context.Message.Author.Id == owner.Id ? "You already know..." : $"My owner is {owner}");
         }
+
+        [Command("Ping")]
+        public Task PingAsync() => ReplyAsync("Pong!");
     }
 }

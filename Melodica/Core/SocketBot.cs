@@ -1,4 +1,5 @@
-﻿using System.Threading.Tasks;
+﻿using System;
+using System.Threading.Tasks;
 
 using Discord;
 using Discord.WebSocket;
@@ -34,7 +35,11 @@ namespace Melodica.Core
 
             await commandHandler.HandleCommandsAsync(client);
 
+#if DEBUG
             client.Log += logger.LogAsync;
+#else
+            Console.WriteLine("Release Mode");
+#endif
         }
 
         public async Task SetActivityAsync(string name, ActivityType type) => await client.SetActivityAsync(new Game(name, type));

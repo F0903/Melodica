@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Reflection;
 using System.Threading.Tasks;
 
@@ -84,7 +85,9 @@ namespace Melodica.Core.CommandHandlers
 
             cmdService.AddModulesAsync(Assembly.GetEntryAssembly(), IoC.Kernel.GetRawKernel());
 
+#if DEBUG
             cmdService.CommandExecuted += OnCommandExecuted;
+#endif
 
             IoC.Kernel.RegisterInstance(cmdService);
             return Task.CompletedTask;
