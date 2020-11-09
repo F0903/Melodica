@@ -18,6 +18,7 @@ namespace Melodica.Core
                 MessageCacheSize = 1,
                 LogLevel = BotSettings.LogLevel
             });
+
             this.logger = logger;
             this.commandHandler = commandHandler;
 
