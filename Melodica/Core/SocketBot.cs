@@ -44,7 +44,6 @@ namespace Melodica.Core
         public async Task ConnectAsync(bool startOnConnect = false)
         {
             await client.LoginAsync(TokenType.Bot, BotSettings.Token);
-            await client.GetApplicationInfoAsync().Result.UpdateAsync();
             if (startOnConnect)
                 await client.StartAsync();
         }
