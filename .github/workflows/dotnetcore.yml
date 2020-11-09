@@ -4,11 +4,9 @@ on: [push, pull_request]
 
 jobs:
   build:
-
-    runs-on: ${{matrix.os}}
-    strategy:
-      matrix:
-        os: [windows-latest, ubuntu-latest]
+    
+    # Just run on ubuntu. It's much faster than Windows, and the result will most likely be the same.
+    runs-on: ubuntu-latest
     
     steps:
     - name: Checkout
@@ -17,9 +15,9 @@ jobs:
     - name: Setup
       uses: actions/setup-dotnet@v1.7.2
       with:
-        dotnet-version: '3.1.x'      
+        dotnet-version: '3.x'      
       
-    - name: Setup MyGet Source
+    - name: Setup Discord.Net MyGet Source
       run: dotnet nuget add source https://www.myget.org/F/discord-net/api/v3/index.json
     
     - name: Building
