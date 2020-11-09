@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
+using Melodica.Services.Caching;
 using Melodica.Services.Downloaders.Exceptions;
 using Melodica.Services.Models;
-using Melodica.Services.Services;
 using Melodica.Utility;
 using Melodica.Utility.Extensions;
 

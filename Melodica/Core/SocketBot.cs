@@ -10,32 +10,27 @@ namespace Melodica.Core
 {
     public class SocketBot : IBot
     {
-        public SocketBot(IAsyncLogger logger, SocketCommandHandler commandHandler)
+        public SocketBot(SocketCommandHandler commandHandler)
         {
             client = new DiscordSocketClient(new DiscordSocketConfig()
             {
                 MessageCacheSize = 1,
                 LogLevel = BotSettings.LogLevel
             });
-            this.logger = logger;
             this.commandHandler = commandHandler;
 
             Bootstrap().Wait();
         }
 
-        internal readonly DiscordSocketClient client;
+        readonly DiscordSocketClient client;
 
-        internal readonly SocketCommandHandler commandHandler;
-
-        private readonly IAsyncLogger logger;
+        readonly SocketCommandHandler commandHandler;
 
         private async Task Bootstrap()
         {
-            Melodica.IoC.Kernel.RegisterInstance(client);
+            IoC.Kernel.RegisterInstance(client);
 
-            await commandHandler.BuildCommandsAsync(this);
-            client.MessageReceived += commandHandler.HandleCommandsAsync;
-            client.Log += logger.LogAsync;
+            await commandHandler.HandleCommandsAsync(client);
         }
 
         public async Task SetActivityAsync(string name, ActivityType type) => await client.SetActivityAsync(new Game(name, type));

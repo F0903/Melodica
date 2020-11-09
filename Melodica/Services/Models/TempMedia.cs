@@ -1,6 +1,6 @@
 ﻿using System.IO;
 
-using Melodica.Services.Services;
+using Melodica.Services.Caching;
 
 namespace Melodica.Services.Models
 {

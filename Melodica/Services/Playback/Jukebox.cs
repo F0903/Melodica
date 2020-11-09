@@ -90,7 +90,7 @@ namespace Melodica.Services.Playback
             else return false;
         }
 
-        private Task<bool> SendDataAsync(ExternalAudioProcessor audioProcessor, IAudioChannel channel, int bitrate)
+        private Task<bool> SendDataAsync(AudioProcessor audioProcessor, IAudioChannel channel, int bitrate)
         {
             bool abort = false;
             bool isAlone = false;
@@ -308,7 +308,8 @@ namespace Melodica.Services.Playback
             }
 
             if (!Loop) mediaCallback(media.Info, MediaState.Playing, subRequest?.ParentRequestInfo ?? request.ParentRequestInfo);
-            using var audioProcessor = new FFmpegAudioProcessor(media.Info.DataInformation.MediaPath ?? throw new NullReferenceException("MediaPath was null."), media.Info.DataInformation.Format, startingPoint);
+            using var audioProcessor = new FFmpegAudioProcessor();
+            await audioProcessor.Process(media.Info.DataInformation.MediaPath ?? throw new NullReferenceException("MediaPath was null."), media.Info.DataInformation.Format, startingPoint);
 
             durationTimer.Elapsed += durationTimer.LastDuration;
 

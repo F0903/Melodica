@@ -3,11 +3,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 
-using Melodica.Services.Downloaders;
 using Melodica.Services.Downloaders.Exceptions;
 using Melodica.Utility.Extensions;
 
-namespace Melodica.Services.Services.Downloaders
+namespace Melodica.Services.Downloaders
 {
     public class DownloaderProvider
     {

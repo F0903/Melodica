@@ -1,9 +1,11 @@
 ﻿using System.Threading.Tasks;
 
+using Discord;
+
 namespace Melodica.Core.CommandHandlers
 {
     public interface IAsyncCommandHandler
     {
-        public Task HandleCommandsAsync(Discord.IMessage message);
+        public Task HandleCommandsAsync(IDiscordClient clientToHandle);
     }
 }

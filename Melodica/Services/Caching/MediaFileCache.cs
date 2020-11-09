@@ -11,7 +11,7 @@ using Melodica.Services.Downloaders.Exceptions;
 using Melodica.Services.Models;
 using Melodica.Utility.Extensions;
 
-namespace Melodica.Services.Services
+namespace Melodica.Services.Caching
 {
     public class MediaFileCache
     {

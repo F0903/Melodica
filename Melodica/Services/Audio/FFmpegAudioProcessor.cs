@@ -1,24 +1,29 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
+using System.Text;
+using System.Threading.Tasks;
 
 using Melodica.Core.Exceptions;
-using Melodica.Services.Services;
+using Melodica.Services.Caching;
 
 namespace Melodica.Services.Audio
 {
-    public class FFmpegAudioProcessor : ExternalAudioProcessor
+    public class FFmpegAudioProcessor : AudioProcessor
     {
-        public FFmpegAudioProcessor(string mediaPath, string? format = null, TimeSpan? startingPoint = null) : base(mediaPath, format, startingPoint)
-        { }
+        public FFmpegAudioProcessor() : base(input, output) { }
 
-        protected override Process ConstructExternal(string path, string? format = null, TimeSpan? startingPoint = null)
+        const bool input = false;
+        const bool output = true;
+
+        protected override Task<Process> ConstructAsync(string path, string? format, TimeSpan? startingPoint = null)
         {
             if (path == null || path == string.Empty)
             {
                 MediaFileCache.ClearAllCachesAsync().Wait();
                 throw new CriticalException("Song path is empty... Clearing cache... (something went wrong here)");
             }
-            return new Process()
+            var proc = new Process()
             {
                 StartInfo = new ProcessStartInfo()
                 {
@@ -26,11 +31,12 @@ namespace Melodica.Services.Audio
                     Arguments = $"-y -hide_banner -loglevel debug -fflags nobuffer -fflags discardcorrupt -flags low_delay -strict experimental -avioflags direct -vn {(format != null ? $"-f {format}" : string.Empty)} -ss {startingPoint ?? TimeSpan.Zero} -i {(path != null ? $"\"{path}\"" : "pipe:0")} -f s16le -ac 2 -ar 48000 pipe:1",
                     UseShellExecute = false,
                     RedirectStandardError = false,
-                    RedirectStandardInput = (inputAvailable = (path == null)),
-                    RedirectStandardOutput = (outputAvailable = true),
+                    RedirectStandardInput = input,
+                    RedirectStandardOutput = output,
                     CreateNoWindow = true,
                 }
             };
+            return Task.FromResult(proc);
         }
     }
 }

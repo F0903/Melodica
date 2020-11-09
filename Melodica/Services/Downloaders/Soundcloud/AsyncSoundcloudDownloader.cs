@@ -5,9 +5,9 @@ using System.Net;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
+using Melodica.Services.Caching;
 using Melodica.Services.Downloaders.Exceptions;
 using Melodica.Services.Models;
-using Melodica.Services.Services;
 
 using SoundCloud.Api;
 using SoundCloud.Api.Entities;

@@ -19,17 +19,15 @@ namespace Melodica.Core.CommandHandlers
             this.settings = settings;
         }
 
-        public bool BuiltCommands { get; private set; } = false;
-
         private readonly IAsyncLogger logger;
 
         private readonly GuildSettingsProvider settings;
 
-        private SocketBot? owner;
+        private DiscordSocketClient? boundClient;
 
         private CommandService? cmdService;
 
-        private async Task CommandExecuted(Optional<CommandInfo> info, ICommandContext context, IResult result)
+        async Task OnCommandExecuted(Optional<CommandInfo> info, ICommandContext context, IResult result)
         {
             if (!info.IsSpecified)
                 return;
@@ -48,37 +46,15 @@ namespace Melodica.Core.CommandHandlers
             await logger.LogAsync(new LogMessage(result.IsSuccess ? LogSeverity.Verbose : LogSeverity.Error, $"{info.Value.Module} - {info.Value.Name} - {context.Guild}", result.IsSuccess ? "Successfully executed command." : result.ErrorReason));
         }
 
-        public Task BuildCommandsAsync(SocketBot owner)
+        async Task OnMessageReceived(SocketMessage message)
         {
-            this.owner = owner;
-            cmdService = new CommandService(new CommandServiceConfig()
-            {
-                LogLevel = BotSettings.LogLevel,
-                DefaultRunMode = RunMode.Async,
-                CaseSensitiveCommands = false
-            });
-
-            cmdService.AddModulesAsync(Assembly.GetEntryAssembly(), IoC.Kernel.GetRawKernel());
-
-            cmdService.CommandExecuted += CommandExecuted;
-
-            IoC.Kernel.RegisterInstance(cmdService);
-            BuiltCommands = true;
-            return Task.CompletedTask;
-        }
-
-        public async Task HandleCommandsAsync(IMessage message)
-        {
-            if (!BuiltCommands)
-                throw new Exception("You need to call the BuildCommands function before handling them!");
-
             if (!(message is SocketUserMessage msg))
                 return;
 
             if (msg.Author.IsBot)
                 return;
 
-            var context = new SocketCommandContext(owner!.client, msg);
+            var context = new SocketCommandContext(boundClient, msg);
 
             int argPos = 0;
 
@@ -88,6 +64,30 @@ namespace Melodica.Core.CommandHandlers
                 return;
 
             await cmdService!.ExecuteAsync(context, argPos, Melodica.IoC.Kernel.GetRawKernel());
+        }
+
+        public Task HandleCommandsAsync(IDiscordClient client)
+        {
+            if (!(client is DiscordSocketClient socketClient))
+                throw new Exception("This CommandHandler only suppors socket clients.");
+            
+            boundClient = socketClient;
+
+            socketClient.MessageReceived += OnMessageReceived;
+
+            cmdService = new CommandService(new CommandServiceConfig()
+            {
+                LogLevel = BotSettings.LogLevel,
+                DefaultRunMode = RunMode.Async,
+                CaseSensitiveCommands = false
+            });
+
+            cmdService.AddModulesAsync(Assembly.GetEntryAssembly(), IoC.Kernel.GetRawKernel());
+
+            cmdService.CommandExecuted += OnCommandExecuted;
+
+            IoC.Kernel.RegisterInstance(cmdService);
+            return Task.CompletedTask;
         }
     }
 }
