@@ -20,5 +20,8 @@ jobs:
     - name: Setup Discord.Net MyGet Source
       run: dotnet nuget add source https://www.myget.org/F/discord-net/api/v3/index.json
     
+    #- name: Restore
+    #  run: dotnet restore
+    
     - name: Building
-      run: dotnet build --configuration Release
+      run: dotnet build --configuration Release --no-restore
