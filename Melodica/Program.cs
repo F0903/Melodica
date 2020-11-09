@@ -12,7 +12,7 @@ namespace Melodica
 {
     public static class Program
     {
-        private static readonly SocketBot currentBot = new SocketBot(Kernel.Get<SocketCommandHandler>());
+        private static readonly SocketBot currentBot = new SocketBot(Kernel.Get<IAsyncLogger>(), Kernel.Get<SocketCommandHandler>());
 
         private static async Task Main()
         {

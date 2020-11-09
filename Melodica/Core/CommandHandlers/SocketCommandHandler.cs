@@ -63,7 +63,7 @@ namespace Melodica.Core.CommandHandlers
             if (!context.Message.HasStringPrefix(prefix, ref argPos))
                 return;
 
-            await cmdService!.ExecuteAsync(context, argPos, Melodica.IoC.Kernel.GetRawKernel());
+            await cmdService!.ExecuteAsync(context, argPos, IoC.Kernel.GetRawKernel());
         }
 
         public Task HandleCommandsAsync(IDiscordClient client)
