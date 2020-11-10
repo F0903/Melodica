@@ -311,6 +311,7 @@ namespace Melodica.Services.Playback
             using var audioProcessor = new FFmpegAudioProcessor();
             await audioProcessor.Process(media.Info.DataInformation.MediaPath ?? throw new NullReferenceException("MediaPath was null."), media.Info.DataInformation.Format, startingPoint);
 
+            //TODO: Keep investigating the discord null ref events.
             var faulted = await SendDataAsync(audioProcessor, audioChannel, GetChannelBitrate(audioChannel));
             if (faulted) durationTimer.Elapsed = durationTimer.LastDuration;
             if (faulted || Loop)
