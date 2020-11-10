@@ -311,7 +311,9 @@ namespace Melodica.Services.Playback
             using var audioProcessor = new FFmpegAudioProcessor();
             await audioProcessor.Process(media.Info.DataInformation.MediaPath ?? throw new NullReferenceException("MediaPath was null."), media.Info.DataInformation.Format, startingPoint);
 
-            durationTimer.Elapsed += durationTimer.LastDuration;
+            //NOTE: 
+            // This is where the timer was offset by the last duration, which was causing it to show up inaccurate.
+            // I also can't even remember why I made the offset in the first place...
 
             var faulted = await SendDataAsync(audioProcessor, audioChannel, GetChannelBitrate(audioChannel));
             if (faulted || Loop)
