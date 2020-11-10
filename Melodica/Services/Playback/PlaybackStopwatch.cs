@@ -12,7 +12,7 @@ namespace Melodica.Services.Playback
         public new TimeSpan Elapsed 
         { 
             get => offset + base.Elapsed;
-            set => offset += value;
+            set => offset = value;
         }
 
         public TimeSpan LastDuration { get; private set; }

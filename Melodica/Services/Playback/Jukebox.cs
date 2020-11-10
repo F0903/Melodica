@@ -97,7 +97,7 @@ namespace Melodica.Services.Playback
             bool BreakConditions() => stopRequested || isAlone;
 
             var writeThread = new Thread(() =>
-            {             
+            {
                 using var aloneTimer = new Timer(x => isAlone = CheckIfAloneAsync(channel).Result, null, 0, 5000);
 
                 int count = 0;
@@ -311,11 +311,8 @@ namespace Melodica.Services.Playback
             using var audioProcessor = new FFmpegAudioProcessor();
             await audioProcessor.Process(media.Info.DataInformation.MediaPath ?? throw new NullReferenceException("MediaPath was null."), media.Info.DataInformation.Format, startingPoint);
 
-            //NOTE: 
-            // This is where the timer was offset by the last duration, which was causing it to show up inaccurate.
-            // I also can't even remember why I made the offset in the first place...
-
             var faulted = await SendDataAsync(audioProcessor, audioChannel, GetChannelBitrate(audioChannel));
+            if (faulted) durationTimer.Elapsed = durationTimer.LastDuration;
             if (faulted || Loop)
             {
                 await PlaySame(faulted).ConfigureAwait(false);
