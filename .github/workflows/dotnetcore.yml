@@ -7,29 +7,29 @@ jobs:
     name: Build Project
     # Just run on ubuntu. It's much faster than Windows, and the result will most likely be the same.
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout
         uses: actions/checkout@v1
-      
+
       - name: Setup
         uses: actions/setup-dotnet@v1.7.2
         with:
-          dotnet-version: '3.1.x'      
-      
+          dotnet-version: "3.1.x"
+
       - name: Setup Discord.Net MyGet Source
         run: dotnet nuget add source https://www.myget.org/F/discord-net/api/v3/index.json
-    
+
       - name: Caching
         uses: actions/cache@v2
         with:
           path: ~/.nuget/packages
           key: ${{ runner.os }}-nuget-${{ hashFiles('**/packages.lock.json') }}
           restore-keys: |
-           ${{ runner.os }}-nuget-
-    
+            ${{ runner.os }}-nuget-
+
       - name: Restore
         run: dotnet restore
-    
+
       - name: Building
         run: dotnet build --configuration Release --no-restore
