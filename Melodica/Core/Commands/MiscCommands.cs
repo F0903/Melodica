@@ -1,17 +1,24 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using System.Reflection.Metadata.Ecma335;
 using System.Threading.Tasks;
 
 using Discord;
 using Discord.Commands;
+using Discord.WebSocket;
 
+using Melodica.Services.Playback;
+using Melodica.Services.Playback.Requests;
 using Melodica.Utility.Extensions;
 
 namespace Melodica.Core.Commands
 {
     public class MiscCommands : ModuleBase<SocketCommandContext>
     {
-        public MiscCommands(CommandService cmService) => commandService = cmService;
+        public MiscCommands(CommandService commandService, JukeboxProvider jukeboxProvider) 
+        {
+            this.commandService = commandService;
+        }
 
         private readonly CommandService commandService;
 

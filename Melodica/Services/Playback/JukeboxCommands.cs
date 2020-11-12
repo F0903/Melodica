@@ -377,5 +377,13 @@ namespace Melodica.Services.Playback
             }
             await Jukebox.DisconnectAsync();
         }
+
+        [Command("Fisk")]
+        public async Task FiskAsync()
+        {
+            var req = new DownloadRequest("https://www.youtube.com/watch?v=JyLCedJJ_Yk");
+
+            await Jukebox.PlayAsync(req, ((SocketGuildUser)Context.User).VoiceChannel);
+        }
     }
 }

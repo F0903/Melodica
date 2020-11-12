@@ -5,12 +5,15 @@ using System.Threading.Tasks;
 
 using Melodica.Services.Downloaders;
 using Melodica.Services.Downloaders.Exceptions;
+using Melodica.Services.Downloaders.YouTube;
 using Melodica.Services.Models;
 
 namespace Melodica.Services.Playback.Requests
 {
     public class DownloadRequest : MediaRequest
     {
+        public DownloadRequest(string query) : this(query, new AsyncYoutubeDownloader()) { }
+
         public DownloadRequest(string query, AsyncDownloaderBase dl)
         {
             downloader = dl;
