@@ -12,7 +12,9 @@ namespace Melodica.Services.Playback.Requests
 {
     public class DownloadRequest : MediaRequest
     {
-        public DownloadRequest(string query) : this(query, new AsyncYoutubeDownloader()) { }
+        public DownloadRequest(string query) : this(query, new AsyncYoutubeDownloader())
+        {
+        }
 
         public DownloadRequest(string query, AsyncDownloaderBase dl)
         {
@@ -55,6 +57,7 @@ namespace Melodica.Services.Playback.Requests
         public override List<MediaRequest>? SubRequests { get; set; }
 
         private MediaMetadata? info;
+
         public override MediaMetadata GetInfo() => info ??= downloader.GetMediaInfoAsync(query).Result;
 
         public override async Task<PlayableMedia> GetMediaAsync()

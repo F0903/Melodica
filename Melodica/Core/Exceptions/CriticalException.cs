@@ -6,7 +6,6 @@ namespace Melodica.Core.Exceptions
     {
         public CriticalException(string? msg = null, Exception? innerEx = null) : base(msg, innerEx)
         {
-
         }
     }
 }

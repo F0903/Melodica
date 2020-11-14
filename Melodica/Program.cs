@@ -8,25 +8,17 @@ using Melodica.Core.CommandHandlers;
 using Melodica.IoC;
 using Melodica.Services.Logging;
 
-namespace Melodica
-{
-    public static class Program
-    {
-        private static readonly SocketBot currentBot = new SocketBot(Kernel.Get<IAsyncLogger>(), Kernel.Get<SocketCommandHandler>());
 
-        private static async Task Main()
-        {
-            await currentBot.ConnectAsync($"{BotSettings.DefaultPrefix}play | {BotSettings.DefaultPrefix}help", Discord.ActivityType.Listening, true);
+SocketBot currentBot = new SocketBot(Kernel.Get<IAsyncLogger>(), Kernel.Get<SocketCommandHandler>());
 
-            AppDomain.CurrentDomain.ProcessExit += CurrentDomain_ProcessExit;
-            AppDomain.CurrentDomain.UnhandledException += (sender, args) => File.WriteAllText("./error.txt", (args.ExceptionObject as Exception)?.ToString() ?? "Exception was null.");
+await currentBot.ConnectAsync($"{BotSettings.DefaultPrefix}play | {BotSettings.DefaultPrefix}help", Discord.ActivityType.Listening, true);
 
-            Process.GetCurrentProcess().PriorityClass = BotSettings.ProcessPriority;
+AppDomain.CurrentDomain.ProcessExit += CurrentDomain_ProcessExit;
+AppDomain.CurrentDomain.UnhandledException += (sender, args) => File.WriteAllText("./error.txt", (args.ExceptionObject as Exception)?.ToString() ?? "Exception was null.");
 
-            await Task.Delay(-1);
-        }
+Process.GetCurrentProcess().PriorityClass = BotSettings.ProcessPriority;
 
-        // Simply disconnect the bot automatically when the process is requested to close.
-        private static void CurrentDomain_ProcessExit(object? sender, EventArgs e) => currentBot.StopAsync().Wait();
-    }
-}
+await Task.Delay(-1);
+
+// Simply disconnect the bot automatically when the process is requested to close.
+void CurrentDomain_ProcessExit(object? sender, EventArgs e) => currentBot.StopAsync().Wait();

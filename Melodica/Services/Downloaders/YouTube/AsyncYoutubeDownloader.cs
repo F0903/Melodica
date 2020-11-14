@@ -6,7 +6,6 @@ using System.Threading.Tasks;
 using Melodica.Services.Caching;
 using Melodica.Services.Downloaders.Exceptions;
 using Melodica.Services.Models;
-using Melodica.Utility;
 using Melodica.Utility.Extensions;
 
 using YoutubeExplode;
@@ -51,15 +50,15 @@ namespace Melodica.Services.Downloaders.YouTube
 
         private Task<Video> SearchOrGetVideo(string input)
         {
-            Video SearchVideo(int attempt = 0)
+            async Task<Video> SearchVideo(int attempt = 0)
             {
                 if (attempt > 3) throw new MediaUnavailableException();
 
-                Video video;
+                Video? video;
                 try
                 {
                     var videos = yt.Search.GetVideosAsync(input);
-                    var bufVideos = videos.BufferAsync(attempt + 1).Result;
+                    var bufVideos = await videos.BufferAsync(attempt + 1);
                     video = bufVideos.ElementAtOrDefault(attempt);
                 }
                 catch (Exception ex) when (IsUnavailable(ex))
@@ -67,9 +66,9 @@ namespace Melodica.Services.Downloaders.YouTube
                     throw new MediaUnavailableException();
                 }
 
-                return video ?? SearchVideo(++attempt);
+                return video ?? await SearchVideo(++attempt).ConfigureAwait(false);
             }
-            return Task.FromResult(input.IsUrl() ? yt.Videos.GetAsync(input).Result : SearchVideo());
+            return input.IsUrl() ? yt.Videos.GetAsync(input) : SearchVideo();
         }
 
         public override async Task<PlayableMedia> DownloadAsync(MediaMetadata meta)
@@ -220,7 +219,7 @@ namespace Melodica.Services.Downloaders.YouTube
             if (input.AsSpan().LikeYouTubeId())
             {
                 if (cache.Contains(input))
-                   return Task.FromResult(cache.GetAsync(input).Result.Info);
+                    return Task.FromResult(cache.GetAsync(input).Result.Info);
             }
 
             var mType = EvaluateMediaTypeAsync(input).Result;

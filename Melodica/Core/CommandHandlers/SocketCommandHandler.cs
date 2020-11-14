@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Diagnostics;
 using System.Reflection;
 using System.Threading.Tasks;
 
@@ -28,7 +27,7 @@ namespace Melodica.Core.CommandHandlers
 
         private CommandService? cmdService;
 
-        async Task OnCommandExecuted(Optional<CommandInfo> info, ICommandContext context, IResult result)
+        private async Task OnCommandExecuted(Optional<CommandInfo> info, ICommandContext context, IResult result)
         {
             if (!info.IsSpecified)
                 return;
@@ -49,9 +48,9 @@ namespace Melodica.Core.CommandHandlers
 #endif
         }
 
-        async Task OnMessageReceived(SocketMessage message)
+        private async Task OnMessageReceived(SocketMessage message)
         {
-            if (!(message is SocketUserMessage msg))
+            if (message is not SocketUserMessage msg)
                 return;
 
             if (msg.Author.IsBot)
@@ -71,9 +70,9 @@ namespace Melodica.Core.CommandHandlers
 
         public Task HandleCommandsAsync(IDiscordClient client)
         {
-            if (!(client is DiscordSocketClient socketClient))
+            if (client is not DiscordSocketClient socketClient)
                 throw new Exception("This CommandHandler only suppors socket clients.");
-            
+
             boundClient = socketClient;
 
             socketClient.MessageReceived += OnMessageReceived;

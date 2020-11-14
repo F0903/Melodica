@@ -10,6 +10,8 @@ namespace Melodica.Services.Serialization
     {
         private static readonly BinaryFormatter bin = new BinaryFormatter(null, new StreamingContext(StreamingContextStates.File | StreamingContextStates.CrossProcess | StreamingContextStates.Persistence));
 
+        //TODO: Convert this to use JSON to stop the screaming warning messages...
+
         public Task SerializeToFileAsync(string path, object toSerialize)
         {
             using var file = new FileStream(path, FileMode.OpenOrCreate, FileAccess.Write, FileShare.Write);

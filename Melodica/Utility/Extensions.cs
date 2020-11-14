@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -17,13 +16,12 @@ namespace Melodica.Utility.Extensions
 {
     public static class Extensions
     {
-        static readonly char[] customIllegalChars =
+        private static readonly char[] customIllegalChars =
         {
             '<'
         };
 
-        static char[]? cachedIllegalChars;
-
+        private static char[]? cachedIllegalChars;
 
         public static bool IsOverSize<T>(this IEnumerable<T> list, int exclusiveLimit)
         {
@@ -82,8 +80,8 @@ namespace Melodica.Utility.Extensions
 
         public static async Task<string> GetPlaylistThumbnail(this YoutubeExplode.Playlists.Playlist pl, YoutubeExplode.YoutubeClient? client = null)
         {
-            client ??= new YoutubeExplode.YoutubeClient();
-            var video = (await client.Playlists.GetVideosAsync(pl.Id).BufferAsync(1)).First();
+            client ??= new YoutubeClient();
+            var video = (await client.Playlists.GetVideosAsync(pl.Id).BufferAsync(1))[0];
             return video.Thumbnails.MediumResUrl;
         }
 
@@ -104,7 +102,7 @@ namespace Melodica.Utility.Extensions
         public static bool CheckForUser(this SocketGuild guild, string user) =>
             AutoGetUser(guild, user) != null;
 
-        public static SocketGuildUser AutoGetUser(this SocketGuild guild, string user) =>
+        public static SocketGuildUser? AutoGetUser(this SocketGuild guild, string user) =>
             guild.Users.SingleOrDefault(x => x.Username == user || x.Nickname == user || x.Id.ToString() == user);
 
         public static bool IsOwnerOfApp(this IUser user) =>

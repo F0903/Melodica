@@ -44,9 +44,9 @@ namespace Melodica.Services.Wiki
 
             return new WikiElement()
             {
-                Title = title,
+                Title = title ?? "No Title Found",
                 ImageUrl = imageUrl,
-                Info = summary
+                Info = summary ?? "No Summary Found"
             };
         }
 

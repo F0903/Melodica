@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
 
 using Discord;
 using Discord.WebSocket;
@@ -9,7 +7,7 @@ namespace Melodica.Services
 {
     public static class SocketPermissionsChecker
     {
-        static ISelfUser? cachedBot;
+        private static ISelfUser? cachedBot;
 
         public static void CheckForVoicePermissions(SocketGuild guild, ISelfUser bot, IVoiceChannel voice)
         {

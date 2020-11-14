@@ -11,7 +11,7 @@ namespace Melodica.Services.Playback
         private static readonly ConcurrentDictionary<IGuild, Jukebox> Jukeboxes = new ConcurrentDictionary<IGuild, Jukebox>();
 
         public Task<Jukebox> GetJukeboxAsync(IGuild guild) => Task.FromResult(Jukeboxes[guild]);
-        
+
         public Task<Jukebox> GetOrCreateJukeboxAsync(IGuild guild, Func<Jukebox> newFactory)
         {
             var juke = Jukeboxes.GetOrAdd(guild, newFactory());

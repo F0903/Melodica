@@ -7,8 +7,8 @@ using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
 
-using Melodica.Services.Downloaders;
 using Melodica.Services.Caching;
+using Melodica.Services.Downloaders;
 using Melodica.Services.Models;
 using Melodica.Services.Playback.Exceptions;
 using Melodica.Services.Playback.Requests;
@@ -37,7 +37,7 @@ namespace Melodica.Services.Playback
 
         private async void MediaCallback(MediaMetadata info, MediaState state, MediaMetadata? parentInfo)
         {
-            await playbackLock.WaitAsync(); // Use a this to make sure no threads send multiple messages at the same time.    
+            await playbackLock.WaitAsync(); // Use a this to make sure no threads send multiple messages at the same time.
 
             bool reset = false;
 

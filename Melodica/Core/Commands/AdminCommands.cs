@@ -15,10 +15,6 @@ namespace Melodica.Core.Commands
 
         private readonly GuildSettingsProvider settings;
 
-        [Command("Message"), Summary("Messages a guild user by username.")]
-        public async Task MessageGuildUserAsync(string userToMsg, [Remainder] string content) =>
-            await Context.Guild.AutoGetUser(userToMsg).GetOrCreateDMChannelAsync().Result.SendMessageAsync(content);
-
         [Command("Prefix"), Summary("Changes the prefix.")]
         public async Task ChangePrefixAsync(string newPrefix)
         {

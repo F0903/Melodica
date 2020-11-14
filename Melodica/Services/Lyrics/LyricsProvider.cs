@@ -11,7 +11,6 @@ namespace Melodica.Services.Lyrics
         public string Lyrics { get; set; }
     }
 
-
     public abstract class LyricsProvider
     {
         public abstract Task<LyricsInfo> GetLyricsAsync(string input);

@@ -1,5 +1,4 @@
-﻿using System;
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
 
 using Discord;
 using Discord.WebSocket;
@@ -25,10 +24,10 @@ namespace Melodica.Core
             Bootstrap().Wait();
         }
 
-        readonly DiscordSocketClient client;
+        private readonly DiscordSocketClient client;
 
-        readonly IAsyncLogger logger;
-        readonly SocketCommandHandler commandHandler;
+        private readonly IAsyncLogger logger;
+        private readonly SocketCommandHandler commandHandler;
 
         private async Task Bootstrap()
         {

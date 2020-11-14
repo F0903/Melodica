@@ -17,6 +17,7 @@ namespace Melodica.Services.Settings
     {
         [Key]
         public ulong GuildID { get; set; }
+
         public string Prefix { get; set; }
     }
 }

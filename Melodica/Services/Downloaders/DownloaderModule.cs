@@ -1,6 +1,4 @@
-﻿using Melodica.Services.Downloaders;
-
-using Ninject.Modules;
+﻿using Ninject.Modules;
 
 namespace Melodica.Services.Downloaders
 {

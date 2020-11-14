@@ -62,6 +62,7 @@ namespace Melodica.Services.Playback.Requests
             ".mp4",
             ".wav"
         };
+
         private readonly MediaMetadata info;
 
         private MediaMetadata EvalInfo(FileInfo file)

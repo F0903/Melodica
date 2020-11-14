@@ -22,7 +22,6 @@ namespace Melodica.Services.Models
 
         public static MediaMetadata LoadFromFile(string fullPath) => bs.DeserializeFileAsync<MediaMetadata>(fullPath).GetAwaiter().GetResult();
 
-
         public const string MetaFileExtension = ".meta";
 
         public MediaOrigin Origin { get; set; } = new MediaOrigin("External", false);

@@ -23,6 +23,7 @@ namespace Melodica.Services.Downloaders
         public abstract Task<MediaMetadata> GetMediaInfoAsync(string input);
 
         public abstract Task<PlayableMedia> DownloadAsync(string input);
+
         public abstract Task<PlayableMedia> DownloadAsync(MediaMetadata input);
 
         public abstract Task<string> GetLivestreamAsync(string streamURL);

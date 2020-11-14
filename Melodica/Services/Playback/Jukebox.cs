@@ -1,7 +1,5 @@
 ﻿using System;
-using System.Diagnostics;
 using System.Linq;
-using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -11,13 +9,10 @@ using Discord.WebSocket;
 
 using Melodica.Core.Exceptions;
 using Melodica.Services.Audio;
-using Melodica.Services.Downloaders.Exceptions;
 using Melodica.Services.Models;
 using Melodica.Services.Playback.Exceptions;
 using Melodica.Services.Playback.Requests;
 using Melodica.Utility.Extensions;
-
-using Microsoft.EntityFrameworkCore.Internal;
 
 namespace Melodica.Services.Playback
 {
@@ -40,6 +35,7 @@ namespace Melodica.Services.Playback
         public delegate void MediaCallback(MediaMetadata info, MediaState state, MediaMetadata? parentRequestInfo);
 
         private bool loop;
+
         public bool Loop
         {
             get => loop;
@@ -51,6 +47,7 @@ namespace Melodica.Services.Playback
         }
 
         private bool paused;
+
         public bool Paused
         {
             get => paused;
@@ -73,14 +70,14 @@ namespace Melodica.Services.Playback
 
         public TimeSpan Duration => new TimeSpan(durationTimer.Elapsed.Hours, durationTimer.Elapsed.Minutes, durationTimer.Elapsed.Seconds);
 
-        IAudioClient? audioClient;
-        readonly MediaCallback mediaCallback;
-        readonly PlaybackStopwatch durationTimer = new PlaybackStopwatch();
+        private IAudioClient? audioClient;
+        private readonly MediaCallback mediaCallback;
+        private readonly PlaybackStopwatch durationTimer = new PlaybackStopwatch();
 
-        bool stopRequested = false;
-        bool downloading = false;
+        private bool stopRequested = false;
+        private bool downloading = false;
 
-        readonly SemaphoreSlim writeLock = new SemaphoreSlim(1);
+        private readonly SemaphoreSlim writeLock = new SemaphoreSlim(1);
 
         private async Task<bool> CheckIfAloneAsync(IAudioChannel channel)
         {
@@ -208,7 +205,7 @@ namespace Melodica.Services.Playback
             stopRequested = true;
         }
 
-        async Task QueueAsync(MediaRequest request)
+        private async Task QueueAsync(MediaRequest request)
         {
             if (request.GetInfo().MediaType == MediaType.Playlist)
                 await Queue.EnqueueAsync(request.SubRequests!);
@@ -217,7 +214,7 @@ namespace Melodica.Services.Playback
             mediaCallback(request.GetInfo(), MediaState.Queued, request.ParentRequestInfo);
         }
 
-        async Task<MediaRequest> QueueSubRequestsAsync(MediaRequest request)
+        private async Task<MediaRequest> QueueSubRequestsAsync(MediaRequest request)
         {
             await Queue.EnqueueAsync(request.SubRequests!);
             var first = await Queue.DequeueAsync();
@@ -225,7 +222,7 @@ namespace Melodica.Services.Playback
             return first;
         }
 
-        int GetChannelBitrate(IAudioChannel channel)
+        private int GetChannelBitrate(IAudioChannel channel)
         {
             return channel switch
             {

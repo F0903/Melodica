@@ -1,7 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Text;
 using System.Threading.Tasks;
 
 using Melodica.Core.Exceptions;
@@ -11,10 +9,12 @@ namespace Melodica.Services.Audio
 {
     public class FFmpegAudioProcessor : AudioProcessor
     {
-        public FFmpegAudioProcessor() : base(input, output) { }
+        public FFmpegAudioProcessor() : base(input, output)
+        {
+        }
 
-        const bool input = false;
-        const bool output = true;
+        private const bool input = false;
+        private const bool output = true;
 
         protected override Task<Process> ConstructAsync(string path, string? format, TimeSpan? startingPoint = null)
         {

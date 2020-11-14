@@ -25,12 +25,12 @@ namespace Melodica.Services.Wiki
         {
             Jukebox juke;
             try { juke = GetJukebox; }
-            catch 
+            catch
             {
                 await ReplyAsync("You must have a song playing when using this command with no parameter.");
                 return;
             }
-            
+
             if (pageTitle == null && !juke.Playing)
             {
                 await ReplyAsync("You must have a song playing when using this command with no parameter.");

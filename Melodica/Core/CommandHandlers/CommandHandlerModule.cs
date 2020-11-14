@@ -1,5 +1,4 @@
-﻿
-using Ninject.Modules;
+﻿using Ninject.Modules;
 
 namespace Melodica.Core.CommandHandlers
 {

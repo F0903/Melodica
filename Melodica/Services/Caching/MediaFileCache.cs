@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Numerics;
 using System.Threading.Tasks;
 
 using Melodica.Core;
@@ -53,7 +52,6 @@ namespace Melodica.Services.Caching
             return (deletedFiles, filesInUse, msDuration);
         }
 
-
         private Task LoadPreexistingFilesAsync()
         {
             foreach (var metaFile in Directory.EnumerateFileSystemEntries(cacheLocation, $"*{MediaMetadata.MetaFileExtension}", SearchOption.AllDirectories).Convert(x => new FileInfo(x)))
@@ -77,10 +75,11 @@ namespace Melodica.Services.Caching
             if (file.Extension == MediaMetadata.MetaFileExtension)
             {
                 file.Delete();
-                foreach (string? dirFile in Directory.EnumerateFiles(file.DirectoryName, $"{Path.ChangeExtension(file.Name, null)}.*"))
-                {
-                    File.Delete(dirFile);
-                }
+                if (file.DirectoryName != null)
+                    foreach (string? dirFile in Directory.EnumerateFiles(file.DirectoryName, $"{Path.ChangeExtension(file.Name, null)}.*"))
+                    {
+                        File.Delete(dirFile);
+                    }
             }
 
             file.Delete();
@@ -90,14 +89,14 @@ namespace Melodica.Services.Caching
         public Task<long> GetCacheSizeAsync()
         {
             var files = Directory.EnumerateFiles(cacheLocation);
-            if (files.Count() == 0)
+            if (files.Any())
                 return Task.FromResult((long)0);
             return Task.FromResult(files.AsParallel().Convert(x => new FileInfo(x)).Sum(f => f.Length));
         }
 
         public bool Contains(string id) => cache.ContainsKey(id);
 
-        (int deletedFiles, int filesInUse, long msDuration) NukeCache()
+        private (int deletedFiles, int filesInUse, long msDuration) NukeCache()
         {
             int deletedFiles = 0;
             int filesInUse = 0;
@@ -126,7 +125,7 @@ namespace Melodica.Services.Caching
             return (deletedFiles, filesInUse, sw.ElapsedMilliseconds);
         }
 
-        (int deletedFiles, int filesInUse, long msDuration) PruneCache(bool force)
+        private (int deletedFiles, int filesInUse, long msDuration) PruneCache(bool force)
         {
             var maxSize = BotSettings.CacheSizeMB;
             if (!force && cache.Count < maxSize)
@@ -141,7 +140,7 @@ namespace Melodica.Services.Caching
             var ordered = cache.OrderByDescending(x => x.Value.accessCount);
             Parallel.ForEach(ordered, (x, s, i) =>
             {
-                if(!force && i > cache.Count - maxSize)
+                if (!force && i > cache.Count - maxSize)
                 {
                     s.Stop();
                     return;
@@ -149,7 +148,7 @@ namespace Melodica.Services.Caching
 
                 try
                 {
-                    DeleteMediaFile(new FileInfo(x.Value.media.DataInformation.MediaPath));
+                    DeleteMediaFile(new FileInfo(x.Value.media.DataInformation.MediaPath ?? throw new Exception("MediaPath was null when trying to delete media file in PruneCache.")));
                     cache.Remove(x.Key);
                     ++deletedFiles;
                 }

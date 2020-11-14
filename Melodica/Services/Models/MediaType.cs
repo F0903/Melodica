@@ -1,6 +1,9 @@
-﻿public enum MediaType
+﻿namespace Melodica.Services.Models
 {
-    Video,
-    Playlist,
-    Livestream
+    public enum MediaType
+    {
+        Video,
+        Playlist,
+        Livestream
+    }
 }

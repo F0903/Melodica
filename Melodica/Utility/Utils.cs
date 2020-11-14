@@ -18,7 +18,7 @@ namespace Melodica.Utility
             int endPos = 0;
             for (int i = 0; i < url.Length; i++)
             {
-                if(url[i] == '&')
+                if (url[i] == '&')
                 {
                     bool match = true;
                     for (int j = 0; j < argName.Length; j++)
@@ -39,9 +39,9 @@ namespace Melodica.Utility
                     {
                         i += argName.Length;
                         continue;
-                    }             
+                    }
                 }
-            }          
+            }
             return Task.FromResult(url[startPos..endPos].ToString());
         }
 

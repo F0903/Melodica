@@ -1,16 +1,14 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Text;
 
 namespace Melodica.Services.Playback
 {
     public class PlaybackStopwatch : Stopwatch
     {
-        TimeSpan offset;
+        private TimeSpan offset;
 
-        public new TimeSpan Elapsed 
-        { 
+        public new TimeSpan Elapsed
+        {
             get => offset + base.Elapsed;
             set => offset = value;
         }

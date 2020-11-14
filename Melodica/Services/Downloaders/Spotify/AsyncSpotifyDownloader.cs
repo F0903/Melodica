@@ -119,7 +119,6 @@ namespace Melodica.Services.Downloaders.Spotify
                     var track = tracks[i];
                     var trackImages = spotifyAlbum.Images;
 
-
                     var lastTotalDuration = totalDuration;
 
                     playlistTracks[i] = new MediaMetadata()
@@ -236,6 +235,7 @@ namespace Melodica.Services.Downloaders.Spotify
         }
 
         public override Task<string> GetLivestreamAsync(string streamURL) => throw new NotSupportedException("Spotify does not support livestreams.");
+
         //public override Task<PlayableMedia> DownloadToExistingMetaAsync(MediaMetadata meta) => throw new NotSupportedException("Spotify does not support direct streaming of data.");
     }
 }

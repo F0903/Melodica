@@ -35,7 +35,6 @@ namespace Melodica.Services.Playback.Requests
         public override MediaMetadata? ParentRequestInfo { get; protected set; }
         public override List<MediaRequest>? SubRequests { get; set; }
 
-
         private readonly string mediaName;
 
         private readonly string mediaFormat;
