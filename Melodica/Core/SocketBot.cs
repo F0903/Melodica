@@ -38,7 +38,7 @@ namespace Melodica.Core
 #if DEBUG
             client.Log += logger.LogAsync;
 #else
-            Console.WriteLine("Release Mode");
+            System.Console.WriteLine("Release Mode");
 #endif
         }
 

@@ -49,8 +49,8 @@ namespace Melodica.Services.Lyrics
             req.Method = "GET";
 
             using var response = req.GetResponse();
-            string status;
-            if ((status = response.Headers.Get("Status")) != "200 OK")
+            string? status = response.Headers.Get("Status");
+            if (status == null || (status != null && status != "200 OK"))
                 throw new HttpRequestException($"Server returned invalid status: {status}");
 
             var responseStream = response.GetResponseStream();
@@ -73,9 +73,9 @@ namespace Melodica.Services.Lyrics
             }
 
             var songInfo = GetElement();
-            string? songTitle = songInfo.GetProperty("full_title").GetString();
-            string? songImg = songInfo.GetProperty("header_image_url").GetString();
-            string? songLyrics = await ParseLyricsAsync(songInfo.GetProperty("url").GetString());
+            string songTitle = songInfo.GetProperty("full_title").GetString() ?? throw new NullReferenceException("Could not convert JSON property to string.");
+            string songImg = songInfo.GetProperty("header_image_url").GetString() ?? throw new NullReferenceException("Could not convert JSON property to string.");
+            string songLyrics = await ParseLyricsAsync(songInfo.GetProperty("url").GetString() ?? throw new NullReferenceException("Could not convert JSON property to string."));
 
             return new LyricsInfo { Image = songImg, Title = songTitle, Lyrics = songLyrics };
         }
