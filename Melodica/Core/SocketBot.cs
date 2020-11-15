@@ -35,11 +35,7 @@ namespace Melodica.Core
 
             await commandHandler.HandleCommandsAsync(client);
 
-#if DEBUG
             client.Log += logger.LogAsync;
-#else
-            System.Console.WriteLine("Release Mode");
-#endif
         }
 
         public async Task SetActivityAsync(string name, ActivityType type) => await client.SetActivityAsync(new Game(name, type));

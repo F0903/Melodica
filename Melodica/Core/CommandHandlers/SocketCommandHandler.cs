@@ -40,9 +40,7 @@ namespace Melodica.Core.CommandHandlers
                 await context.Channel.SendMessageAsync(null, false, embed);
             }
 
-#if DEBUG
             await logger.LogAsync(new LogMessage(result.IsSuccess ? LogSeverity.Verbose : LogSeverity.Error, $"{info.Value.Module} - {info.Value.Name} - {context.Guild}", result.IsSuccess ? "Successfully executed command." : result.ErrorReason));
-#endif
         }
 
         private async Task OnMessageReceived(SocketMessage message)

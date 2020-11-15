@@ -17,8 +17,12 @@ namespace Melodica.Services.Logging
                 Discord.LogSeverity.Debug => ConsoleColor.Blue,
                 _ => ConsoleColor.White
             };
-            Console.WriteLine($"[{DateTime.Now} | {msg.Severity} | {msg.Source}] {msg.Message ?? msg.Exception.Message}");
 
+#if DEBUG
+            Console.WriteLine($"[{DateTime.Now} | {msg.Severity} | {msg.Source}] {msg.Message ?? msg.Exception.Message}");
+#else
+            Console.WriteLine("Release Mode");
+#endif
             return Task.CompletedTask;
         }
     }
