@@ -10,16 +10,16 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v1
+        uses: actions/checkout@v2.3.4
       
-      #TODO: Finish this cache section
-      #- name: Check .NET Cache
-      #  id: dotnet-cache
-      #  uses: actions/cache@v2.1.3
-      #  with:
-      #    key: ${{ runner.os }}-dotnet
-
+      - name: Check .NET Cache
+        uses: actions/cache@v2.1.3
+        with:
+          path: ~/.dotnet/
+          key: ${{ runner.os }}-dotnet
+        
       - name: Setup .NET
+        if: ${{ runner.os }}-dotnet.cache-hit
         uses: actions/setup-dotnet@v1.7.2
         with:
           dotnet-version: "5.0.x"
@@ -40,6 +40,3 @@ jobs:
 
       - name: Building
         run: dotnet build --configuration Release --no-restore
-      
-      - name: Print Dir
-        run: sudo ls
