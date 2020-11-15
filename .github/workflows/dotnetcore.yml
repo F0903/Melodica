@@ -42,4 +42,4 @@ jobs:
         run: dotnet build --configuration Release --no-restore
       
       - name: Print Dir
-        run: ls
+        run: sudo ls
