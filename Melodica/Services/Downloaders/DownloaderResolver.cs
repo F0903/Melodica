@@ -8,7 +8,7 @@ using Melodica.Utility.Extensions;
 
 namespace Melodica.Services.Downloaders
 {
-    public class DownloaderProvider
+    public static class DownloaderResolver
     {
         private static IEnumerable<AsyncDownloaderBase>? cachedSubtypes;
 
@@ -29,7 +29,7 @@ namespace Melodica.Services.Downloaders
             return subtypeObjs;
         }
 
-        public AsyncDownloaderBase? GetDownloaderFromQuery(string query)
+        public static AsyncDownloaderBase? GetDownloaderFromQuery(string query)
         {
             if (!query.IsUrl())
                 return AsyncDownloaderBase.Default;

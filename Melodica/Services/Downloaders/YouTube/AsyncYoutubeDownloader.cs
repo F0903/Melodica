@@ -33,12 +33,12 @@ namespace Melodica.Services.Downloaders.YouTube
             return await cache.CacheMediaAsync(new PlayableMedia(meta, rawStream!));
         }
 
-        private bool IsUnavailable(Exception ex) =>
+        private static bool IsUnavailable(Exception ex) =>
             ex is YoutubeExplode.Exceptions.VideoUnplayableException ||
             ex is YoutubeExplode.Exceptions.VideoUnavailableException ||
             ex is YoutubeExplode.Exceptions.VideoRequiresPurchaseException;
 
-        private Task<string> ParseURLToIdAsync(ReadOnlySpan<char> url)
+        private static Task<string> ParseURLToIdAsync(ReadOnlySpan<char> url)
         {
             if (!(url.StartsWith("https://") || url.StartsWith("http://")))
                 return Task.FromResult(url.ToString()); // Just return, cause the url is probably already an id.
@@ -120,7 +120,7 @@ namespace Melodica.Services.Downloaders.YouTube
 
         public override Task<string> GetLivestreamAsync(string streamURL) => yt.Videos.Streams.GetHttpLiveStreamUrlAsync(streamURL);
 
-        private Task<MediaMetadata> GetVideoMetadataAsync(Video video)
+        private static Task<MediaMetadata> GetVideoMetadataAsync(Video video)
         {
             var (artist, newTitle) = video.Title.AsSpan().SeperateArtistName();
             return Task.FromResult(new MediaMetadata()

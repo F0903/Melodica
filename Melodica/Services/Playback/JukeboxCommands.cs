@@ -18,17 +18,7 @@ namespace Melodica.Services.Playback
 {
     public class JukeboxCommands : ModuleBase<SocketCommandContext>
     {
-        public JukeboxCommands(JukeboxProvider jukeboxProvider, DownloaderProvider downloader)
-        {
-            this.jukeboxProvider = jukeboxProvider;
-            downloaderProvider = downloader;
-        }
-
-        private readonly JukeboxProvider jukeboxProvider;
-
-        private Jukebox Jukebox => jukeboxProvider.GetOrCreateJukeboxAsync(Context.Guild, () => new Jukebox(MediaCallback)).GetAwaiter().GetResult();
-
-        private readonly DownloaderProvider downloaderProvider;
+        private Jukebox Jukebox => JukeboxFactory.GetOrCreateJukeboxAsync(Context.Guild, () => new Jukebox(MediaCallback)).GetAwaiter().GetResult();
 
         private Embed? playbackEmbed;
         private IUserMessage? playbackMessage;
@@ -110,7 +100,7 @@ namespace Melodica.Services.Playback
 
         private IVoiceChannel GetUserVoiceChannel() => ((SocketGuildUser)Context.User).VoiceChannel;
 
-        private Embed CreateMediaEmbed(MediaMetadata mediaInfo, MediaMetadata? parentInfo, Color? color = null, string? footerText = null) => new EmbedBuilder()
+        private static Embed CreateMediaEmbed(MediaMetadata mediaInfo, MediaMetadata? parentInfo, Color? color = null, string? footerText = null) => new EmbedBuilder()
                    .WithColor(color ?? Color.DarkGrey)
                    .WithTitle(mediaInfo.Artist)
                    .WithDescription(parentInfo != null ? $"__{mediaInfo.Title}__\n{parentInfo.Title}" : mediaInfo.Title)
@@ -129,7 +119,7 @@ namespace Melodica.Services.Playback
             }
             else
             {
-                var downloader = downloaderProvider.GetDownloaderFromQuery(query) ?? (query.IsUrl() ? null : AsyncDownloaderBase.Default);
+                var downloader = DownloaderResolver.GetDownloaderFromQuery(query) ?? (query.IsUrl() ? null : AsyncDownloaderBase.Default);
                 return Task.FromResult(downloader == null ? new URLMediaRequest(null, query, true) : new DownloadRequest(query!, downloader) as MediaRequest);
             }
         }

@@ -4,6 +4,9 @@ namespace Melodica.Services.Downloaders
 {
     public class DownloaderModule : NinjectModule
     {
-        public override void Load() => Kernel.Bind<DownloaderProvider>().ToSelf();
+        public override void Load()
+        {
+
+        }
     }
 }

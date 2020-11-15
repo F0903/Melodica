@@ -13,10 +13,10 @@ namespace Melodica.Services.Downloaders.Spotify
 {
     public class AsyncSpotifyDownloader : AsyncDownloaderBase
     {
-        private static readonly SpotifyClient spotify = new SpotifyClient(SpotifyClientConfig
-                                                                  .CreateDefault()
-                                                                  .WithAuthenticator(new ClientCredentialsAuthenticator("f8ecc5fd441249e4bc1471c5bfbb7cbd",
-                                                                                                                        "83890edde8014ffd927bf98b6394d4a2")));
+        const string ClientID = "f8ecc5fd441249e4bc1471c5bfbb7cbd";
+        const string ClientSecret = "83890edde8014ffd927bf98b6394d4a2";
+
+        private readonly SpotifyClient spotify = new SpotifyClient(SpotifyClientConfig.CreateDefault().WithAuthenticator(new ClientCredentialsAuthenticator(ClientID, ClientSecret)));
 
         // Tie this to the default downloader (can't download directly from Spotify)
         private readonly AsyncDownloaderBase dlHelper = Default;
@@ -26,13 +26,13 @@ namespace Melodica.Services.Downloaders.Spotify
                                                            url.StartsWith("https://api.spotify.com/v1/") ||
                                                            url.StartsWith("http://api.spotify.com/v1/");
 
-        private string SeperateArtistNames(List<SimpleArtist> artists)
+        private static string SeperateArtistNames(List<SimpleArtist> artists)
         {
             string[]? nameArray = artists.ToArray().Convert(x => x.Name).ToArray();
             return nameArray.SeperateStrings();
         }
 
-        private Task<string> ParseURLToIdAsync(ReadOnlySpan<char> url)
+        private static Task<string> ParseURLToIdAsync(ReadOnlySpan<char> url)
         {
             if (!(url.StartsWith("https://") || url.StartsWith("http://")))
                 return Task.FromResult(url.ToString()); // Just return, cause the url is probably already an id.
@@ -68,7 +68,7 @@ namespace Melodica.Services.Downloaders.Spotify
             return DownloadAsync(info);
         }
 
-        private List<FullTrack> ToTrackList(List<PlaylistTrack<IPlayableItem>> tracks)
+        private static List<FullTrack> ToTrackList(List<PlaylistTrack<IPlayableItem>> tracks)
         {
             var tracklist = new List<FullTrack>();
             foreach (var plTrack in tracks)

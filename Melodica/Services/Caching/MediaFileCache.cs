@@ -69,7 +69,7 @@ namespace Melodica.Services.Caching
             return Task.CompletedTask;
         }
 
-        private void DeleteMediaFile(FileInfo file)
+        private static void DeleteMediaFile(FileInfo file)
         {
             // If the file specified is a metadata file.
             if (file.Extension == MediaMetadata.MetaFileExtension)

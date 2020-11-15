@@ -11,14 +11,10 @@ namespace Melodica.Core.Commands
     [Group("Admin"), RequireUserPermission(GuildPermission.Administrator, ErrorMessage = "This command can only be used by guild admins.")]
     public class AdminCommands : ModuleBase<SocketCommandContext>
     {
-        public AdminCommands(GuildSettingsProvider settings) => this.settings = settings;
-
-        private readonly GuildSettingsProvider settings;
-
         [Command("Prefix"), Summary("Changes the prefix.")]
         public async Task ChangePrefixAsync(string newPrefix)
         {
-            int status = await settings.UpdateSettingsAsync(Context.Guild.Id, x =>
+            int status = await GuildSettings.UpdateSettingsAsync(Context.Guild.Id, x =>
             {
                 x.Prefix = newPrefix;
                 return x;

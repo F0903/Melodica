@@ -9,16 +9,14 @@ namespace Melodica.Services.Wiki
 {
     public class WikiCommands : ModuleBase<SocketCommandContext>
     {
-        public WikiCommands(WikiProvider wiki, JukeboxProvider jukebox)
+        public WikiCommands(WikiProvider wiki)
         {
             this.wiki = wiki;
-            jukeboxProvider = jukebox;
         }
 
         private readonly WikiProvider wiki;
-        private readonly JukeboxProvider jukeboxProvider;
 
-        private Jukebox GetJukebox => jukeboxProvider.GetJukeboxAsync(Context.Guild).Result;
+        private Jukebox GetJukebox => JukeboxFactory.GetJukeboxAsync(Context.Guild).Result;
 
         [Command("Info"), Alias("Wiki"), Summary("Gets info from a wiki for the specified page.")]
         public async Task InfoAsync([Remainder] string? pageTitle = null)

@@ -11,20 +11,18 @@ namespace Melodica.Services.Lyrics
 {
     public class LyricsCommands : ModuleBase<SocketCommandContext>
     {
-        public LyricsCommands(LyricsProvider lyrics, JukeboxProvider jukebox)
+        public LyricsCommands(LyricsProvider lyrics)
         {
             this.lyrics = lyrics;
-            this.jukeboxProvider = jukebox;
         }
 
         private readonly LyricsProvider lyrics;
-        private readonly JukeboxProvider jukeboxProvider;
 
         [Command("Lyrics"), Description("Gets lyrics for a search term.")]
         public async Task GetLyrics([Remainder] string? songName = null)
         {
             Jukebox? juke;
-            try { juke = await jukeboxProvider.GetJukeboxAsync(Context.Guild); }
+            try { juke = await JukeboxFactory.GetJukeboxAsync(Context.Guild); }
             catch (Exception) { juke = null; }
 
             if (songName == null && !(juke != null && juke.Playing))

@@ -13,15 +13,12 @@ namespace Melodica.Core.CommandHandlers
 {
     public class SocketCommandHandler : IAsyncCommandHandler
     {
-        public SocketCommandHandler(IAsyncLogger logger, GuildSettingsProvider settings)
+        public SocketCommandHandler(IAsyncLogger logger)
         {
             this.logger = logger;
-            this.settings = settings;
         }
 
         private readonly IAsyncLogger logger;
-
-        private readonly GuildSettingsProvider settings;
 
         private DiscordSocketClient? boundClient;
 
@@ -60,7 +57,7 @@ namespace Melodica.Core.CommandHandlers
 
             int argPos = 0;
 
-            var guildSettings = await settings.GetSettingsAsync(context.Guild.Id);
+            var guildSettings = await GuildSettings.GetSettingsAsync(context.Guild.Id);
             string? prefix = guildSettings.Prefix;
             if (!context.Message.HasStringPrefix(prefix, ref argPos))
                 return;

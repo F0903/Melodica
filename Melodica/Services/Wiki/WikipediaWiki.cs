@@ -11,7 +11,7 @@ namespace Melodica.Services.Wiki
         private const string wikipediaEndpoint = "https://en.wikipedia.org/api/rest_v1";
         private const string wikipediaSummaryEndpoint = wikipediaEndpoint + "/page/summary/";
 
-        private WikiElement GetSummary(string pageName)
+        private static WikiElement GetSummary(string pageName)
         {
             string? fullEndpoint = $"{wikipediaSummaryEndpoint}{pageName}?redirect=false";
             var request = WebRequest.CreateHttp(fullEndpoint);

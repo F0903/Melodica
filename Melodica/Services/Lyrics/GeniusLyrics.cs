@@ -17,7 +17,7 @@ namespace Melodica.Services.Lyrics
     {
         private const string GeniusAccessToken = "ZGyXhK5UmuL3ZTI102dCauSWZa_kK4RX7yubFVe04wvM_IPCwMEzi0MQOKNP8T2s";
 
-        private async Task<string> ParseLyricsAsync(string url)
+        private static async Task<string> ParseLyricsAsync(string url)
         {
             var config = Configuration.Default.WithDefaultLoader();
             var context = BrowsingContext.New(config);
@@ -38,7 +38,7 @@ namespace Melodica.Services.Lyrics
             return lyricElement.TextContent;
         }
 
-        private async Task<LyricsInfo> SearchForSongAsync(string query)
+        private static async Task<LyricsInfo> SearchForSongAsync(string query)
         {
             string? fixedQuery = query.FixURLWhitespace();
             var req = WebRequest.CreateHttp($"https://api.genius.com/search?q={fixedQuery}");

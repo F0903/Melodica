@@ -8,12 +8,12 @@ namespace Melodica.Services.Settings
 {
     internal class GuildSettingsContext : DbContext
     {
-        public DbSet<GuildSettings> GuildSettings { get; set; }
+        public DbSet<GuildSettingsInfo> GuildSettings { get; set; }
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder) => optionsBuilder.UseSqlite("Data Source=./guildsettings.db");
     }
 
-    public class GuildSettings
+    public class GuildSettingsInfo
     {
         [Key]
         public ulong GuildID { get; set; }

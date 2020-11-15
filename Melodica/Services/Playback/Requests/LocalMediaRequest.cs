@@ -65,7 +65,7 @@ namespace Melodica.Services.Playback.Requests
 
         private readonly MediaMetadata info;
 
-        private MediaMetadata EvalInfo(FileInfo file)
+        private static MediaMetadata EvalInfo(FileInfo file)
         {
             var meta = new MediaMetadata()
             {

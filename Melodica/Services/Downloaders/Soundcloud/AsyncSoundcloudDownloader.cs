@@ -91,7 +91,7 @@ namespace Melodica.Services.Downloaders.Soundcloud
 
         public override Task<string> GetLivestreamAsync(string streamURL) => throw new NotSupportedException("SoundCloud does not support livestreams.");
 
-        private MediaMetadata GetTrackInfo(Track track) => new MediaMetadata()
+        private static MediaMetadata GetTrackInfo(Track track) => new MediaMetadata()
         {
             Artist = track.User.Username,
             Duration = TimeSpan.FromSeconds(track.Duration),

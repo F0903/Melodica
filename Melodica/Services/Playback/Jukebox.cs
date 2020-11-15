@@ -79,7 +79,7 @@ namespace Melodica.Services.Playback
 
         private readonly SemaphoreSlim writeLock = new SemaphoreSlim(1);
 
-        private async Task<bool> CheckIfAloneAsync(IAudioChannel channel)
+        private static async Task<bool> CheckIfAloneAsync(IAudioChannel channel)
         {
             var users = await channel.GetUsersAsync().FirstAsync();
             if (!users.IsOverSize(1))
@@ -222,7 +222,7 @@ namespace Melodica.Services.Playback
             return first;
         }
 
-        private int GetChannelBitrate(IAudioChannel channel)
+        private static int GetChannelBitrate(IAudioChannel channel)
         {
             return channel switch
             {
