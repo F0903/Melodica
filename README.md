@@ -1,4 +1,4 @@
-![](https://github.com/F0903/PokerBot/workflows/.NET%20Core/badge.svg)
+![.NET](https://github.com/F0903/Melodica/workflows/.NET/badge.svg)
 
 # Melodica
 ![](./github-media/logo.png)
