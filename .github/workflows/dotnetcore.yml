@@ -2,14 +2,14 @@ name: .NET
 
 on: [push, pull_request]
 
+env:
+  DOTNET_VER: 5.0.x
+
 jobs:
   build:    
     name: Build Project
     # Just run on ubuntu. It's much faster than Windows, and the result will most likely be the same.
     runs-on: ubuntu-latest
-
-    env:
-      DOTNET_VER: 5.0.x
 
     steps:
       - name: Checkout
