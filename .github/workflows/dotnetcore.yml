@@ -20,12 +20,12 @@ jobs:
         uses: actions/cache@v2.1.3
         with:
           path: ~/.dotnet/
-          key: ${{ runner.os }}-dotnet-${{ DOTNET_VER }}
+          key: ${{ runner.os }}-dotnet-${{ env.DOTNET_VER }}
         
       - name: Setup .NET
         uses: actions/setup-dotnet@v1.7.2
         with:
-          dotnet-version: $DOTNET_VER
+          dotnet-version: ${{ env.DOTNET_VER }}
 
       - name: Setup Discord.Net MyGet Source
         run: dotnet nuget add source https://www.myget.org/F/discord-net/api/v3/index.json
