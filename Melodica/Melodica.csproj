@@ -24,7 +24,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<PackageReference Include="Discord.Net" Version="2.3.0-dev-20201125.2" />
+		<PackageReference Include="Discord.Net" Version="2.3.0-dev-20201201.2" />
 		<PackageReference Include="Microsoft.EntityFrameworkCore" Version="5.0.0" />
 		<PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="5.0.0">
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
@@ -40,7 +40,7 @@
 		<PackageReference Include="SoundCloud.Api" Version="3.0.0" />
 		<PackageReference Include="SpotifyAPI.Web" Version="6.0.0" />
 		<PackageReference Include="System.Runtime" Version="4.3.1" />
-		<PackageReference Include="YoutubeExplode" Version="5.1.8" />
+		<PackageReference Include="YoutubeExplode" Version="5.1.9" />
 	</ItemGroup>
 
 	<ItemGroup>
