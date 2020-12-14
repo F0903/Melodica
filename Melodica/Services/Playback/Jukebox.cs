@@ -107,18 +107,16 @@ namespace Melodica.Services.Playback
                     writeLock.Wait();
                     while ((count = input!.Read(buffer)) != 0)
                     {
-                        bool shouldBreak = BreakConditions();
-
                         if (Paused)
                         {
                             durationTimer.Stop();
-                            while (Paused && !shouldBreak) { Thread.Sleep(1000); }
+                            while (Paused && !BreakConditions()) { Thread.Sleep(1000); }
                             durationTimer.Start();
                         }
 
                         output.Write(buffer.Slice(0, count));
 
-                        if (shouldBreak) break;
+                        if (BreakConditions()) break;
                     }
                     output.Flush();
                 }
