@@ -4,15 +4,15 @@
     ".NETCoreApp,Version=v5.0": {
       "Discord.Net": {
         "type": "Direct",
-        "requested": "[2.3.0-dev-20201201.2, )",
-        "resolved": "2.3.0-dev-20201201.2",
-        "contentHash": "fD6buS3Ia/C4pTdpFzOpn8Ti1ckOcE7eaxenCvarLZQVCIUDsDCbS/qPqY5Ky7LyrZ5l3Xf5v1KR42z+g7jNng==",
+        "requested": "[2.3.0-dev-20201214.8, )",
+        "resolved": "2.3.0-dev-20201214.8",
+        "contentHash": "FVgiEi34owi43FNUETammSeQwxvIHrTUK884bweC0FWZ1rb/Jdg+ZRCOutGnBo81ztih/6dLxhG2Dg14ukrBZg==",
         "dependencies": {
-          "Discord.Net.Commands": "2.3.0-dev-20201201.2",
-          "Discord.Net.Core": "2.3.0-dev-20201201.2",
-          "Discord.Net.Rest": "2.3.0-dev-20201201.2",
-          "Discord.Net.WebSocket": "2.3.0-dev-20201201.2",
-          "Discord.Net.Webhook": "2.3.0-dev-20201201.2"
+          "Discord.Net.Commands": "2.3.0-dev-20201214.8",
+          "Discord.Net.Core": "2.3.0-dev-20201214.8",
+          "Discord.Net.Rest": "2.3.0-dev-20201214.8",
+          "Discord.Net.WebSocket": "2.3.0-dev-20201214.8",
+          "Discord.Net.Webhook": "2.3.0-dev-20201214.8"
         }
       },
       "Microsoft.EntityFrameworkCore": {
@@ -126,16 +126,16 @@
       },
       "Discord.Net.Commands": {
         "type": "Transitive",
-        "resolved": "2.3.0-dev-20201201.2",
-        "contentHash": "k7ltAgl1FH3NpUskqLaoUJDy2SehxbXDej54lJUyK3GNbGo9KatmT+wmKs7wGbfFuqmvMi+2q+0sw7ZlqFe4Xw==",
+        "resolved": "2.3.0-dev-20201214.8",
+        "contentHash": "6COet6SJlhwoSyaZoW6TxZNGyQryLw1q10Okq8OXHpH0Qz+qc0I3pgSVTilRTUgE9WxMU8R2xh3tyU8yemSEHw==",
         "dependencies": {
-          "Discord.Net.Core": "2.3.0-dev-20201201.2"
+          "Discord.Net.Core": "2.3.0-dev-20201214.8"
         }
       },
       "Discord.Net.Core": {
         "type": "Transitive",
-        "resolved": "2.3.0-dev-20201201.2",
-        "contentHash": "xUG26GjscYfuc+45mncjVW/Cpgi0s1mXG+tunzV92R8g5JRX8y1NyOPHQnwVJRLsC3DFPDNnWEtumZmFxQhxXQ==",
+        "resolved": "2.3.0-dev-20201214.8",
+        "contentHash": "1rob53YuScXcS9Fx6bNRJoEQWoVbnB0DaEoozvqoqnBfYZpfo/PlwOQm9XT8O4U1aDM4VYCgHbjmHMyKUdJkIQ==",
         "dependencies": {
           "Newtonsoft.Json": "12.0.2",
           "System.Collections.Immutable": "1.3.1",
@@ -144,28 +144,28 @@
       },
       "Discord.Net.Rest": {
         "type": "Transitive",
-        "resolved": "2.3.0-dev-20201201.2",
-        "contentHash": "N+4kcvSZSDQhdTcbco99e/zPUnd33JrVSPWr83TNG5z7q93+QhGnHonPvSiZyDozD+EcyIZzvhStQqJPiCv7rg==",
+        "resolved": "2.3.0-dev-20201214.8",
+        "contentHash": "UDxgSIWtdjnfFjkH/58LlJeeIPP97l6OQkAJojDFmh8Ppbu70OIBwRgyL2SVOfMt7wayWfIq8bn8cBAn2tzjuw==",
         "dependencies": {
-          "Discord.Net.Core": "2.3.0-dev-20201201.2"
+          "Discord.Net.Core": "2.3.0-dev-20201214.8"
         }
       },
       "Discord.Net.Webhook": {
         "type": "Transitive",
-        "resolved": "2.3.0-dev-20201201.2",
-        "contentHash": "KlDeRJ+XFZv39gl19jN0zm893SW++DeiAaXvUHjncND0uuFYu10zqfUCbpYjQyw+rZgccrVf222/bTWWbJw2mg==",
+        "resolved": "2.3.0-dev-20201214.8",
+        "contentHash": "c2lL0yLc2oNWxIixHIZKuyvCMOrLYXiXDmnfusTAiupQ6GRR53pQRxRjBh0JDz7C7lTDhC3g+G1UxE4bJPmBjw==",
         "dependencies": {
-          "Discord.Net.Core": "2.3.0-dev-20201201.2",
-          "Discord.Net.Rest": "2.3.0-dev-20201201.2"
+          "Discord.Net.Core": "2.3.0-dev-20201214.8",
+          "Discord.Net.Rest": "2.3.0-dev-20201214.8"
         }
       },
       "Discord.Net.WebSocket": {
         "type": "Transitive",
-        "resolved": "2.3.0-dev-20201201.2",
-        "contentHash": "GpYFVQo5/NMErMATwBlwYQLiEpyRb9009qbRE35m+HeT2g1O78qBMTqKHnaeDMTRD0T6uzaXn+nTifSmivvqrw==",
+        "resolved": "2.3.0-dev-20201214.8",
+        "contentHash": "hoo7gAzJ6Eo4yq2B+maWu7pe7adiJv5GsbDc3bLrKjrzhzejDUJZ1bXbH+UXtP2bXO3BiHq1nFBHFP/ghyQHMA==",
         "dependencies": {
-          "Discord.Net.Core": "2.3.0-dev-20201201.2",
-          "Discord.Net.Rest": "2.3.0-dev-20201201.2"
+          "Discord.Net.Core": "2.3.0-dev-20201214.8",
+          "Discord.Net.Rest": "2.3.0-dev-20201214.8"
         }
       },
       "Humanizer.Core": {
