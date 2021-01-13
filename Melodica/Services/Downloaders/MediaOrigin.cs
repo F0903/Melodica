@@ -11,9 +11,9 @@ namespace Melodica.Services.Downloaders
             SupportsDirectDownloads = supportsDownloads;
         }
 
-        public static MediaOrigin Spotify = new Spotify.SpotifyOrigin();
-        public static MediaOrigin YouTube = new YouTube.YouTubeOrigin();
-        public static MediaOrigin SoundCloud = new Soundcloud.SoundCloudOrigin();
+        public readonly static MediaOrigin Spotify = new Spotify.SpotifyOrigin();
+        public readonly static MediaOrigin YouTube = new YouTube.YouTubeOrigin();
+        public readonly static MediaOrigin SoundCloud = new Soundcloud.SoundCloudOrigin();
 
         public string ServiceName { get; }
 

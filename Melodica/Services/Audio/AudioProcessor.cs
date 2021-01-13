@@ -5,8 +5,20 @@ using System.Threading.Tasks;
 
 namespace Melodica.Services.Audio
 {
-    public abstract class AudioProcessor : IDisposable
+    public abstract class AudioProcessor
     {
+        ~AudioProcessor()
+        {
+            if (processorProcess == null)
+                return;
+            processorProcess.Kill();
+
+            if (inputAvailable)
+                processorProcess.StandardInput.Dispose();
+            if (outputAvailable)
+                processorProcess.StandardOutput.Dispose();
+        }
+
         protected AudioProcessor(bool input, bool output)
         {
             inputAvailable = input;
@@ -27,18 +39,6 @@ namespace Melodica.Services.Audio
         public ValueTask Process(string path, string? format, TimeSpan? startingPoint = null)
         {
             return new ValueTask(Task.Run(async () => (processorProcess = await ConstructAsync(path, format, startingPoint)).Start()));
-        }
-
-        public virtual void Dispose()
-        {
-            if (processorProcess == null)
-                return;
-            processorProcess.Kill();
-
-            if (inputAvailable)
-                processorProcess.StandardInput.Dispose();
-            if (outputAvailable)
-                processorProcess.StandardOutput.Dispose();
         }
     }
 }

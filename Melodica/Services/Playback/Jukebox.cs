@@ -303,7 +303,7 @@ namespace Melodica.Services.Playback
             }
 
             if (!Loop) mediaCallback(media.Info, MediaState.Playing, subRequest?.ParentRequestInfo ?? request.ParentRequestInfo);
-            using var audioProcessor = new FFmpegAudioProcessor();
+            var audioProcessor = new FFmpegAudioProcessor();
             await audioProcessor.Process(media.Info.DataInformation.MediaPath ?? throw new NullReferenceException("MediaPath was null."), media.Info.DataInformation.Format, startingPoint);
 
             //TODO: Keep investigating the discord null ref events.
