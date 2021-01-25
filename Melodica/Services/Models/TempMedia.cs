@@ -17,8 +17,8 @@ namespace Melodica.Services.Models
             if (!Directory.Exists(toSaveDir))
                 Directory.CreateDirectory(toSaveDir);
 
-            saveLocation = toSave;
-            SaveDataAsync(saveLocation).Wait();
+            fullSavePath = toSave;
+            fullSavePath = SaveDataAsync(fullSavePath).Result.mediaPath;
         }
 
         ~TempMedia()
@@ -26,8 +26,8 @@ namespace Melodica.Services.Models
             Destroy();
         }
 
-        private readonly string saveLocation;
+        private readonly string fullSavePath;
 
-        private void Destroy() => File.Delete(saveLocation);
+        private void Destroy() => File.Delete(fullSavePath);
     }
 }

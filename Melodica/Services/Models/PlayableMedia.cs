@@ -34,10 +34,10 @@ namespace Melodica.Services.Models
 
         private Stream? rawMediaData;
 
-        public virtual async Task SaveDataAsync(string saveDir)
+        public virtual async Task<(string mediaPath, string metaPath)> SaveDataAsync(string saveDir)
         {
             if (rawMediaData == null)
-                return;
+                return ("", "");
 
             // Write the media data to file.
             string? mediaLocation = Path.Combine(saveDir ?? throw new NullReferenceException("SaveDir was not set."), (Info.Id ?? throw new Exception("Tried to save media with empty ID.")).ReplaceIllegalCharacters() + Info.DataInformation.FileExtension);
@@ -55,6 +55,7 @@ namespace Melodica.Services.Models
             string? metaLocation = Path.Combine(saveDir!, (Info.Id ?? throw new NullReferenceException("Tried to save media with empty ID.")).ReplaceIllegalCharacters() + MediaMetadata.MetaFileExtension);
             var bs = new BinarySerializer();
             await bs.SerializeToFileAsync(metaLocation, Info);
+            return (mediaLocation, metaLocation);
         }
     }
 }
