@@ -24,7 +24,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<PackageReference Include="Discord.Net" Version="2.3.0-dev-20201223.7" />
+		<PackageReference Include="Discord.Net" Version="2.3.0-dev-20210121.1" />
 		<PackageReference Include="Microsoft.EntityFrameworkCore" Version="5.0.1" />
 		<PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="5.0.1">
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
