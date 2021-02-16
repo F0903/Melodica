@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using System.IO;
 
 using Discord;
 
@@ -6,7 +7,8 @@ namespace Melodica.Core
 {
     public static class BotSettings
     {
-        public const string Token = "NTcxNDAwNTc4MDY0ODQyNzUy.XMNMQQ.K2HzgSELITBxXoukQ7L502p2bVY";
+        private static string? cachedToken;
+        public static string Token => cachedToken ??= File.ReadAllText("token.txt");
 
         public const string DefaultPrefix = "m.";
 

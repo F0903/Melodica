@@ -95,6 +95,9 @@
 		<None Update="RunAsWinDaemon.ps1">
 			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
 		</None>
+		<None Update="token.txt">
+		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</None>
 	</ItemGroup>
 
 </Project>
