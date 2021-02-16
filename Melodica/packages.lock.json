@@ -4,15 +4,15 @@
     ".NETCoreApp,Version=v5.0": {
       "Discord.Net": {
         "type": "Direct",
-        "requested": "[2.3.1-dev-20210131.6, )",
-        "resolved": "2.3.1-dev-20210131.6",
-        "contentHash": "EMMyTeKIQxqxzeuzjFfqW29hn10ZwPc4eydHR/mXfs8Wf6iMjFzCr499NGeoVS3VFGDn6L7q5ZymCbMYGdud8w==",
+        "requested": "[2.3.1-dev-20210210.1, )",
+        "resolved": "2.3.1-dev-20210210.1",
+        "contentHash": "ypPmDOGuaAuKlgY8yVoNISlQAFMOCKXRFj3I0qfbicyU+0gQ1Q02Gew0U4IzgBWxyQ67O1bI9HYxMSjalw2EJw==",
         "dependencies": {
-          "Discord.Net.Commands": "2.3.1-dev-20210131.6",
-          "Discord.Net.Core": "2.3.1-dev-20210131.6",
-          "Discord.Net.Rest": "2.3.1-dev-20210131.6",
-          "Discord.Net.WebSocket": "2.3.1-dev-20210131.6",
-          "Discord.Net.Webhook": "2.3.1-dev-20210131.6"
+          "Discord.Net.Commands": "2.3.1-dev-20210210.1",
+          "Discord.Net.Core": "2.3.1-dev-20210210.1",
+          "Discord.Net.Rest": "2.3.1-dev-20210210.1",
+          "Discord.Net.WebSocket": "2.3.1-dev-20210210.1",
+          "Discord.Net.Webhook": "2.3.1-dev-20210210.1"
         }
       },
       "Microsoft.EntityFrameworkCore": {
@@ -126,16 +126,16 @@
       },
       "Discord.Net.Commands": {
         "type": "Transitive",
-        "resolved": "2.3.1-dev-20210131.6",
-        "contentHash": "I1eJFDdjyBoWCTNAjqJKDcfWDH/TxxT3qgf0FLGGBopgoPMDyuFCsiCAcJDUF6Kn7h0jPwR0KPZjjhAmQg7hEw==",
+        "resolved": "2.3.1-dev-20210210.1",
+        "contentHash": "F6vpynQ+2lPaXCDZRq9kokDq6Q+4zX4OdXZXFSa1zG/alMtXaU+JYQePyfMzz0hq6dszXG60cHSS5F8hbpsCOg==",
         "dependencies": {
-          "Discord.Net.Core": "2.3.1-dev-20210131.6"
+          "Discord.Net.Core": "2.3.1-dev-20210210.1"
         }
       },
       "Discord.Net.Core": {
         "type": "Transitive",
-        "resolved": "2.3.1-dev-20210131.6",
-        "contentHash": "BKlzz7rYif5hVSXLJC2rnCUcAPWEYWkgTyGdzc/4kY7VeQnCLsaZQLVq3cUoPMW9TXlUcsDLPoAns8272X+MqQ==",
+        "resolved": "2.3.1-dev-20210210.1",
+        "contentHash": "ps+figLrM7xPNZa1z8duY/aNoKKMuoBiqcKAz/eOBAARtHwzNI9qQrZNpiKmEdpduVlUPVLbAvPH9hjYqKUxlA==",
         "dependencies": {
           "Newtonsoft.Json": "12.0.2",
           "System.Collections.Immutable": "1.3.1",
@@ -144,28 +144,28 @@
       },
       "Discord.Net.Rest": {
         "type": "Transitive",
-        "resolved": "2.3.1-dev-20210131.6",
-        "contentHash": "5IK9vPf4pJTEhCs9hpsznmNtz5QCGWhhYsbA2q5YAWfsmZd3ABuOe3z+r7MxnBssghCcU/CqphALc9+3bInkRg==",
+        "resolved": "2.3.1-dev-20210210.1",
+        "contentHash": "BAQSxA0xZmX5Bmw7rM358bSARHMYx4XPH2+xqguX9wBRsQZuTCpSecgU33rHlH94bmJlwfStG3S8dyuB9U3pzA==",
         "dependencies": {
-          "Discord.Net.Core": "2.3.1-dev-20210131.6"
+          "Discord.Net.Core": "2.3.1-dev-20210210.1"
         }
       },
       "Discord.Net.Webhook": {
         "type": "Transitive",
-        "resolved": "2.3.1-dev-20210131.6",
-        "contentHash": "IhwLiVYNdngfSMaL2nXr8y5lnUbMvII03GjKoKdt/kd88W3/R8UKowDwk6WxIreEZTXVeTmnaYnGAxKMpclfag==",
+        "resolved": "2.3.1-dev-20210210.1",
+        "contentHash": "Zh/b35fMr3JMmJowhHGM7bep7GXHLsrPKK3n21UUjPnYNv8wWV3u4bona7Kt74oJ1v6g1YqGwAVUKe6xNf+keA==",
         "dependencies": {
-          "Discord.Net.Core": "2.3.1-dev-20210131.6",
-          "Discord.Net.Rest": "2.3.1-dev-20210131.6"
+          "Discord.Net.Core": "2.3.1-dev-20210210.1",
+          "Discord.Net.Rest": "2.3.1-dev-20210210.1"
         }
       },
       "Discord.Net.WebSocket": {
         "type": "Transitive",
-        "resolved": "2.3.1-dev-20210131.6",
-        "contentHash": "k7ZqjW7w54pInsLudmMiFtBO3G8NfjnO9Egp7LicAcqTCd8WXHAkXDDAytbEuRRs4rkvme+6RPqCOtWoAosJFg==",
+        "resolved": "2.3.1-dev-20210210.1",
+        "contentHash": "iajEaPUbD6Ek8s3veCHQmoRrHm1yjYekJXGhMZTK0+RYq1mGCOJq6W0ev6HNtr9uEYvUsSGbGre7TqOWJ4jGIQ==",
         "dependencies": {
-          "Discord.Net.Core": "2.3.1-dev-20210131.6",
-          "Discord.Net.Rest": "2.3.1-dev-20210131.6"
+          "Discord.Net.Core": "2.3.1-dev-20210210.1",
+          "Discord.Net.Rest": "2.3.1-dev-20210210.1"
         }
       },
       "Humanizer.Core": {
