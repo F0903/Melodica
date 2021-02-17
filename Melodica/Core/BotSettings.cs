@@ -7,6 +7,7 @@ namespace Melodica.Core
 {
     public static class BotSettings
     {
+        //TODO: Move these "secret" to dedicated class?
         private static string? cachedSpotifyClientSecret;
         public static string SpotifyClientSecret => cachedSpotifyClientSecret ??= File.ReadAllText("spotifysecret.txt");
 
