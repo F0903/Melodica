@@ -119,7 +119,7 @@ namespace Melodica.Services.Playback
             }
             else
             {
-                var downloader = DownloaderResolver.GetDownloaderFromQuery(query) ?? (query.IsUrl() ? null : AsyncDownloaderBase.Default);
+                var downloader = DownloaderResolver.GetDownloaderFromQuery(query) ?? (query.IsUrl() ? null : IAsyncDownloader.Default);
                 return Task.FromResult(downloader == null ? new URLMediaRequest(null, query, true) : new DownloadRequest(query!, downloader) as MediaRequest);
             }
         }
@@ -304,7 +304,7 @@ namespace Melodica.Services.Playback
                 return;
             }
 
-            SocketPermissionsChecker.CheckForVoicePermissions(Context.Guild, Context.Client.CurrentUser, userVoice);
+            GuildPermissionsChecker.AssertVoicePermissions(Context.Guild, Context.Client.CurrentUser, userVoice);
 
             if (mediaQuery == null && Context.Message.Attachments.Count == 0)
             {
@@ -333,7 +333,7 @@ namespace Melodica.Services.Playback
                 return;
             }
 
-            SocketPermissionsChecker.CheckForVoicePermissions(Context.Guild, Context.Client.CurrentUser, userVoice);
+            GuildPermissionsChecker.AssertVoicePermissions(Context.Guild, Context.Client.CurrentUser, userVoice);
 
             if (mediaQuery == null && Context.Message.Attachments.Count == 0)
             {
@@ -351,7 +351,7 @@ namespace Melodica.Services.Playback
         {
             var userVoice = GetUserVoiceChannel();
 
-            SocketPermissionsChecker.CheckForVoicePermissions(Context.Guild, Context.Client.CurrentUser, userVoice);
+            GuildPermissionsChecker.AssertVoicePermissions(Context.Guild, Context.Client.CurrentUser, userVoice);
 
             var req = new LocalMediaRequest(directUrl);
             await Jukebox.PlayAsync(req, userVoice);

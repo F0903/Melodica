@@ -16,7 +16,7 @@ namespace Melodica.Services.Playback.Requests
         {
         }
 
-        public DownloadRequest(string query, AsyncDownloaderBase dl)
+        public DownloadRequest(string query, IAsyncDownloader dl)
         {
             downloader = dl;
             this.query = query;
@@ -29,12 +29,12 @@ namespace Melodica.Services.Playback.Requests
                 for (int i = 0; i < videos.Count(); i++)
                 {
                     var item = videos.ElementAt(i);
-                    SubRequests!.Add(new DownloadRequest(item, info, item.Origin.SupportsDirectDownloads ? downloader : AsyncDownloaderBase.Default));
+                    SubRequests!.Add(new DownloadRequest(item, info, item.Origin.SupportsDirectDownloads ? downloader : IAsyncDownloader.Default));
                 }
             }
         }
 
-        private DownloadRequest(MediaMetadata info, MediaMetadata parentRequestInfo, AsyncDownloaderBase dl)
+        private DownloadRequest(MediaMetadata info, MediaMetadata parentRequestInfo, IAsyncDownloader dl)
         {
             this.info = info;
             query = info.Url!;
@@ -48,7 +48,7 @@ namespace Melodica.Services.Playback.Requests
         public const int MaxExceptionRetries = 3;
         private int currentExceptionRetries = 0;
 
-        private readonly AsyncDownloaderBase downloader;
+        private readonly IAsyncDownloader downloader;
 
         private readonly string query;
 

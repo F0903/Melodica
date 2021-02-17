@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
+using Melodica.Core;
 using Melodica.Services.Downloaders.Exceptions;
 using Melodica.Services.Models;
 using Melodica.Utility.Extensions;
@@ -11,17 +12,19 @@ using SpotifyAPI.Web;
 
 namespace Melodica.Services.Downloaders.Spotify
 {
-    public class AsyncSpotifyDownloader : AsyncDownloaderBase
+    public class AsyncSpotifyDownloader : IAsyncDownloader
     {
-        const string ClientID = "f8ecc5fd441249e4bc1471c5bfbb7cbd";
-        const string ClientSecret = "83890edde8014ffd927bf98b6394d4a2";
-
-        private readonly SpotifyClient spotify = new SpotifyClient(SpotifyClientConfig.CreateDefault().WithAuthenticator(new ClientCredentialsAuthenticator(ClientID, ClientSecret)));
+        private readonly SpotifyClient spotify =
+            new SpotifyClient(
+                SpotifyClientConfig
+                .CreateDefault()
+                .WithAuthenticator(
+                    new ClientCredentialsAuthenticator(BotSettings.SpotifyClientID, BotSettings.SpotifyClientSecret)));
 
         // Tie this to the default downloader (can't download directly from Spotify)
-        private readonly AsyncDownloaderBase dlHelper = Default;
+        private readonly IAsyncDownloader dlHelper = IAsyncDownloader.Default;
 
-        public override bool IsUrlSupported(string url) => url.StartsWith("https://open.spotify.com/") ||
+        public bool IsUrlSupported(string url) => url.StartsWith("https://open.spotify.com/") ||
                                                            url.StartsWith("http://open.spotify.com/") ||
                                                            url.StartsWith("https://api.spotify.com/v1/") ||
                                                            url.StartsWith("http://api.spotify.com/v1/");
@@ -54,7 +57,7 @@ namespace Melodica.Services.Downloaders.Spotify
             return video;
         }
 
-        public override Task<PlayableMedia> DownloadAsync(MediaMetadata info) => info.MediaType switch
+        public Task<PlayableMedia> DownloadAsync(MediaMetadata info) => info.MediaType switch
         {
             MediaType.Video => DownloadVideo(info),
             MediaType.Playlist => throw new NotSupportedException(), // Playlist is not specified here due to the interface.
@@ -62,7 +65,7 @@ namespace Melodica.Services.Downloaders.Spotify
             _ => throw new NotSupportedException(),
         };
 
-        public override Task<PlayableMedia> DownloadAsync(string url)
+        public Task<PlayableMedia> DownloadAsync(string url)
         {
             var info = GetMediaInfoAsync(url).Result;
             return DownloadAsync(info);
@@ -81,7 +84,7 @@ namespace Melodica.Services.Downloaders.Spotify
             return tracklist;
         }
 
-        public override async Task<(MediaMetadata playlist, IEnumerable<MediaMetadata> videos)> DownloadPlaylistInfoAsync(string url)
+        public async Task<(MediaMetadata playlist, IEnumerable<MediaMetadata> videos)> DownloadPlaylistInfoAsync(string url)
         {
             string? id = await ParseURLToIdAsync(url);
 
@@ -191,12 +194,12 @@ namespace Melodica.Services.Downloaders.Spotify
             };
         }
 
-        public override bool IsUrlPlaylistAsync(string url) => url.Contains("open.spotify.com/playlist/") ||
+        public bool IsUrlPlaylistAsync(string url) => url.Contains("open.spotify.com/playlist/") ||
                                                             url.Contains("open.spotify.com/album/") ||
                                                             url.StartsWith("api.spotify.com/v1/playlists") ||
                                                             url.StartsWith("api.spotify.com/v1/albums");
 
-        protected override Task<MediaType> EvaluateMediaTypeAsync(string url)
+        protected Task<MediaType> EvaluateMediaTypeAsync(string url)
         {
             if (!url.IsUrl())
                 throw new DownloaderException("Function only accepts a url. Something very wrong happened here... (SP)");
@@ -210,7 +213,7 @@ namespace Melodica.Services.Downloaders.Spotify
             throw new UnrecognizedUrlException("The link provided is not supported.");
         }
 
-        public override Task<MediaMetadata> GetMediaInfoAsync(string url)
+        public Task<MediaMetadata> GetMediaInfoAsync(string url)
         {
             var mType = EvaluateMediaTypeAsync(url).Result;
 
@@ -223,7 +226,7 @@ namespace Melodica.Services.Downloaders.Spotify
             };
         }
 
-        public override async Task<bool> VerifyUrlAsync(string url)
+        public async Task<bool> VerifyUrlAsync(string url)
         {
             try
             {
@@ -234,8 +237,7 @@ namespace Melodica.Services.Downloaders.Spotify
             return false;
         }
 
-        public override Task<string> GetLivestreamAsync(string streamURL) => throw new NotSupportedException("Spotify does not support livestreams.");
-
-        //public override Task<PlayableMedia> DownloadToExistingMetaAsync(MediaMetadata meta) => throw new NotSupportedException("Spotify does not support direct streaming of data.");
+        public Task<string> GetLivestreamAsync(string streamURL) => throw new NotSupportedException("Spotify does not support livestreams.");
+        Task<MediaType> IAsyncDownloader.EvaluateMediaTypeAsync(string url) => throw new NotSupportedException();
     }
 }

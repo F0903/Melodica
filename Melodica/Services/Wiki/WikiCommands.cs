@@ -9,12 +9,12 @@ namespace Melodica.Services.Wiki
 {
     public class WikiCommands : ModuleBase<SocketCommandContext>
     {
-        public WikiCommands(WikiProvider wiki)
+        public WikiCommands(IWikiProvider wiki)
         {
             this.wiki = wiki;
         }
 
-        private readonly WikiProvider wiki;
+        private readonly IWikiProvider wiki;
 
         private Jukebox GetJukebox => JukeboxFactory.GetJukeboxAsync(Context.Guild).Result;
 

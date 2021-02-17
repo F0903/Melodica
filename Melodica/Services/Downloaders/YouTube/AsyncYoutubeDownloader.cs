@@ -15,12 +15,12 @@ using YoutubeExplode.Videos.Streams;
 
 namespace Melodica.Services.Downloaders.YouTube
 {
-    public class AsyncYoutubeDownloader : AsyncDownloaderBase
+    public class AsyncYoutubeDownloader : IAsyncDownloader
     {
         private readonly YoutubeClient yt = new YoutubeClient();
         private readonly MediaFileCache cache = new MediaFileCache("YouTube");
 
-        public override bool IsUrlSupported(string url) => url.StartsWith("https://www.youtube.com/") || url.StartsWith("http://www.youtube.com/");
+        public bool IsUrlSupported(string url) => url.StartsWith("https://www.youtube.com/") || url.StartsWith("http://www.youtube.com/");
 
         private async Task<PlayableMedia> DownloadVideo(MediaMetadata meta)
         {
@@ -71,7 +71,7 @@ namespace Melodica.Services.Downloaders.YouTube
             return input.IsUrl() ? yt.Videos.GetAsync(input) : SearchVideo();
         }
 
-        public override async Task<PlayableMedia> DownloadAsync(MediaMetadata meta)
+        public async Task<PlayableMedia> DownloadAsync(MediaMetadata meta)
         {
             if (meta.Id == null) throw new DownloaderException("Id of media was null. Unable to download.");
             if (cache.Contains(meta.Id))
@@ -96,13 +96,13 @@ namespace Melodica.Services.Downloaders.YouTube
             }
         }
 
-        public override async Task<PlayableMedia> DownloadAsync(string query)
+        public async Task<PlayableMedia> DownloadAsync(string query)
         {
             MediaMetadata? meta = await GetMediaInfoAsync(query);
             return await DownloadAsync(meta);
         }
 
-        public override async Task<(MediaMetadata playlist, IEnumerable<MediaMetadata> videos)> DownloadPlaylistInfoAsync(string url)
+        public async Task<(MediaMetadata playlist, IEnumerable<MediaMetadata> videos)> DownloadPlaylistInfoAsync(string url)
         {
             var pl = await yt.Playlists.GetAsync(url);
             var plMeta = await GetPlaylistMetadataAsync(pl);
@@ -118,7 +118,7 @@ namespace Melodica.Services.Downloaders.YouTube
             return (plMeta, plVideoMeta);
         }
 
-        public override Task<string> GetLivestreamAsync(string streamURL) => yt.Videos.Streams.GetHttpLiveStreamUrlAsync(streamURL);
+        public Task<string> GetLivestreamAsync(string streamURL) => yt.Videos.Streams.GetHttpLiveStreamUrlAsync(streamURL);
 
         private static Task<MediaMetadata> GetVideoMetadataAsync(Video video)
         {
@@ -152,9 +152,9 @@ namespace Melodica.Services.Downloaders.YouTube
             });
         }
 
-        public override bool IsUrlPlaylistAsync(string url) => url.StartsWith(@"http://www.youtube.com/playlist?list=") || url.StartsWith(@"https://www.youtube.com/playlist?list=");
+        public bool IsUrlPlaylistAsync(string url) => url.StartsWith(@"http://www.youtube.com/playlist?list=") || url.StartsWith(@"https://www.youtube.com/playlist?list=");
 
-        protected override Task<MediaType> EvaluateMediaTypeAsync(string input)
+        protected Task<MediaType> EvaluateMediaTypeAsync(string input)
         {
             // if it is id, count the letters to determine
             if (!input.IsUrl())
@@ -187,7 +187,7 @@ namespace Melodica.Services.Downloaders.YouTube
             throw new DownloaderException("MediaType could not be evaluated. (YT)");
         }
 
-        public override Task<MediaMetadata> GetMediaInfoAsync(string input)
+        public Task<MediaMetadata> GetMediaInfoAsync(string input)
         {
             MediaMetadata GetLivestream()
             {
@@ -242,7 +242,7 @@ namespace Melodica.Services.Downloaders.YouTube
             };
         }
 
-        public override async Task<bool> VerifyUrlAsync(string url)
+        public async Task<bool> VerifyUrlAsync(string url)
         {
             try
             {
@@ -252,5 +252,7 @@ namespace Melodica.Services.Downloaders.YouTube
             catch (Exception)
             { return false; }
         }
+
+        Task<MediaType> IAsyncDownloader.EvaluateMediaTypeAsync(string url) => throw new NotSupportedException();
     }
 }

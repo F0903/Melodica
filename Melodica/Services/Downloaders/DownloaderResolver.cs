@@ -10,29 +10,29 @@ namespace Melodica.Services.Downloaders
 {
     public static class DownloaderResolver
     {
-        private static IEnumerable<AsyncDownloaderBase>? cachedSubtypes;
+        private static IEnumerable<IAsyncDownloader>? cachedSubtypes;
 
-        private static IEnumerable<AsyncDownloaderBase> GetDownloaderSubTypesDynamically()
+        private static IEnumerable<IAsyncDownloader> GetDownloaderSubTypesDynamically()
         {
             var asm = Assembly.GetExecutingAssembly();
             var types = asm.GetTypes();
-            var subtypeInfoElems = types.Where(x => x.IsSubclassOf(typeof(AsyncDownloaderBase)));
+            var subtypeInfoElems = types.Where(x => x.GetInterface(nameof(IAsyncDownloader)) != null);
             int subtypeInfoCount = subtypeInfoElems.Count();
 
-            var subtypeObjs = new AsyncDownloaderBase[subtypeInfoCount];
+            var subtypeObjs = new IAsyncDownloader[subtypeInfoCount];
             for (int i = 0; i < subtypeInfoCount; i++)
             {
                 var subtypeInfo = subtypeInfoElems.ElementAt(i);
-                var newObj = (AsyncDownloaderBase)(asm.CreateInstance(subtypeInfo.FullName ?? throw new Exception("Full name for downloader type was null.")) ?? throw new Exception("Could not create downloader type dynamically."));
+                var newObj = (IAsyncDownloader)(asm.CreateInstance(subtypeInfo.FullName ?? throw new Exception("Full name for downloader type was null.")) ?? throw new Exception("Could not create downloader type dynamically."));
                 subtypeObjs[i] = newObj;
             }
             return subtypeObjs;
         }
 
-        public static AsyncDownloaderBase? GetDownloaderFromQuery(string query)
+        public static IAsyncDownloader? GetDownloaderFromQuery(string query)
         {
             if (!query.IsUrl())
-                return AsyncDownloaderBase.Default;
+                return IAsyncDownloader.Default;
 
             cachedSubtypes ??= GetDownloaderSubTypesDynamically();
             foreach (var type in cachedSubtypes)
@@ -40,7 +40,7 @@ namespace Melodica.Services.Downloaders
                 if (type.IsUrlSupported(query))
                     return type;
             }
-            throw new UnrecognizedUrlException("URL is not supported.");
+            throw new UnrecognizedUrlException("URL is not recognized as a supported url.");
         }
     }
 }

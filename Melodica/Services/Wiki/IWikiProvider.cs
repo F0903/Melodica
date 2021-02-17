@@ -9,8 +9,8 @@ namespace Melodica.Services.Wiki
         public string? ImageUrl { get; set; }
     }
 
-    public abstract class WikiProvider
+    public interface IWikiProvider
     {
-        public abstract Task<WikiElement> GetInfoAsync(string query);
+        public Task<WikiElement> GetInfoAsync(string query);
     }
 }

@@ -13,10 +13,8 @@ using Melodica.Utility.Extensions;
 
 namespace Melodica.Services.Lyrics
 {
-    public class GeniusLyrics : LyricsProvider
+    public class GeniusLyrics : ILyricsProvider
     {
-        private const string GeniusAccessToken = "ZGyXhK5UmuL3ZTI102dCauSWZa_kK4RX7yubFVe04wvM_IPCwMEzi0MQOKNP8T2s";
-
         private static async Task<string> ParseLyricsAsync(string url)
         {
             var config = Configuration.Default.WithDefaultLoader();
@@ -44,7 +42,7 @@ namespace Melodica.Services.Lyrics
             var req = WebRequest.CreateHttp($"https://api.genius.com/search?q={fixedQuery}");
             req.Headers = new WebHeaderCollection
             {
-                $"Authorization:Bearer {GeniusAccessToken}"
+                $"Authorization:Bearer {Core.BotSettings.GeniusAccessToken}"
             };
             req.Method = "GET";
 
@@ -80,7 +78,7 @@ namespace Melodica.Services.Lyrics
             return new LyricsInfo { Image = songImg, Title = songTitle, Lyrics = songLyrics };
         }
 
-        public override async Task<LyricsInfo> GetLyricsAsync(string query)
+        public async Task<LyricsInfo> GetLyricsAsync(string query)
         {
             var lyrics = await SearchForSongAsync(query);
             return lyrics;

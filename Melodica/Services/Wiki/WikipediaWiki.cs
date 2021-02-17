@@ -6,7 +6,7 @@ using Melodica.Utility.Extensions;
 
 namespace Melodica.Services.Wiki
 {
-    public class WikipediaWiki : WikiProvider
+    public class WikipediaWiki : IWikiProvider
     {
         private const string wikipediaEndpoint = "https://en.wikipedia.org/api/rest_v1";
         private const string wikipediaSummaryEndpoint = wikipediaEndpoint + "/page/summary/";
@@ -50,6 +50,6 @@ namespace Melodica.Services.Wiki
             };
         }
 
-        public override Task<WikiElement> GetInfoAsync(string query) => Task.FromResult(GetSummary(query.FixURLWhitespace("_")));
+        public Task<WikiElement> GetInfoAsync(string query) => Task.FromResult(GetSummary(query.FixURLWhitespace("_")));
     }
 }

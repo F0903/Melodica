@@ -5,6 +5,9 @@
 
 # Custom
 token.txt
+spotifysecret.txt
+spotifyid.txt
+geniustoken.txt
 
 # User-specific files
 *.rsuser

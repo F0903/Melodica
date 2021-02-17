@@ -11,12 +11,12 @@ namespace Melodica.Services.Lyrics
 {
     public class LyricsCommands : ModuleBase<SocketCommandContext>
     {
-        public LyricsCommands(LyricsProvider lyrics)
+        public LyricsCommands(ILyricsProvider lyrics)
         {
             this.lyrics = lyrics;
         }
 
-        private readonly LyricsProvider lyrics;
+        private readonly ILyricsProvider lyrics;
 
         [Command("Lyrics"), Description("Gets lyrics for a search term.")]
         public async Task GetLyrics([Remainder] string? songName = null)
