@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 using Melodica.Services.Downloaders;
 using Melodica.Services.Downloaders.Exceptions;
 using Melodica.Services.Downloaders.YouTube;
-using Melodica.Services.Models;
+using Melodica.Services.Media;
 
 namespace Melodica.Services.Playback.Requests
 {

@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 
 using Melodica.Core;
 using Melodica.Services.Downloaders.Exceptions;
-using Melodica.Services.Models;
+using Melodica.Services.Media;
 using Melodica.Utility.Extensions;
 
 using SpotifyAPI.Web;
@@ -19,7 +19,7 @@ namespace Melodica.Services.Downloaders.Spotify
                 SpotifyClientConfig
                 .CreateDefault()
                 .WithAuthenticator(
-                    new ClientCredentialsAuthenticator(BotSettings.SpotifyClientID, BotSettings.SpotifyClientSecret)));
+                    new ClientCredentialsAuthenticator(BotSecrets.SpotifyClientID, BotSecrets.SpotifyClientSecret)));
 
         // Tie this to the default downloader (can't download directly from Spotify)
         private readonly IAsyncDownloader dlHelper = IAsyncDownloader.Default;

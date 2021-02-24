@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Threading.Tasks;
 
-using Melodica.Services.Models;
+using Melodica.Services.Media;
 
 namespace Melodica.Services.Playback.Requests
 {

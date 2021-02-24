@@ -5,23 +5,19 @@ using Discord;
 
 namespace Melodica.Core
 {
+    public static class BotSecrets
+    {
+        public static string SpotifyClientSecret { get; } = File.ReadAllText("spotifysecret.txt");
+
+        public static string SpotifyClientID { get; } = File.ReadAllText("spotifyid.txt");
+
+        public static string GeniusAccessToken { get; } = File.ReadAllText("geniustoken.txt");
+
+        public static string DiscordToken { get; } = File.ReadAllText("token.txt");
+    }
+
     public static class BotSettings
     {
-        //TODO: Move these "secret" to dedicated class?
-        private static string? cachedSpotifyClientSecret;
-        public static string SpotifyClientSecret => cachedSpotifyClientSecret ??= File.ReadAllText("spotifysecret.txt");
-
-        private static string? cachedSpotifyClientID;
-        public static string SpotifyClientID => cachedSpotifyClientID ??= File.ReadAllText("spotifyid.txt");
-
-
-        private static string? cachedGeniusAccessToken;
-        public static string GeniusAccessToken => cachedGeniusAccessToken ??= File.ReadAllText("geniustoken.txt");
-
-
-        private static string? cachedDiscordToken;
-        public static string DiscordToken => cachedDiscordToken ??= File.ReadAllText("token.txt");
-
         public const string DefaultPrefix = "m.";
 
         public const int CacheSizeMB = 500;

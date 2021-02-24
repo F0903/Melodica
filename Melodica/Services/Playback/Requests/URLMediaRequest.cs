@@ -6,7 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 
 using Melodica.Core.Exceptions;
-using Melodica.Services.Models;
+using Melodica.Services.Media;
 
 namespace Melodica.Services.Playback.Requests
 {

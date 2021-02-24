@@ -1,4 +1,4 @@
-﻿namespace Melodica.Services.Models
+﻿namespace Melodica.Services.Media
 {
     public enum MediaType
     {

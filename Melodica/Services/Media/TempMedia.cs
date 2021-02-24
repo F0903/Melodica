@@ -3,7 +3,7 @@ using System.IO;
 
 using Melodica.Services.Caching;
 
-namespace Melodica.Services.Models
+namespace Melodica.Services.Media
 {
     public sealed class TempMedia : PlayableMedia
     {

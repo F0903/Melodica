@@ -9,7 +9,7 @@ using Discord.WebSocket;
 
 using Melodica.Services.Caching;
 using Melodica.Services.Downloaders;
-using Melodica.Services.Models;
+using Melodica.Services.Media;
 using Melodica.Services.Playback.Exceptions;
 using Melodica.Services.Playback.Requests;
 using Melodica.Utility.Extensions;

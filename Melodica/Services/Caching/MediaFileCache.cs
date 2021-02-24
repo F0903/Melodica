@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 using Melodica.Core;
 using Melodica.Services.Downloaders.Exceptions;
-using Melodica.Services.Models;
+using Melodica.Services.Media;
 using Melodica.Utility.Extensions;
 
 namespace Melodica.Services.Caching

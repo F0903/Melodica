@@ -3,8 +3,9 @@
 using Melodica.Services.Downloaders;
 using Melodica.Services.Serialization;
 
-namespace Melodica.Services.Models
+namespace Melodica.Services.Media
 {
+    //TODO: Split this up into seperate classes for each downloader.
     [Serializable]
     public class MediaMetadata
     {

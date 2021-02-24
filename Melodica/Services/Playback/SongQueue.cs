@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
-using Melodica.Services.Models;
+using Melodica.Services.Media;
 using Melodica.Services.Playback.Requests;
 using Melodica.Utility.Extensions;
 

@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 using Melodica.Services.Serialization;
 using Melodica.Utility.Extensions;
 
-namespace Melodica.Services.Models
+namespace Melodica.Services.Media
 {
     public class PlayableMedia
     {
@@ -15,7 +15,9 @@ namespace Melodica.Services.Models
             rawMediaData = data;
         }
 
-        private PlayableMedia(MediaMetadata meta) => Info = meta;
+        public virtual MediaMetadata Info { get; protected set; }
+
+        private Stream? rawMediaData;
 
         public static Task<PlayableMedia> LoadFromFileAsync(string songPath)
         {
@@ -30,9 +32,7 @@ namespace Melodica.Services.Models
             return Task.FromResult(new PlayableMedia(meta));
         }
 
-        public virtual MediaMetadata Info { get; protected set; }
-
-        private Stream? rawMediaData;
+        private PlayableMedia(MediaMetadata meta) => Info = meta;
 
         public virtual async Task<(string mediaPath, string metaPath)> SaveDataAsync(string saveDir)
         {

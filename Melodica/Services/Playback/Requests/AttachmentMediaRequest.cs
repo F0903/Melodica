@@ -4,7 +4,7 @@ using System.IO;
 using System.Net;
 using System.Threading.Tasks;
 
-using Melodica.Services.Models;
+using Melodica.Services.Media;
 
 namespace Melodica.Services.Playback.Requests
 {

@@ -48,7 +48,7 @@ namespace Melodica.Core
 
         public async Task ConnectAsync(bool startOnConnect = false)
         {
-            await client.LoginAsync(TokenType.Bot, BotSettings.DiscordToken);
+            await client.LoginAsync(TokenType.Bot, BotSecrets.DiscordToken);
             if (startOnConnect)
                 await client.StartAsync();
         }

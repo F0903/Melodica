@@ -42,7 +42,7 @@ namespace Melodica.Services.Lyrics
             var req = WebRequest.CreateHttp($"https://api.genius.com/search?q={fixedQuery}");
             req.Headers = new WebHeaderCollection
             {
-                $"Authorization:Bearer {Core.BotSettings.GeniusAccessToken}"
+                $"Authorization:Bearer {Core.BotSecrets.GeniusAccessToken}"
             };
             req.Method = "GET";
 

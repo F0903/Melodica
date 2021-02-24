@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 using Melodica.Services.Caching;
 using Melodica.Services.Downloaders.Exceptions;
-using Melodica.Services.Models;
+using Melodica.Services.Media;
 
 using SoundCloud.Api;
 using SoundCloud.Api.Entities;
