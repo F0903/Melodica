@@ -54,33 +54,33 @@ namespace Melodica.Services.Downloaders.Soundcloud
             };
         }
 
-        public Task<PlayableMedia> DownloadAsync(MediaMetadata input)
+        public Task<PlayableMedia> DownloadAsync(MediaInfo input)
         {
             if (input.MediaType != MediaType.Video)
                 throw new NotSupportedException("Playlists do not support direct download. Something wrong happened here. Please contact developer.");
             return DownloadTrackAsync(Convert.ToInt64(input.Id));
         }
 
-        public async Task<(MediaMetadata playlist, IEnumerable<MediaMetadata> videos)> DownloadPlaylistInfoAsync(string url)
+        public async Task<(MediaInfo playlist, IEnumerable<MediaInfo> videos)> DownloadPlaylistInfoAsync(string url)
         {
             var entt = await soundcloud.Resolve.GetEntityAsync(url);
             if (entt.Kind != Kind.Playlist)
                 throw new UnrecognizedUrlException("Input did not resolve to a playlist.");
 
             var playlist = await soundcloud.Playlists.GetAsync(entt.Id);
-            var playlistInfo = new MediaMetadata()
+            var playlistInfo = new MediaInfo()
             {
                 Artist = playlist.User.Username,
                 Duration = TimeSpan.FromSeconds(playlist.Duration),
                 Id = playlist.Id.ToString(),
                 Title = playlist.Title,
                 MediaType = MediaType.Playlist,
-                Thumbnail = playlist.ArtworkUrl,
+                Image = playlist.ArtworkUrl,
                 Url = playlist.PermalinkUrl,
                 Origin = MediaOrigin.SoundCloud
             };
 
-            var tracks = new MediaMetadata[playlist.TrackCount];
+            var tracks = new MediaInfo[playlist.TrackCount];
             for (int i = 0; i < playlist.TrackCount; i++)
             {
                 var plTrack = playlist.Tracks[i];
@@ -92,41 +92,41 @@ namespace Melodica.Services.Downloaders.Soundcloud
 
         public Task<string> GetLivestreamAsync(string streamURL) => throw new NotSupportedException("SoundCloud does not support livestreams.");
 
-        private static MediaMetadata GetTrackInfo(Track track) => new MediaMetadata()
+        private static MediaInfo GetTrackInfo(Track track) => new MediaInfo()
         {
             Artist = track.User.Username,
             Duration = TimeSpan.FromSeconds(track.Duration),
             Id = track.Id.ToString(),
             Title = track.Title,
             MediaType = MediaType.Video,
-            Thumbnail = track.ArtworkUrl.AbsoluteUri,
+            Image = track.ArtworkUrl.AbsoluteUri,
             Url = track.PermalinkUrl.AbsoluteUri,
             Origin = MediaOrigin.SoundCloud
         };
 
-        private Task<MediaMetadata> GetTrackInfoAsync(long id)
+        private Task<MediaInfo> GetTrackInfoAsync(long id)
         {
             var track = soundcloud.Tracks.GetAsync(id).Result;
             return Task.FromResult(GetTrackInfo(track));
         }
 
-        private async Task<MediaMetadata> GetPlaylistInfoAsync(long id)
+        private async Task<MediaInfo> GetPlaylistInfoAsync(long id)
         {
             var playlist = await soundcloud.Playlists.GetAsync(id);
-            return new MediaMetadata()
+            return new MediaInfo()
             {
                 Artist = playlist.User.Username,
                 Duration = TimeSpan.FromSeconds(playlist.Duration),
                 Id = playlist.Id.ToString(),
                 Title = playlist.Title,
                 MediaType = MediaType.Playlist,
-                Thumbnail = playlist.ArtworkUrl,
+                Image = playlist.ArtworkUrl,
                 Url = playlist.PermalinkUrl,
                 Origin = MediaOrigin.SoundCloud
             };
         }
 
-        public Task<MediaMetadata> GetMediaInfoAsync(string input)
+        public Task<MediaInfo> GetMediaInfoAsync(string input)
         {
             var entt = soundcloud.Resolve.GetEntityAsync(input).Result;
             return entt.Kind switch

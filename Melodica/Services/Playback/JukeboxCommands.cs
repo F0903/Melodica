@@ -25,7 +25,7 @@ namespace Melodica.Services.Playback
         private IUserMessage? playbackPlaylistMessage;
         private readonly SemaphoreSlim playbackLock = new SemaphoreSlim(1);
 
-        private async void MediaCallback(MediaMetadata info, MediaState state, MediaMetadata? parentInfo)
+        private async void MediaCallback(MediaInfo info, MediaState state, MediaInfo? parentInfo)
         {
             await playbackLock.WaitAsync(); // Use a this to make sure no threads send multiple messages at the same time.
 
@@ -100,7 +100,7 @@ namespace Melodica.Services.Playback
 
         private IVoiceChannel GetUserVoiceChannel() => ((SocketGuildUser)Context.User).VoiceChannel;
 
-        private static Embed CreateMediaEmbed(MediaMetadata mediaInfo, MediaMetadata? parentInfo, Color? color = null, string? footerText = null) => new EmbedBuilder()
+        private static Embed CreateMediaEmbed(MediaInfo mediaInfo, MediaInfo? parentInfo, Color? color = null, string? footerText = null) => new EmbedBuilder()
                    .WithColor(color ?? Color.DarkGrey)
                    .WithTitle(mediaInfo.Artist)
                    .WithDescription(parentInfo != null ? $"__{mediaInfo.Title}__\n{parentInfo.Title}" : mediaInfo.Title)
@@ -108,7 +108,7 @@ namespace Melodica.Services.Playback
                                parentInfo != null ?
                                $"{mediaInfo.Duration} | {parentInfo.Duration}" :
                                footerText ?? mediaInfo.Duration.ToString() : "")
-                   .WithThumbnailUrl(mediaInfo.Thumbnail).Build();
+                   .WithThumbnailUrl(mediaInfo.Image).Build();
 
         private Task<MediaRequest> GetRequestAsync(string query)
         {
@@ -232,7 +232,7 @@ namespace Melodica.Services.Playback
             {
                 var queueDuration = queue.GetTotalDuration();
                 eb.WithTitle("**Queue**")
-                  .WithThumbnailUrl(queue.GetMediaInfo().Thumbnail)
+                  .WithThumbnailUrl(queue.GetMediaInfo().Image)
                   .WithFooter($"{(queueDuration == TimeSpan.Zero ? '\u221E'.ToString() : queueDuration.ToString())}{(Jukebox.Shuffle ? " | Shuffle" : "")}");
 
                 int maxElems = 20;

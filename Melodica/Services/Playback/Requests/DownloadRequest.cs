@@ -34,7 +34,7 @@ namespace Melodica.Services.Playback.Requests
             }
         }
 
-        private DownloadRequest(MediaMetadata info, MediaMetadata parentRequestInfo, IAsyncDownloader dl)
+        private DownloadRequest(MediaInfo info, MediaInfo parentRequestInfo, IAsyncDownloader dl)
         {
             this.info = info;
             query = info.Url!;
@@ -52,13 +52,13 @@ namespace Melodica.Services.Playback.Requests
 
         private readonly string query;
 
-        public override MediaMetadata? ParentRequestInfo { get; protected set; }
+        public override MediaInfo? ParentRequestInfo { get; protected set; }
 
         public override List<MediaRequest>? SubRequests { get; set; }
 
-        private MediaMetadata? info;
+        private MediaInfo? info;
 
-        public override MediaMetadata GetInfo() => info ??= downloader.GetMediaInfoAsync(query).Result;
+        public override MediaInfo GetInfo() => info ??= downloader.GetMediaInfoAsync(query).Result;
 
         public override async Task<PlayableMedia> GetMediaAsync()
         {

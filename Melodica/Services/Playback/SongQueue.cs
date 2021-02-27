@@ -29,7 +29,7 @@ namespace Melodica.Services.Playback
                 return list.ToArray();
         }
 
-        public MediaMetadata GetMediaInfo() => new MediaMetadata() { Duration = GetTotalDuration(), Thumbnail = list[0].GetInfo().Thumbnail };
+        public MediaInfo GetMediaInfo() => new MediaInfo() { Duration = GetTotalDuration(), Image = list[0].GetInfo().Image };
 
         public Task EnqueueAsync(MediaRequest item)
         {

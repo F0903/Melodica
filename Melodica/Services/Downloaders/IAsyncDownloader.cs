@@ -16,15 +16,15 @@ namespace Melodica.Services.Downloaders
 
         public Task<bool> VerifyUrlAsync(string url);
 
-        public Task<(MediaMetadata playlist, IEnumerable<MediaMetadata> videos)> DownloadPlaylistInfoAsync(string url);
+        public Task<(MediaInfo playlist, IEnumerable<MediaInfo> videos)> DownloadPlaylistInfoAsync(string url);
 
         public bool IsUrlPlaylistAsync(string url);
 
-        public Task<MediaMetadata> GetMediaInfoAsync(string input);
+        public Task<MediaInfo> GetMediaInfoAsync(string input);
 
         public Task<PlayableMedia> DownloadAsync(string input);
 
-        public Task<PlayableMedia> DownloadAsync(MediaMetadata input);
+        public Task<PlayableMedia> DownloadAsync(MediaInfo input);
 
         public Task<string> GetLivestreamAsync(string streamURL);
     }

@@ -30,7 +30,7 @@ namespace Melodica.Services.Playback.Requests
             string? dirName = Path.GetDirectoryName(uri);
             if (dirName == null)
                 throw new Exception("Directory name returned null.");
-            info = new MediaMetadata()
+            info = new MediaInfo()
             {
                 Id = dirName,
                 Title = dirName,
@@ -47,10 +47,10 @@ namespace Melodica.Services.Playback.Requests
             }
         }
 
-        public override MediaMetadata? ParentRequestInfo { get; protected set; }
+        public override MediaInfo? ParentRequestInfo { get; protected set; }
         public override List<MediaRequest>? SubRequests { get; set; }
 
-        private LocalMediaRequest(FileInfo file, MediaMetadata parentMeta)
+        private LocalMediaRequest(FileInfo file, MediaInfo parentMeta)
         {
             info = EvalInfo(file);
             ParentRequestInfo = parentMeta;
@@ -63,11 +63,11 @@ namespace Melodica.Services.Playback.Requests
             ".wav"
         };
 
-        private readonly MediaMetadata info;
+        private readonly MediaInfo info;
 
-        private static MediaMetadata EvalInfo(FileInfo file)
+        private static MediaInfo EvalInfo(FileInfo file)
         {
-            var meta = new MediaMetadata()
+            var meta = new MediaInfo()
             {
                 Title = file.Name,
                 Id = file.Name,
@@ -78,7 +78,7 @@ namespace Melodica.Services.Playback.Requests
             return meta;
         }
 
-        public override MediaMetadata GetInfo() => info;
+        public override MediaInfo GetInfo() => info;
 
         public override Task<PlayableMedia> GetMediaAsync() => Task.FromResult(new PlayableMedia(info, null));
     }

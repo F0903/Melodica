@@ -14,14 +14,14 @@ namespace Melodica.Services.Playback.Requests
 
         private readonly Discord.Attachment? attachment;
 
-        private MediaMetadata? info;
+        private MediaInfo? info;
 
-        public override MediaMetadata? ParentRequestInfo { get; protected set; }
+        public override MediaInfo? ParentRequestInfo { get; protected set; }
         public override List<MediaRequest>? SubRequests { get; set; }
 
-        public override MediaMetadata GetInfo()
+        public override MediaInfo GetInfo()
         {
-            info ??= new MediaMetadata() { Duration = TimeSpan.Zero, Id = Path.ChangeExtension(attachment!.Filename, null), Thumbnail = null, Title = attachment!.Filename };
+            info ??= new MediaInfo() { Duration = TimeSpan.Zero, Id = Path.ChangeExtension(attachment!.Filename, null), Image = null, Title = attachment!.Filename };
             info.DataInformation.Format = Path.GetExtension(attachment!.Filename).Replace(".", "");
             return info;
         }

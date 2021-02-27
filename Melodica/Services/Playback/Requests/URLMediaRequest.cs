@@ -19,12 +19,12 @@ namespace Melodica.Services.Playback.Requests
             this.mediaUrl = mediaUrl;
             this.directStream = directStream;
 
-            info = new MediaMetadata()
+            info = new MediaInfo()
             {
                 MediaType = directStream ? MediaType.Livestream : MediaType.Video,
                 Url = this.mediaUrl,
                 Title = this.mediaName,
-                DataInformation = new MediaMetadata.DataInfo()
+                DataInformation = new MediaInfo.DataInfo()
                 {
                     Format = mediaFormat,
                     MediaPath = this.mediaUrl
@@ -32,7 +32,7 @@ namespace Melodica.Services.Playback.Requests
             };
         }
 
-        public override MediaMetadata? ParentRequestInfo { get; protected set; }
+        public override MediaInfo? ParentRequestInfo { get; protected set; }
         public override List<MediaRequest>? SubRequests { get; set; }
 
         private readonly string mediaName;
@@ -43,7 +43,7 @@ namespace Melodica.Services.Playback.Requests
 
         private readonly bool directStream;
 
-        private readonly MediaMetadata info;
+        private readonly MediaInfo info;
 
         private async Task<PlayableMedia> DownloadMediaAsync()
         {
@@ -55,7 +55,7 @@ namespace Melodica.Services.Playback.Requests
             if (tSrc.IsCancellationRequested)
                 throw new CriticalException("Direct media could not be downloaded. (Timer exceeded 20 seconds)");
 
-            var meta = new MediaMetadata() { Title = mediaName, Duration = new TimeSpan(0) };
+            var meta = new MediaInfo() { Title = mediaName, Duration = new TimeSpan(0) };
             meta.DataInformation.Format = mediaFormat;
 
             return new PlayableMedia(meta, new MemoryStream(data));
@@ -73,6 +73,6 @@ namespace Melodica.Services.Playback.Requests
             }
         }
 
-        public override MediaMetadata GetInfo() => info;
+        public override MediaInfo GetInfo() => info;
     }
 }

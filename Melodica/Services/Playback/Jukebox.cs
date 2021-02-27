@@ -32,7 +32,7 @@ namespace Melodica.Services.Playback
             this.mediaCallback = mediaCallback;
         }
 
-        public delegate void MediaCallback(MediaMetadata info, MediaState state, MediaMetadata? parentRequestInfo);
+        public delegate void MediaCallback(MediaInfo info, MediaState state, MediaInfo? parentRequestInfo);
 
         private bool loop;
 
@@ -66,7 +66,7 @@ namespace Melodica.Services.Playback
 
         public SongQueue Queue { get; } = new SongQueue();
 
-        public (MediaMetadata info, MediaMetadata? parentInfo)? Song { get; private set; }
+        public (MediaInfo info, MediaInfo? parentInfo)? Song { get; private set; }
 
         public TimeSpan Duration => new TimeSpan(durationTimer.Elapsed.Hours, durationTimer.Elapsed.Minutes, durationTimer.Elapsed.Seconds);
 
@@ -240,7 +240,7 @@ namespace Melodica.Services.Playback
                 return;
             }
 
-            MediaMetadata? requestInfo = null;
+            MediaInfo? requestInfo = null;
             PlayableMedia media;
 
             MediaRequest? subRequest = null;

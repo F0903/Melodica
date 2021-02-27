@@ -23,7 +23,7 @@ namespace Melodica.Services.Downloaders.YouTube
 
         public bool IsUrlSupported(string url) => url.StartsWith("https://www.youtube.com/") || url.StartsWith("http://www.youtube.com/");
 
-        private async Task<PlayableMedia> DownloadVideo(MediaMetadata meta)
+        private async Task<PlayableMedia> DownloadVideo(MediaInfo meta)
         {
             var vidStreams = await yt.Videos.Streams.GetManifestAsync(meta.Id ?? throw new DownloaderException("ID was null in DownloadVideo."));
             var vidAudioStream = vidStreams.GetAudioOnly().WithHighestBitrate() ?? throw new DownloaderException("Could not get audio stream from video.");
@@ -49,9 +49,9 @@ namespace Melodica.Services.Downloaders.YouTube
             return Task.FromResult(id);
         }
 
-        private async Task<MediaMetadata> SearchOrGetVideo(string input)
+        private async Task<MediaInfo> SearchOrGetVideo(string input)
         {
-            async Task<MediaMetadata> SearchVideo(int attempt = 0)
+            async Task<MediaInfo> SearchVideo(int attempt = 0)
             {
                 if (attempt > 3) throw new MediaUnavailableException();
 
@@ -79,7 +79,7 @@ namespace Melodica.Services.Downloaders.YouTube
             return await SearchVideo().ConfigureAwait(false);
         }
 
-        public async Task<PlayableMedia> DownloadAsync(MediaMetadata meta)
+        public async Task<PlayableMedia> DownloadAsync(MediaInfo meta)
         {
             if (meta.Id == null) throw new DownloaderException("Id of media was null. Unable to download.");
             if (cache.Contains(meta.Id))
@@ -106,17 +106,17 @@ namespace Melodica.Services.Downloaders.YouTube
 
         public async Task<PlayableMedia> DownloadAsync(string query)
         {
-            MediaMetadata? meta = await GetMediaInfoAsync(query);
+            MediaInfo? meta = await GetMediaInfoAsync(query);
             return await DownloadAsync(meta);
         }
 
-        public async Task<(MediaMetadata playlist, IEnumerable<MediaMetadata> videos)> DownloadPlaylistInfoAsync(string url)
+        public async Task<(MediaInfo playlist, IEnumerable<MediaInfo> videos)> DownloadPlaylistInfoAsync(string url)
         {
             var pl = await yt.Playlists.GetAsync(url);
             var plMeta = await PlaylistToMetadata(pl);
 
             var plVideos = yt.Playlists.GetVideosAsync(pl.Id);
-            var plVideoMeta = new List<MediaMetadata>(10);
+            var plVideoMeta = new List<MediaInfo>(10);
             int i = 0;
             await foreach (var video in plVideos)
             {
@@ -128,49 +128,49 @@ namespace Melodica.Services.Downloaders.YouTube
 
         public Task<string> GetLivestreamAsync(string streamURL) => yt.Videos.Streams.GetHttpLiveStreamUrlAsync(streamURL);
 
-        public static MediaMetadata VideoToMetadata(Video video)
+        public static MediaInfo VideoToMetadata(Video video)
         {
             var (artist, title) = video.Title.AsSpan().SeperateArtistName();
-            return new MediaMetadata()
+            return new MediaInfo()
             {
                 Title = title,
                 Artist = artist,
                 Duration = video.Duration,
                 Id = video.Id,
                 Url = video.Url,
-                Thumbnail = video.Thumbnails.MediumResUrl,
+                Image = video.Thumbnails.MediumResUrl,
                 Origin = MediaOrigin.YouTube,
                 MediaType = MediaType.Video
             };
         }
 
-        public static MediaMetadata VideoToMetadata(PlaylistVideo video)
+        public static MediaInfo VideoToMetadata(PlaylistVideo video)
         {
             var (artist, title) = video.Title.AsSpan().SeperateArtistName();
-            return new MediaMetadata()
+            return new MediaInfo()
             {
                 Title = title,
                 Artist = artist,
                 Duration = video.Duration,
                 Id = video.Id,
                 Url = video.Url,
-                Thumbnail = video.Thumbnails.MediumResUrl,
+                Image = video.Thumbnails.MediumResUrl,
                 Origin = MediaOrigin.YouTube,
                 MediaType = MediaType.Video
             };
         }
 
 
-        private Task<MediaMetadata> PlaylistToMetadata(Playlist pl)
+        private Task<MediaInfo> PlaylistToMetadata(Playlist pl)
         {
             var (artist, newTitle) = pl.Title.AsSpan().SeperateArtistName();
-            return Task.FromResult(new MediaMetadata()
+            return Task.FromResult(new MediaInfo()
             {
                 Origin = MediaOrigin.YouTube,
                 MediaType = MediaType.Playlist,
                 Duration = pl.GetTotalDurationAsync(yt).GetAwaiter().GetResult(),
                 Id = pl.Id,
-                Thumbnail = pl.GetPlaylistThumbnail(yt).GetAwaiter().GetResult(),
+                Image = pl.GetPlaylistThumbnail(yt).GetAwaiter().GetResult(),
                 Title = newTitle,
                 Artist = artist,
                 Url = pl.Url
@@ -212,9 +212,9 @@ namespace Melodica.Services.Downloaders.YouTube
             throw new DownloaderException("MediaType could not be evaluated. (YT)");
         }
 
-        public Task<MediaMetadata> GetMediaInfoAsync(string input)
+        public Task<MediaInfo> GetMediaInfoAsync(string input)
         {
-            MediaMetadata GetLivestream()
+            MediaInfo GetLivestream()
             {
                 var meta = SearchOrGetVideo(input).Result;
                 meta.DataInformation.Format = "hls";
@@ -248,9 +248,9 @@ namespace Melodica.Services.Downloaders.YouTube
 
             return mType switch
             {
-                MediaType.Video => Task.FromResult((MediaMetadata)mediaObj),
+                MediaType.Video => Task.FromResult((MediaInfo)mediaObj),
                 MediaType.Playlist => PlaylistToMetadata((Playlist)mediaObj),
-                MediaType.Livestream => Task.FromResult((MediaMetadata)mediaObj),
+                MediaType.Livestream => Task.FromResult((MediaInfo)mediaObj),
                 _ => throw new NotImplementedException(),
             };
         }

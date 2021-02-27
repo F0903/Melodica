@@ -34,7 +34,7 @@ namespace Melodica.Services.Caching
 
         private readonly string cacheLocation;
 
-        private readonly Dictionary<string, (MediaMetadata media, long accessCount)> cache = new Dictionary<string, (MediaMetadata media, long accessCount)>(MaxFilesInCache);
+        private readonly Dictionary<string, (MediaInfo media, long accessCount)> cache = new Dictionary<string, (MediaInfo media, long accessCount)>(MaxFilesInCache);
 
         public static async Task<(int deletedFiles, int filesInUse, long msDuration)> ClearAllCachesAsync()
         {
@@ -54,11 +54,11 @@ namespace Melodica.Services.Caching
 
         private Task LoadPreexistingFilesAsync()
         {
-            foreach (var metaFile in Directory.EnumerateFileSystemEntries(cacheLocation, $"*{MediaMetadata.MetaFileExtension}", SearchOption.AllDirectories).Convert(x => new FileInfo(x)))
+            foreach (var metaFile in Directory.EnumerateFileSystemEntries(cacheLocation, $"*{MediaInfo.MetaFileExtension}", SearchOption.AllDirectories).Convert(x => new FileInfo(x)))
             {
                 try
                 {
-                    var med = MediaMetadata.LoadFromFile(metaFile.FullName);
+                    var med = MediaInfo.LoadFromFile(metaFile.FullName);
                     cache.Add(med.Id ?? throw new Exception("Id was null."), (med, 0));
                 }
                 catch (Exception)
@@ -72,7 +72,7 @@ namespace Melodica.Services.Caching
         private static void DeleteMediaFile(FileInfo file)
         {
             // If the file specified is a metadata file.
-            if (file.Extension == MediaMetadata.MetaFileExtension)
+            if (file.Extension == MediaInfo.MetaFileExtension)
             {
                 file.Delete();
                 if (file.DirectoryName != null)
@@ -83,7 +83,7 @@ namespace Melodica.Services.Caching
             }
 
             file.Delete();
-            File.Delete(Path.ChangeExtension(file.FullName, MediaMetadata.MetaFileExtension));
+            File.Delete(Path.ChangeExtension(file.FullName, MediaInfo.MetaFileExtension));
         }
 
         public Task<long> GetCacheSizeAsync()
@@ -106,7 +106,7 @@ namespace Melodica.Services.Caching
             sw.Start();
             Parallel.ForEach<FileInfo>(files, (file, loop) =>
             {
-                if (file.Extension == MediaMetadata.MetaFileExtension)
+                if (file.Extension == MediaInfo.MetaFileExtension)
                     return;
                 try
                 {
