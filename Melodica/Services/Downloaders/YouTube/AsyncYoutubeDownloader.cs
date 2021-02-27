@@ -15,6 +15,7 @@ using YoutubeExplode.Videos.Streams;
 
 namespace Melodica.Services.Downloaders.YouTube
 {
+    //TODO: Rewrite
     public class AsyncYoutubeDownloader : IAsyncDownloader
     {
         private readonly YoutubeClient yt = new YoutubeClient();
@@ -48,27 +49,34 @@ namespace Melodica.Services.Downloaders.YouTube
             return Task.FromResult(id);
         }
 
-        private Task<Video> SearchOrGetVideo(string input)
+        private async Task<MediaMetadata> SearchOrGetVideo(string input)
         {
-            async Task<Video> SearchVideo(int attempt = 0)
+            async Task<MediaMetadata> SearchVideo(int attempt = 0)
             {
                 if (attempt > 3) throw new MediaUnavailableException();
 
-                Video? video;
                 try
                 {
                     var videos = yt.Search.GetVideosAsync(input);
                     var bufVideos = await videos.BufferAsync(attempt + 1);
-                    video = bufVideos.ElementAtOrDefault(attempt);
+                    var ytVideo = bufVideos.ElementAtOrDefault(attempt);
+                    if (ytVideo is null)
+                        return await SearchVideo(++attempt).ConfigureAwait(false);
+
+                    return MediaMetadata.FromYTVideo(ytVideo);
                 }
                 catch (Exception ex) when (IsUnavailable(ex))
                 {
                     throw new MediaUnavailableException();
                 }
-
-                return video ?? await SearchVideo(++attempt).ConfigureAwait(false);
             }
-            return input.IsUrl() ? yt.Videos.GetAsync(input) : SearchVideo();
+
+            if (input.IsUrl())
+            {
+                var video = await yt.Videos.GetAsync(input);
+                return MediaMetadata.FromYTVideo(video);
+            }
+            return await SearchVideo().ConfigureAwait(false);
         }
 
         public async Task<PlayableMedia> DownloadAsync(MediaMetadata meta)
@@ -112,29 +120,13 @@ namespace Melodica.Services.Downloaders.YouTube
             int i = 0;
             await foreach (var video in plVideos)
             {
-                plVideoMeta.Add(await GetVideoMetadataAsync(video));
+                plVideoMeta.Add(MediaMetadata.FromYTVideo(video));
                 i++;
             }
             return (plMeta, plVideoMeta);
         }
 
         public Task<string> GetLivestreamAsync(string streamURL) => yt.Videos.Streams.GetHttpLiveStreamUrlAsync(streamURL);
-
-        private static Task<MediaMetadata> GetVideoMetadataAsync(Video video)
-        {
-            var (artist, newTitle) = video.Title.AsSpan().SeperateArtistName();
-            return Task.FromResult(new MediaMetadata()
-            {
-                Origin = MediaOrigin.YouTube,
-                MediaType = MediaType.Video,
-                Duration = video.Duration,
-                Id = video.Id,
-                Thumbnail = video.Thumbnails.MediumResUrl,
-                Title = newTitle,
-                Artist = artist,
-                Url = video.Url
-            });
-        }
 
         private Task<MediaMetadata> GetPlaylistMetadataAsync(Playlist pl)
         {
@@ -191,21 +183,9 @@ namespace Melodica.Services.Downloaders.YouTube
         {
             MediaMetadata GetLivestream()
             {
-                var vidInfo = SearchOrGetVideo(input).Result;
-                var (artist, newTitle) = vidInfo.Title.AsSpan().SeperateArtistName();
-                var meta = new MediaMetadata()
-                {
-                    Duration = vidInfo.Duration,
-                    Id = vidInfo.Id,
-                    Origin = MediaOrigin.YouTube,
-                    MediaType = MediaType.Livestream,
-                    Thumbnail = vidInfo.Thumbnails.MediumResUrl,
-                    Title = newTitle,
-                    Artist = artist,
-                    Url = vidInfo.Url
-                };
+                var meta = SearchOrGetVideo(input).Result;
                 meta.DataInformation.Format = "hls";
-                meta.DataInformation.MediaPath = yt.Videos.Streams.GetHttpLiveStreamUrlAsync(vidInfo.Id).Result;
+                meta.DataInformation.MediaPath = yt.Videos.Streams.GetHttpLiveStreamUrlAsync(meta.Id ?? throw new NullReferenceException("Video ID was null.")).Result;
                 return meta;
             }
 
@@ -224,7 +204,7 @@ namespace Melodica.Services.Downloaders.YouTube
 
             var mType = EvaluateMediaTypeAsync(input).Result;
 
-            // This whole object casting thing smells a bit bad
+            // USE INTERFACES OR SOMETHING ELSE (VERY BAD)
             object mediaObj = mType switch
             {
                 MediaType.Video => SearchOrGetVideo(input).Result,
@@ -235,7 +215,7 @@ namespace Melodica.Services.Downloaders.YouTube
 
             return mType switch
             {
-                MediaType.Video => GetVideoMetadataAsync((Video)mediaObj),
+                MediaType.Video => Task.FromResult((MediaMetadata)mediaObj),
                 MediaType.Playlist => GetPlaylistMetadataAsync((Playlist)mediaObj),
                 MediaType.Livestream => Task.FromResult((MediaMetadata)mediaObj),
                 _ => throw new NotImplementedException(),

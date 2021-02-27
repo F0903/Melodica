@@ -12,6 +12,7 @@ using SpotifyAPI.Web;
 
 namespace Melodica.Services.Downloaders.Spotify
 {
+    //TODO: Rewrite
     public class AsyncSpotifyDownloader : IAsyncDownloader
     {
         private readonly SpotifyClient spotify =

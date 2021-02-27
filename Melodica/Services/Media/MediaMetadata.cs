@@ -2,6 +2,7 @@
 
 using Melodica.Services.Downloaders;
 using Melodica.Services.Serialization;
+using Melodica.Utility.Extensions;
 
 namespace Melodica.Services.Media
 {
@@ -20,6 +21,38 @@ namespace Melodica.Services.Media
         }
 
         private static readonly BinarySerializer bs = new BinarySerializer();
+
+        public static MediaMetadata FromYTVideo(YoutubeExplode.Videos.Video video)
+        {
+            var (artist, title) = video.Title.AsSpan().SeperateArtistName();
+            return new MediaMetadata()
+            {
+                Title = title,
+                Artist = artist,
+                Duration = video.Duration,
+                Id = video.Id,
+                Url = video.Url,
+                Thumbnail = video.Thumbnails.MediumResUrl,
+                Origin = MediaOrigin.YouTube,
+                MediaType = MediaType.Video
+            };
+        }
+
+        public static MediaMetadata FromYTVideo(YoutubeExplode.Playlists.PlaylistVideo video)
+        {
+            var (artist, title) = video.Title.AsSpan().SeperateArtistName();
+            return new MediaMetadata()
+            {
+                Title = title,
+                Artist = artist,
+                Duration = video.Duration,
+                Id = video.Id,
+                Url = video.Url,
+                Thumbnail = video.Thumbnails.MediumResUrl,
+                Origin = MediaOrigin.YouTube,
+                MediaType = MediaType.Video
+            };
+        }
 
         public static MediaMetadata LoadFromFile(string fullPath) => bs.DeserializeFileAsync<MediaMetadata>(fullPath).GetAwaiter().GetResult();
 
