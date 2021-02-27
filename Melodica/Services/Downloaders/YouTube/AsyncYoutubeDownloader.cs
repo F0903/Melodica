@@ -63,7 +63,7 @@ namespace Melodica.Services.Downloaders.YouTube
                     if (ytVideo is null)
                         return await SearchVideo(++attempt).ConfigureAwait(false);
 
-                    return MediaMetadata.FromYTVideo(ytVideo);
+                    return VideoToMetadata(ytVideo);
                 }
                 catch (Exception ex) when (IsUnavailable(ex))
                 {
@@ -74,7 +74,7 @@ namespace Melodica.Services.Downloaders.YouTube
             if (input.IsUrl())
             {
                 var video = await yt.Videos.GetAsync(input);
-                return MediaMetadata.FromYTVideo(video);
+                return VideoToMetadata(video);
             }
             return await SearchVideo().ConfigureAwait(false);
         }
@@ -113,14 +113,14 @@ namespace Melodica.Services.Downloaders.YouTube
         public async Task<(MediaMetadata playlist, IEnumerable<MediaMetadata> videos)> DownloadPlaylistInfoAsync(string url)
         {
             var pl = await yt.Playlists.GetAsync(url);
-            var plMeta = await GetPlaylistMetadataAsync(pl);
+            var plMeta = await PlaylistToMetadata(pl);
 
             var plVideos = yt.Playlists.GetVideosAsync(pl.Id);
             var plVideoMeta = new List<MediaMetadata>(10);
             int i = 0;
             await foreach (var video in plVideos)
             {
-                plVideoMeta.Add(MediaMetadata.FromYTVideo(video));
+                plVideoMeta.Add(VideoToMetadata(video));
                 i++;
             }
             return (plMeta, plVideoMeta);
@@ -128,7 +128,40 @@ namespace Melodica.Services.Downloaders.YouTube
 
         public Task<string> GetLivestreamAsync(string streamURL) => yt.Videos.Streams.GetHttpLiveStreamUrlAsync(streamURL);
 
-        private Task<MediaMetadata> GetPlaylistMetadataAsync(Playlist pl)
+        public static MediaMetadata VideoToMetadata(Video video)
+        {
+            var (artist, title) = video.Title.AsSpan().SeperateArtistName();
+            return new MediaMetadata()
+            {
+                Title = title,
+                Artist = artist,
+                Duration = video.Duration,
+                Id = video.Id,
+                Url = video.Url,
+                Thumbnail = video.Thumbnails.MediumResUrl,
+                Origin = MediaOrigin.YouTube,
+                MediaType = MediaType.Video
+            };
+        }
+
+        public static MediaMetadata VideoToMetadata(PlaylistVideo video)
+        {
+            var (artist, title) = video.Title.AsSpan().SeperateArtistName();
+            return new MediaMetadata()
+            {
+                Title = title,
+                Artist = artist,
+                Duration = video.Duration,
+                Id = video.Id,
+                Url = video.Url,
+                Thumbnail = video.Thumbnails.MediumResUrl,
+                Origin = MediaOrigin.YouTube,
+                MediaType = MediaType.Video
+            };
+        }
+
+
+        private Task<MediaMetadata> PlaylistToMetadata(Playlist pl)
         {
             var (artist, newTitle) = pl.Title.AsSpan().SeperateArtistName();
             return Task.FromResult(new MediaMetadata()
@@ -216,7 +249,7 @@ namespace Melodica.Services.Downloaders.YouTube
             return mType switch
             {
                 MediaType.Video => Task.FromResult((MediaMetadata)mediaObj),
-                MediaType.Playlist => GetPlaylistMetadataAsync((Playlist)mediaObj),
+                MediaType.Playlist => PlaylistToMetadata((Playlist)mediaObj),
                 MediaType.Livestream => Task.FromResult((MediaMetadata)mediaObj),
                 _ => throw new NotImplementedException(),
             };
