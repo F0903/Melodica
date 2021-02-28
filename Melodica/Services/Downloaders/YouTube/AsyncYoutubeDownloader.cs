@@ -18,8 +18,8 @@ namespace Melodica.Services.Downloaders.YouTube
     //TODO: Rewrite
     public class AsyncYoutubeDownloader : IAsyncDownloader
     {
+        private static readonly MediaFileCache cache = new MediaFileCache("YouTube");
         private readonly YoutubeClient yt = new YoutubeClient();
-        private readonly MediaFileCache cache = new MediaFileCache("YouTube");
 
         public bool IsUrlSupported(string url) => url.StartsWith("https://www.youtube.com/") || url.StartsWith("http://www.youtube.com/");
 
