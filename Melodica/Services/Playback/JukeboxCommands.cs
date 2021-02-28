@@ -100,7 +100,8 @@ namespace Melodica.Services.Playback
 
         private IVoiceChannel GetUserVoiceChannel() => ((SocketGuildUser)Context.User).VoiceChannel;
 
-        private static Embed CreateMediaEmbed(MediaInfo mediaInfo, MediaInfo? parentInfo, Color? color = null, string? footerText = null) => new EmbedBuilder()
+        private static Embed CreateMediaEmbed(MediaInfo mediaInfo, MediaInfo? parentInfo, Color? color = null, string? footerText = null) =>
+            new EmbedBuilder()
                    .WithColor(color ?? Color.DarkGrey)
                    .WithTitle(mediaInfo.Artist)
                    .WithDescription(parentInfo != null ? $"__{mediaInfo.Title}__\n{parentInfo.Title}" : mediaInfo.Title)
@@ -116,12 +117,11 @@ namespace Melodica.Services.Playback
             if (attach.Count != 0)
             {
                 return Task.FromResult(new AttachmentMediaRequest(attach.ToArray()) as MediaRequest);
+                
             }
-            else
-            {
-                var downloader = DownloaderResolver.GetDownloaderFromQuery(query) ?? (query.IsUrl() ? null : IAsyncDownloader.Default);
-                return Task.FromResult(downloader == null ? new URLMediaRequest(null, query, true) : new DownloadRequest(query!, downloader) as MediaRequest);
-            }
+            var downloader = DownloaderResolver.GetDownloaderFromQuery(query) ?? (query.IsUrl() ? null : IAsyncDownloader.Default);
+            MediaRequest request = downloader == null ? new URLMediaRequest(null, query, true) : new DownloadRequest(query!, downloader);
+            return Task.FromResult(request);
         }
 
         [Command("ClearCache"), Summary("Clears cache."), RequireOwner]
