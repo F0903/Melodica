@@ -51,10 +51,13 @@ namespace Melodica.Services.Downloaders.Spotify
         {
             // Outsource downloading to another service (YouTube) since Spotify doesn't support direct streaming.
             var video = await dlHelper.DownloadAsync($"{info.Artist} {info.Title}");
-            video.Info.Id = info.Id;
-            video.Info.Title = info.Title;
-            video.Info.Artist = info.Artist;
-            video.Info.Image = info.Image;
+            video.Info = video.Info with
+            {
+                Id = info.Id,
+                Title = info.Title,
+                Artist = info.Artist,
+                ImageUrl = info.ImageUrl
+            };
             return video;
         }
 
@@ -85,6 +88,7 @@ namespace Melodica.Services.Downloaders.Spotify
             return tracklist;
         }
 
+        //TODO: Refactor or rewrite this whole ordeal.
         public async Task<(MediaInfo playlist, IEnumerable<MediaInfo> videos)> DownloadPlaylistInfoAsync(string url)
         {
             string? id = await ParseURLToIdAsync(url);
@@ -109,7 +113,7 @@ namespace Melodica.Services.Downloaders.Spotify
             }
 
             var itemImages = isAlbum ? spotifyAlbum!.Images : spotifyPlaylist!.Images;
-            var playlistTracks = new MediaInfo[isAlbum ? spotifyAlbum!.Tracks.Items!.Count : spotifyPlaylist!.Tracks!.Items!.Count];
+            var playlistTracks = new SpotifyMediaInfo[isAlbum ? spotifyAlbum!.Tracks.Items!.Count : spotifyPlaylist!.Tracks!.Items!.Count];
             var totalDuration = TimeSpan.Zero;
 
             if (isAlbum)
@@ -125,14 +129,13 @@ namespace Melodica.Services.Downloaders.Spotify
 
                     var lastTotalDuration = totalDuration;
 
-                    playlistTracks[i] = new MediaInfo()
+                    playlistTracks[i] = new SpotifyMediaInfo()
                     {
-                        Origin = MediaOrigin.Spotify,
                         MediaType = MediaType.Video,
                         Title = track.Name,
                         Artist = SeperateArtistNames(track.Artists),
                         Duration = (totalDuration += TimeSpan.FromSeconds(track.DurationMs / 1000)) - lastTotalDuration, // Ugly
-                        Image = trackImages.Count > 0 ? trackImages[0].Url : null,
+                        ImageUrl = trackImages.Count > 0 ? trackImages[0].Url : null,
                         Url = track.Href,
                         Id = track.Id
                     };
@@ -148,28 +151,26 @@ namespace Melodica.Services.Downloaders.Spotify
 
                     var lastTotalDuration = totalDuration;
 
-                    playlistTracks[i] = new MediaInfo()
+                    playlistTracks[i] = new SpotifyMediaInfo()
                     {
-                        Origin = MediaOrigin.Spotify,
                         MediaType = MediaType.Video,
                         Title = track.Name,
                         Artist = SeperateArtistNames(track.Artists),
                         Duration = (totalDuration += TimeSpan.FromSeconds(track.DurationMs / 1000)) - lastTotalDuration, // Ugly
-                        Image = trackImages.Count > 0 ? trackImages[0].Url : null,
+                        ImageUrl = trackImages.Count > 0 ? trackImages[0].Url : null,
                         Url = track.Href,
                         Id = track.Id
                     };
                 }
             }
 
-            var playlistInfo = new MediaInfo()
+            var playlistInfo = new SpotifyMediaInfo()
             {
                 Title = (isAlbum ? spotifyAlbum!.Name : spotifyPlaylist!.Name) ?? throw new DownloaderException("Could not fetch name of Spotify media."),
                 Artist = isAlbum ? SeperateArtistNames(spotifyAlbum!.Artists) : spotifyPlaylist!.Name ?? throw new DownloaderException("Could not fetch name of Spotify media."),
                 Duration = totalDuration,
-                Origin = MediaOrigin.Spotify,
                 MediaType = MediaType.Playlist,
-                Image = itemImages!.Count > 0 ? itemImages![0].Url : null,
+                ImageUrl = itemImages!.Count > 0 ? itemImages![0].Url : null,
                 Url = isAlbum ? spotifyAlbum!.Href : spotifyPlaylist!.Href
             };
 
@@ -182,16 +183,15 @@ namespace Melodica.Services.Downloaders.Spotify
             var track = await spotify.Tracks.Get(id);
             var trackImages = track.Album.Images;
 
-            return new MediaInfo()
+            return new SpotifyMediaInfo()
             {
-                Origin = MediaOrigin.Spotify,
                 MediaType = MediaType.Video,
                 Title = track.Name,
                 Artist = SeperateArtistNames(track.Artists),
                 Duration = TimeSpan.FromSeconds(track.DurationMs / 1000),
                 Id = track.Id,
                 Url = track.Href,
-                Image = trackImages.Count > 0 ? trackImages[0].Url : null
+                ImageUrl = trackImages.Count > 0 ? trackImages[0].Url : null
             };
         }
 

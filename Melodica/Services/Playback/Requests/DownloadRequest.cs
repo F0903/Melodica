@@ -29,7 +29,7 @@ namespace Melodica.Services.Playback.Requests
                 for (int i = 0; i < videos.Count(); i++)
                 {
                     var item = videos.ElementAt(i);
-                    SubRequests!.Add(new DownloadRequest(item, info, item.Origin.SupportsDirectDownloads ? downloader : IAsyncDownloader.Default));
+                    SubRequests!.Add(new DownloadRequest(item, info, downloader));
                 }
             }
         }

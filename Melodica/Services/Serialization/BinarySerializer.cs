@@ -27,7 +27,7 @@ namespace Melodica.Services.Serialization
         public Task<T> DeserializeFileAsync<T>(string path)
         {
             using var file = File.Open(path, FileMode.Open, FileAccess.Read, FileShare.Read);
-            return Task.FromResult((T)Convert.ChangeType(bin.Deserialize(file), typeof(T)));
+            return Task.FromResult((T)bin.Deserialize(file));
         }
 
 #pragma warning restore SYSLIB0011

@@ -24,7 +24,7 @@ namespace Melodica.Services.Playback.Requests
                 MediaType = directStream ? MediaType.Livestream : MediaType.Video,
                 Url = this.mediaUrl,
                 Title = this.mediaName,
-                DataInformation = new MediaInfo.DataInfo()
+                DataInformation = new DataInfo()
                 {
                     Format = mediaFormat,
                     MediaPath = this.mediaUrl

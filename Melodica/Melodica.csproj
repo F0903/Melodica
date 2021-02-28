@@ -109,4 +109,8 @@
 		</None>
 	</ItemGroup>
 
+	<ItemGroup>
+	  <Folder Include="Services\Downloaders\Soundcloud\" />
+	</ItemGroup>
+
 </Project>

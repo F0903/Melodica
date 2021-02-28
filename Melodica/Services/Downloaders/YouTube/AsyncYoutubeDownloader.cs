@@ -128,34 +128,32 @@ namespace Melodica.Services.Downloaders.YouTube
 
         public Task<string> GetLivestreamAsync(string streamURL) => yt.Videos.Streams.GetHttpLiveStreamUrlAsync(streamURL);
 
-        public static MediaInfo VideoToMetadata(Video video)
+        static MediaInfo VideoToMetadata(Video video)
         {
             var (artist, title) = video.Title.AsSpan().SeperateArtistName();
-            return new MediaInfo()
+            return new YoutubeMediaInfo()
             {
                 Title = title,
                 Artist = artist,
                 Duration = video.Duration,
                 Id = video.Id,
                 Url = video.Url,
-                Image = video.Thumbnails.MediumResUrl,
-                Origin = MediaOrigin.YouTube,
+                ImageUrl = video.Thumbnails.MediumResUrl,
                 MediaType = MediaType.Video
             };
         }
 
-        public static MediaInfo VideoToMetadata(PlaylistVideo video)
+        static MediaInfo VideoToMetadata(PlaylistVideo video)
         {
             var (artist, title) = video.Title.AsSpan().SeperateArtistName();
-            return new MediaInfo()
+            return new YoutubeMediaInfo()
             {
                 Title = title,
                 Artist = artist,
                 Duration = video.Duration,
                 Id = video.Id,
                 Url = video.Url,
-                Image = video.Thumbnails.MediumResUrl,
-                Origin = MediaOrigin.YouTube,
+                ImageUrl = video.Thumbnails.MediumResUrl,
                 MediaType = MediaType.Video
             };
         }
@@ -164,13 +162,13 @@ namespace Melodica.Services.Downloaders.YouTube
         private Task<MediaInfo> PlaylistToMetadata(Playlist pl)
         {
             var (artist, newTitle) = pl.Title.AsSpan().SeperateArtistName();
-            return Task.FromResult(new MediaInfo()
+            return Task.FromResult(
+                (MediaInfo)new YoutubeMediaInfo()
             {
-                Origin = MediaOrigin.YouTube,
                 MediaType = MediaType.Playlist,
                 Duration = pl.GetTotalDurationAsync(yt).GetAwaiter().GetResult(),
                 Id = pl.Id,
-                Image = pl.GetPlaylistThumbnail(yt).GetAwaiter().GetResult(),
+                ImageUrl = pl.GetPlaylistThumbnail(yt).GetAwaiter().GetResult(),
                 Title = newTitle,
                 Artist = artist,
                 Url = pl.Url

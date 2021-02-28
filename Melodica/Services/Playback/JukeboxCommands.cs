@@ -108,7 +108,7 @@ namespace Melodica.Services.Playback
                                parentInfo != null ?
                                $"{mediaInfo.Duration} | {parentInfo.Duration}" :
                                footerText ?? mediaInfo.Duration.ToString() : "")
-                   .WithThumbnailUrl(mediaInfo.Image).Build();
+                   .WithThumbnailUrl(mediaInfo.ImageUrl).Build();
 
         private Task<MediaRequest> GetRequestAsync(string query)
         {
@@ -232,7 +232,7 @@ namespace Melodica.Services.Playback
             {
                 var queueDuration = queue.GetTotalDuration();
                 eb.WithTitle("**Queue**")
-                  .WithThumbnailUrl(queue.GetMediaInfo().Image)
+                  .WithThumbnailUrl(queue.GetMediaInfo().ImageUrl)
                   .WithFooter($"{(queueDuration == TimeSpan.Zero ? '\u221E'.ToString() : queueDuration.ToString())}{(Jukebox.Shuffle ? " | Shuffle" : "")}");
 
                 int maxElems = 20;

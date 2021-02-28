@@ -15,7 +15,7 @@ namespace Melodica.Services.Media
             rawMediaData = data;
         }
 
-        public virtual MediaInfo Info { get; protected set; }
+        public MediaInfo Info { get; set; }
 
         private Stream? rawMediaData;
 
@@ -26,8 +26,8 @@ namespace Melodica.Services.Media
                 throw new FileNotFoundException($"Metadata file was not found.");
 
             var meta = await MediaInfo.LoadFromFile(songPath);
-            if (meta.DataInformation is null || !File.Exists(meta.DataInformation?.MediaPath))
-                throw new FileNotFoundException("The associated media file of this metadata does not exist, or data info was null.");
+            if (!File.Exists(meta.DataInformation.MediaPath))
+                throw new FileNotFoundException("The associated media file of this metadata does not exist.");
 
             return new PlayableMedia(meta);
         }
@@ -39,8 +39,21 @@ namespace Melodica.Services.Media
             if (rawMediaData == null)
                 return ("", "");
 
+            if (saveDir is null)
+                throw new NullReferenceException("SaveDir was not set.");
+
+            var id = Info.Id;
+            if (id is null)
+                throw new NullReferenceException("Tried to save media with empty ID.");
+
+            var legalId = id.ReplaceIllegalCharacters();
+
+            var fileExt = Info.DataInformation.FileExtension;
+            if (fileExt is null)
+                throw new NullReferenceException("File extension was null.");
+
             // Write the media data to file.
-            string? mediaLocation = Path.Combine(saveDir ?? throw new NullReferenceException("SaveDir was not set."), (Info.Id ?? throw new Exception("Tried to save media with empty ID.")).ReplaceIllegalCharacters() + Info.DataInformation.FileExtension);
+            string? mediaLocation = Path.Combine(saveDir, legalId + fileExt);
             using var file = File.OpenWrite(mediaLocation);
             await rawMediaData.CopyToAsync(file);
             await file.FlushAsync();
@@ -52,7 +65,7 @@ namespace Melodica.Services.Media
             rawMediaData = null;
 
             // Serialize the metadata.
-            string? metaLocation = Path.Combine(saveDir!, (Info.Id ?? throw new NullReferenceException("Tried to save media with empty ID.")).ReplaceIllegalCharacters() + MediaInfo.MetaFileExtension);
+            string? metaLocation = Path.Combine(saveDir!, legalId + MediaInfo.MetaFileExtension);
             var bs = new BinarySerializer();
             await bs.SerializeToFileAsync(metaLocation, Info);
             return (mediaLocation, metaLocation);

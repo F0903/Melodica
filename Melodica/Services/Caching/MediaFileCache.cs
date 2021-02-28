@@ -52,13 +52,13 @@ namespace Melodica.Services.Caching
             return (deletedFiles, filesInUse, msDuration);
         }
 
-        private Task LoadPreexistingFilesAsync()
+        private async Task LoadPreexistingFilesAsync()
         {
             foreach (var metaFile in Directory.EnumerateFileSystemEntries(cacheLocation, $"*{MediaInfo.MetaFileExtension}", SearchOption.AllDirectories).Convert(x => new FileInfo(x)))
             {
                 try
                 {
-                    var med = MediaInfo.LoadFromFile(metaFile.FullName);
+                    var med = await MediaInfo.LoadFromFile(metaFile.FullName);
                     cache.Add(med.Id ?? throw new Exception("Id was null."), (med, 0));
                 }
                 catch (Exception)
@@ -66,7 +66,6 @@ namespace Melodica.Services.Caching
                     DeleteMediaFile(metaFile);
                 }
             }
-            return Task.CompletedTask;
         }
 
         private static void DeleteMediaFile(FileInfo file)
@@ -89,8 +88,6 @@ namespace Melodica.Services.Caching
         public Task<long> GetCacheSizeAsync()
         {
             var files = Directory.EnumerateFiles(cacheLocation);
-            if (files.Any())
-                return Task.FromResult((long)0);
             return Task.FromResult(files.AsParallel().Convert(x => new FileInfo(x)).Sum(f => f.Length));
         }
 
@@ -169,19 +166,19 @@ namespace Melodica.Services.Caching
             return (deletedFiles, filesInUse, msDuration);
         }
 
-        public Task<PlayableMedia> GetAsync(string id)
+        public async Task<PlayableMedia> GetAsync(string id)
         {
-            Task<PlayableMedia> mediaTask;
+            PlayableMedia mediaTask;
             try
             {
                 var (media, accessCount) = cache[id];
                 cache[id] = (media, accessCount + 1); // This looks grim
-                mediaTask = PlayableMedia.LoadFromFileAsync(media.DataInformation.MediaPath!);
+                mediaTask = await PlayableMedia.LoadFromFileAsync(media.DataInformation.MediaPath!);
             }
             catch (FileNotFoundException)
             {
                 cache.Clear();
-                LoadPreexistingFilesAsync();
+                await LoadPreexistingFilesAsync();
                 throw new MissingMetadataException("The metadata file for this media was deleted externally... Please try again.");
             }
             return mediaTask;

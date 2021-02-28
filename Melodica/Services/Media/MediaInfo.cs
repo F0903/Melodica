@@ -25,29 +25,29 @@ namespace Melodica.Services.Media
     }
 
     [Serializable]
-    public class MediaInfo
+    public record MediaInfo
     {
-        private static readonly BinarySerializer bs = new BinarySerializer();
+        private static readonly BinarySerializer bin = new BinarySerializer();
 
-        public static Task<MediaInfo> LoadFromFile(string fullPath) => bs.DeserializeFileAsync<MediaInfo>(fullPath);
+        public static Task<MediaInfo> LoadFromFile(string fullPath) => bin.DeserializeFileAsync<MediaInfo>(fullPath);
 
         public const string MetaFileExtension = ".meta";
 
 
-        public MediaType MediaType { get; set; }
+        public MediaType MediaType { get; init; }
 
         public TimeSpan Duration { get; set; }
 
-        public string Title { get; set; } = "External Media";
+        public virtual string? Id { get; init; }
 
-        public string Id { get; init; }
+        public string Title { get; init; } = "External Media";
 
-        public string Artist { get; set; } = "";
+        public string Artist { get; init; } = "Unknown";
 
-        public string? Image { get; set; }
+        public string? Url { get; init; }
 
-        public string? Url { get; set; }
+        public string? ImageUrl { get; init; }
 
-        public DataInfo? DataInformation;
+        public DataInfo DataInformation = new DataInfo();
     }
 }
