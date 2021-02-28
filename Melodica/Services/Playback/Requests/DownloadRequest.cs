@@ -21,17 +21,7 @@ namespace Melodica.Services.Playback.Requests
             downloader = dl;
             this.query = query;
 
-            if (dl.IsUrlPlaylistAsync(query))
-            {
-                SubRequests = new List<MediaRequest>();
-                var (playlistInfo, videos) = downloader.DownloadPlaylistInfoAsync(this.query).Result;
-                info = playlistInfo;
-                for (int i = 0; i < videos.Count(); i++)
-                {
-                    var item = videos.ElementAt(i);
-                    SubRequests!.Add(new DownloadRequest(item, info, downloader));
-                }
-            }
+            
         }
 
         private DownloadRequest(MediaInfo info, MediaInfo parentRequestInfo, IAsyncDownloader dl)
@@ -45,47 +35,13 @@ namespace Melodica.Services.Playback.Requests
             this.info = info;
         }
 
-        public const int MaxExceptionRetries = 3;
-        private int currentExceptionRetries = 0;
-
         private readonly IAsyncDownloader downloader;
 
-        private readonly string query;
+        public override MediaInfo GetInfo() => ;
 
-        public override MediaInfo? ParentRequestInfo { get; protected set; }
-
-        public override List<MediaRequest>? SubRequests { get; set; }
-
-        private MediaInfo? info;
-
-        public override MediaInfo GetInfo() => info ??= downloader.GetMediaInfoAsync(query).Result;
-
-        public override async Task<PlayableMedia> GetMediaAsync()
+        public override async Task<MediaCollection> GetMediaAsync()
         {
-            Task<PlayableMedia> GetVideoAsync(string? id = null)
-            {
-                PlayableMedia media;
-                try
-                {
-                    if (info != null && info!.MediaType == MediaType.Livestream) // Quicker than the alternative as livestreams don't need downloads, and skips uneccesary calls to APIs
-                        return Task.FromResult(new PlayableMedia(info, null));
-
-                    media = info != null ? downloader.DownloadAsync(info).Result : downloader.DownloadAsync(query).Result;
-                    info = media.Info;
-                }
-                catch (Exception ex)
-                {
-                    if (ex is MediaUnavailableException || ex.InnerException is MediaUnavailableException)
-                        throw;
-
-                    if (currentExceptionRetries++ > MaxExceptionRetries)
-                        throw new Exception("Max exception retry attempts reached. The specified media could not be retrieved.\nIf this issue persists, please contact the bot owner.", ex);
-
-                    return GetVideoAsync(id); // Retry once more.
-                }
-                return Task.FromResult(media);
-            }
-            return await GetVideoAsync();
+            
         }
     }
 }
