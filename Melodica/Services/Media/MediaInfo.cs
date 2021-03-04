@@ -38,7 +38,7 @@ namespace Melodica.Services.Media
 
         public TimeSpan Duration { get; set; }
 
-        public virtual string? Id { get; init; }
+        public string? Id { get; init; }
 
         public string Title { get; init; } = "External Media";
 

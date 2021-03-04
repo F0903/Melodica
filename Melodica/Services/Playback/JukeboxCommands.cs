@@ -18,7 +18,7 @@ namespace Melodica.Services.Playback
 {
     public class JukeboxCommands : ModuleBase<SocketCommandContext>
     {
-        private Jukebox Jukebox => JukeboxFactory.GetOrCreateJukeboxAsync(Context.Guild, () => new Jukebox(MediaCallback)).GetAwaiter().GetResult();
+        private Jukebox Jukebox => JukeboxManager.GetOrCreateJukeboxAsync(Context.Guild, () => new Jukebox(MediaCallback)).GetAwaiter().GetResult();
 
         private Embed? playbackEmbed;
         private IUserMessage? playbackMessage;
@@ -111,16 +111,16 @@ namespace Melodica.Services.Playback
                                footerText ?? mediaInfo.Duration.ToString() : "")
                    .WithThumbnailUrl(mediaInfo.ImageUrl).Build();
 
-        private Task<MediaRequest> GetRequestAsync(string query)
+        private Task<IMediaRequest> GetRequestAsync(string query)
         {
             var attach = Context.Message.Attachments;
             if (attach.Count != 0)
             {
-                return Task.FromResult(new AttachmentMediaRequest(attach.ToArray()) as MediaRequest);
+                return Task.FromResult(new AttachmentMediaRequest(attach.ToArray()) as IMediaRequest);
                 
             }
             var downloader = DownloaderResolver.GetDownloaderFromQuery(query) ?? (query.IsUrl() ? null : IAsyncDownloader.Default);
-            MediaRequest request = downloader == null ? new URLMediaRequest(null, query, true) : new DownloadRequest(query!, downloader);
+            IMediaRequest request = downloader == null ? new URLMediaRequest(null, query, true) : new DownloadRequest(query!, downloader);
             return Task.FromResult(request);
         }
 
@@ -172,9 +172,9 @@ namespace Melodica.Services.Playback
                 return;
             }
 
-            var dur = Jukebox.Duration;
-            var songDur = Jukebox.Song!.Value.info.Duration;
-            await ReplyAsync((songDur != TimeSpan.Zero ? $"**__{songDur}__**\n" : "") + $"{dur}");
+            var dur = Jukebox.Elapsed;
+            var songDur = Jukebox.CurrentSong!.Value.info.Duration;
+            await ReplyAsync((songDur != TimeSpan.Zero ? $"__{songDur}__\n" : "") + $"{dur}");
         }
 
         [Command("Resume", RunMode = RunMode.Sync), Summary("Resumes playback.")]
@@ -209,10 +209,11 @@ namespace Melodica.Services.Playback
         {
             // If index is null (default) then remove the last element.
             var removed = index == null ? await Jukebox.Queue.RemoveAtAsync(^0) : await Jukebox.Queue.RemoveAtAsync(index.Value - 1);
+            var removedInfo = await removed.GetInfo();
             await ReplyAsync(null, false, new EmbedBuilder()
             {
                 Title = "**Removed**",
-                Description = removed.GetInfo().Title
+                Description = removedInfo.Title
             }.Build());
         }
 
@@ -230,9 +231,9 @@ namespace Melodica.Services.Playback
             }
             else
             {
-                var queueDuration = queue.GetTotalDuration();
+                var queueDuration = queue.GetTotalDurationAsync();
                 eb.WithTitle("**Queue**")
-                  .WithThumbnailUrl(queue.GetMediaInfo().ImageUrl)
+                  .WithThumbnailUrl(queue.GetMediaInfoAsync().ImageUrl)
                   .WithFooter($"{(queueDuration == TimeSpan.Zero ? '\u221E'.ToString() : queueDuration.ToString())}{(Jukebox.Shuffle ? " | Shuffle" : "")}");
 
                 int maxElems = 20;
@@ -241,7 +242,7 @@ namespace Melodica.Services.Playback
                     if (i > queue.Length)
                         break;
                     var song = queue[i - 1];
-                    var songInfo = song.GetInfo();
+                    var songInfo = await song.GetInfo();
                     eb.AddField(i == 1 ? "Next:" : i == maxElems ? "And more" : i.ToString(), i == 1 ? $"**{songInfo.Artist} - {songInfo.Title}**" : i == maxElems ? $"Plus {queue.Length - (i - 1)} other songs!" : $"{songInfo.Artist} - {songInfo.Title}", false);
                 }
             }
@@ -261,7 +262,7 @@ namespace Melodica.Services.Playback
             var request = await GetRequestAsync(query);
 
             // Get info to see if the request is actually valid.
-            var info = request.GetInfo();
+            var info = await request.GetInfoAsync();
 
             Jukebox.Shuffle = false;
             await Jukebox.Queue.PutFirstAsync(request);

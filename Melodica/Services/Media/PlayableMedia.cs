@@ -12,12 +12,12 @@ namespace Melodica.Services.Media
         public PlayableMedia(MediaInfo meta, Stream? data)
         {
             Info = meta;
-            rawMediaData = data;
+            this.data = data;
         }
 
         public MediaInfo Info { get; set; }
 
-        private Stream? rawMediaData;
+        private readonly Stream? data;
 
         public static async Task<PlayableMedia> LoadFromFileAsync(string songPath)
         {
@@ -36,7 +36,7 @@ namespace Melodica.Services.Media
 
         public virtual async Task<(string mediaPath, string metaPath)> SaveDataAsync(string saveDir)
         {
-            if (rawMediaData == null)
+            if (data is null)
                 return ("", "");
 
             if (saveDir is null)
@@ -55,14 +55,13 @@ namespace Melodica.Services.Media
             // Write the media data to file.
             string? mediaLocation = Path.Combine(saveDir, legalId + fileExt);
             using var file = File.OpenWrite(mediaLocation);
-            await rawMediaData.CopyToAsync(file);
+            using (data)
+            {
+                await data.CopyToAsync(file);
+            }
             await file.FlushAsync();
 
             Info.DataInformation.MediaPath = mediaLocation;
-
-            // Dispose of raw data, since it is now on the disk.
-            rawMediaData.Dispose();
-            rawMediaData = null;
 
             // Serialize the metadata.
             string? metaLocation = Path.Combine(saveDir!, legalId + MediaInfo.MetaFileExtension);

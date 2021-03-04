@@ -1,7 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
+
+using AngleSharp.Text;
 
 using Melodica.Services.Caching;
 using Melodica.Services.Downloaders.Exceptions;
@@ -15,123 +19,50 @@ using YoutubeExplode.Videos.Streams;
 
 namespace Melodica.Services.Downloaders.YouTube
 {
-    //TODO: Rewrite
     public class AsyncYoutubeDownloader : IAsyncDownloader
     {
         private static readonly MediaFileCache cache = new MediaFileCache("YouTube");
         private readonly YoutubeClient yt = new YoutubeClient();
 
-        public bool IsUrlSupported(string url) => url.StartsWith("https://www.youtube.com/") || url.StartsWith("http://www.youtube.com/");
-
-        private async Task<PlayableMedia> DownloadVideo(MediaInfo meta)
+        static bool LikeYouTubeId(ReadOnlySpan<char> str)
         {
-            var vidStreams = await yt.Videos.Streams.GetManifestAsync(meta.Id ?? throw new DownloaderException("ID was null in DownloadVideo."));
-            var vidAudioStream = vidStreams.GetAudioOnly().WithHighestBitrate() ?? throw new DownloaderException("Could not get audio stream from video.");
+            if (str.Length > 34)
+                return false;
 
-            var rawStream = await yt.Videos.Streams.GetAsync(vidAudioStream!);
-
-            meta.DataInformation.Format = vidAudioStream!.Container.Name.ToLower();
-            return await cache.CacheMediaAsync(new PlayableMedia(meta, rawStream!));
-        }
-
-        private static bool IsUnavailable(Exception ex) =>
-            ex is YoutubeExplode.Exceptions.VideoUnplayableException ||
-            ex is YoutubeExplode.Exceptions.VideoUnavailableException ||
-            ex is YoutubeExplode.Exceptions.VideoRequiresPurchaseException;
-
-        private static Task<string> ParseURLToIdAsync(ReadOnlySpan<char> url)
-        {
-            if (!(url.StartsWith("https://") || url.StartsWith("http://")))
-                return Task.FromResult(url.ToString()); // Just return, cause the url is probably already an id.
-            int startIndex = url.IndexOf("?v=") + 3;
-            int stopIndex = url.Contains('&') ? url.IndexOf('&') : url.Length;
-            string? id = url[startIndex..stopIndex].ToString();
-            return Task.FromResult(id);
-        }
-
-        private async Task<MediaInfo> SearchOrGetVideo(string input)
-        {
-            async Task<MediaInfo> SearchVideo(int attempt = 0)
+            int numOfSmall = 0;
+            int numOfLarge = 0;
+            foreach (char letter in str)
             {
-                if (attempt > 3) throw new MediaUnavailableException();
-
-                try
-                {
-                    var videos = yt.Search.GetVideosAsync(input);
-                    var bufVideos = await videos.BufferAsync(attempt + 1);
-                    var ytVideo = bufVideos.ElementAtOrDefault(attempt);
-                    if (ytVideo is null)
-                        return await SearchVideo(++attempt).ConfigureAwait(false);
-
-                    return VideoToMetadata(ytVideo);
-                }
-                catch (Exception ex) when (IsUnavailable(ex))
-                {
-                    throw new MediaUnavailableException();
-                }
+                if (letter == ' ')
+                    return false;
+                if (letter.IsLowercaseAscii()) numOfSmall++;
+                else numOfLarge++;
             }
-
-            if (input.IsUrl())
-            {
-                var video = await yt.Videos.GetAsync(input);
-                return VideoToMetadata(video);
-            }
-            return await SearchVideo().ConfigureAwait(false);
+            return numOfSmall > 3 && numOfLarge > 2; // Might need tweaking over time.
         }
 
-        public async Task<PlayableMedia> DownloadAsync(MediaInfo meta)
+        async Task<TimeSpan> GetTotalDurationAsync(Playlist pl)
         {
-            if (meta.Id == null) throw new DownloaderException("Id of media was null. Unable to download.");
-            if (cache.Contains(meta.Id))
-                return await cache.GetAsync(meta.Id);
-
-            try
+            var videos = yt.Playlists.GetVideosAsync(pl.Id);
+            var ts = new TimeSpan();
+            await foreach (var video in videos)
             {
-                if (meta!.MediaType == MediaType.Playlist)
-                    throw new NotSupportedException(); // Something went very wrong.
-
-                if (meta.MediaType == MediaType.Livestream)
-                    return new PlayableMedia(meta, null); // Something went very wrong.
-
-                return await DownloadVideo(meta);
+                ts += video.Duration;
             }
-            catch (Exception ex)
-            {
-                if (IsUnavailable(ex))
-                    throw new MediaUnavailableException();
-                else
-                    throw new DownloaderException("Critical error happened in YT DownloadAsync.", ex);
-            }
+            return ts;
         }
 
-        public async Task<PlayableMedia> DownloadAsync(string query)
+        async Task<string> GetPlaylistThumbnail(Playlist pl)
         {
-            MediaInfo? meta = await GetMediaInfoAsync(query);
-            return await DownloadAsync(meta);
+            var video = (await yt.Playlists.GetVideosAsync(pl.Id).BufferAsync(1))[0];
+            return video.Thumbnails.MediumResUrl;
         }
 
-        public async Task<(MediaInfo playlist, IEnumerable<MediaInfo> videos)> DownloadPlaylistInfoAsync(string url)
-        {
-            var pl = await yt.Playlists.GetAsync(url);
-            var plMeta = await PlaylistToMetadata(pl);
-
-            var plVideos = yt.Playlists.GetVideosAsync(pl.Id);
-            var plVideoMeta = new List<MediaInfo>(10);
-            int i = 0;
-            await foreach (var video in plVideos)
-            {
-                plVideoMeta.Add(VideoToMetadata(video));
-                i++;
-            }
-            return (plMeta, plVideoMeta);
-        }
-
-        public Task<string> GetLivestreamAsync(string streamURL) => yt.Videos.Streams.GetHttpLiveStreamUrlAsync(streamURL);
 
         static MediaInfo VideoToMetadata(Video video)
         {
             var (artist, title) = video.Title.AsSpan().SeperateArtistName();
-            return new YoutubeMediaInfo()
+            return new MediaInfo()
             {
                 Title = title,
                 Artist = artist,
@@ -146,7 +77,7 @@ namespace Melodica.Services.Downloaders.YouTube
         static MediaInfo VideoToMetadata(PlaylistVideo video)
         {
             var (artist, title) = video.Title.AsSpan().SeperateArtistName();
-            return new YoutubeMediaInfo()
+            return new MediaInfo()
             {
                 Title = title,
                 Artist = artist,
@@ -158,112 +89,118 @@ namespace Melodica.Services.Downloaders.YouTube
             };
         }
 
-
-        private Task<MediaInfo> PlaylistToMetadata(Playlist pl)
+        async Task<MediaInfo> PlaylistToMetadataAsync(Playlist pl)
         {
             var (artist, newTitle) = pl.Title.AsSpan().SeperateArtistName();
-            return Task.FromResult(
-                (MediaInfo)new YoutubeMediaInfo()
-                {
-                    MediaType = MediaType.Playlist,
-                    Duration = pl.GetTotalDurationAsync(yt).GetAwaiter().GetResult(),
-                    Id = pl.Id,
-                    ImageUrl = pl.GetPlaylistThumbnail(yt).GetAwaiter().GetResult(),
-                    Title = newTitle,
-                    Artist = artist,
-                    Url = pl.Url
-                });
-        }
-
-        public bool IsUrlPlaylistAsync(string url) => url.StartsWith(@"http://www.youtube.com/playlist?list=") || url.StartsWith(@"https://www.youtube.com/playlist?list=");
-
-        protected Task<MediaType> EvaluateMediaTypeAsync(string input)
-        {
-            // if it is id, count the letters to determine
-            if (!input.IsUrl())
+            return new MediaInfo()
             {
-                if (input.AsSpan().LikeYouTubeId()) // If input looks like an ID
-                {
-                    return Task.FromResult(input.Length == 11 ?
-                        MediaType.Video :
-                        input.Length == 34 ?
-                        MediaType.Playlist :
-                        MediaType.Video); // If input mismatched, just default to a video.
-                }
-                else return Task.FromResult(MediaType.Video);
-            }
-
-            if (input.StartsWith(@"http://www.youtube.com/watch?v=") || input.StartsWith(@"https://www.youtube.com/watch?v="))
-            {
-                try
-                {
-                    var vid = yt.Videos.GetAsync(input).Result;
-                    bool isLive = vid.Duration == TimeSpan.Zero;
-                    return Task.FromResult(isLive ? MediaType.Livestream : MediaType.Video);
-                }
-                catch (Exception) { throw new DownloaderException("Could not get video. ID might not be valid.\nIf this issue persists, please try again later or contact the developer."); }
-            }
-
-            if (IsUrlPlaylistAsync(input))
-                return Task.FromResult(MediaType.Playlist);
-
-            throw new DownloaderException("MediaType could not be evaluated. (YT)");
-        }
-
-        public Task<MediaInfo> GetMediaInfoAsync(string input)
-        {
-            MediaInfo GetLivestream()
-            {
-                var meta = SearchOrGetVideo(input).Result with { MediaType = MediaType.Livestream };
-                meta.DataInformation.Format = "hls";
-                meta.DataInformation.MediaPath = yt.Videos.Streams.GetHttpLiveStreamUrlAsync(meta.Id ?? throw new NullReferenceException("Video ID was null.")).Result;
-                return meta;
-            }
-
-            if (input.IsUrl())
-            {
-                var id = ParseURLToIdAsync(input).Result;
-                if (cache.Contains(id))
-                    return Task.FromResult(cache.GetAsync(id).Result.Info);
-            }
-
-            if (input.AsSpan().LikeYouTubeId())
-            {
-                if (cache.Contains(input))
-                    return Task.FromResult(cache.GetAsync(input).Result.Info);
-            }
-
-            var mType = EvaluateMediaTypeAsync(input).Result;
-
-            // USE INTERFACES OR SOMETHING ELSE (VERY BAD)
-            object mediaObj = mType switch
-            {
-                MediaType.Video => SearchOrGetVideo(input).Result,
-                MediaType.Playlist => yt.Playlists.GetAsync(input).Result,
-                MediaType.Livestream => GetLivestream(),
-                _ => throw new NotImplementedException(),
-            };
-
-            return mType switch
-            {
-                MediaType.Video => Task.FromResult((MediaInfo)mediaObj),
-                MediaType.Playlist => PlaylistToMetadata((Playlist)mediaObj),
-                MediaType.Livestream => Task.FromResult((MediaInfo)mediaObj),
-                _ => throw new NotImplementedException(),
+                MediaType = MediaType.Playlist,
+                Duration = await GetTotalDurationAsync(pl),
+                Id = pl.Id,
+                ImageUrl = await GetPlaylistThumbnail(pl),
+                Title = newTitle,
+                Artist = artist,
+                Url = pl.Url
             };
         }
 
-        public async Task<bool> VerifyUrlAsync(string url)
+        static bool IsUnavailable(Exception ex) =>
+            ex is YoutubeExplode.Exceptions.VideoUnplayableException ||
+            ex is YoutubeExplode.Exceptions.VideoUnavailableException ||
+            ex is YoutubeExplode.Exceptions.VideoRequiresPurchaseException;
+
+        static bool IsUrlPlaylist(string url) => url.StartsWith(@"http://www.youtube.com/playlist?list=") || url.StartsWith(@"https://www.youtube.com/playlist?list=");
+
+        public bool IsUrlSupported(string url) => url.StartsWith("https://www.youtube.com/") || url.StartsWith("http://www.youtube.com/");
+
+        async Task<MediaInfo> GetInfoFromPlaylistUrlAsync(string url)
         {
-            try
-            {
-                await EvaluateMediaTypeAsync(url);
-                return true;
-            }
-            catch (Exception)
-            { return false; }
+            var id = new PlaylistId(url);
+            var playlist = await yt.Playlists.GetAsync(id);
+            return await PlaylistToMetadataAsync(playlist);
         }
 
-        Task<MediaType> IAsyncDownloader.EvaluateMediaTypeAsync(string url) => throw new NotSupportedException();
+        async Task<MediaInfo> GetInfoFromUrlAsync(string url)
+        {
+            if (IsUrlPlaylist(url))
+            {
+                return await GetInfoFromPlaylistUrlAsync(url).ConfigureAwait(false);
+            }
+
+            var id = new VideoId(url);
+            var video = await yt.Videos.GetAsync(id);
+            return VideoToMetadata(video);
+        }
+
+        public async Task<MediaInfo> GetInfoAsync(string query)
+        {
+            if (query.IsUrl())
+            {
+                return await GetInfoFromUrlAsync(query).ConfigureAwait(false);
+            }
+
+            var videos = yt.Search.GetVideosAsync(query, 0, 1);
+            var video = await videos.FirstAsync();
+            return VideoToMetadata(video);
+        }
+
+        async Task<MediaCollection> DownloadLivestream(MediaInfo info)
+        {
+            var stream = await yt.Videos.Streams.GetHttpLiveStreamUrlAsync(info.Id ?? throw new NullReferenceException("Id was null."));
+            info.DataInformation.MediaPath = stream;
+            info.DataInformation.Format = "hls";
+            var media = new PlayableMedia(info, null);
+            return new MediaCollection(media);
+        }
+
+        async Task<MediaCollection> DownloadPlaylist(MediaInfo info)
+        {
+            if (info.Id is null)
+                throw new NullReferenceException("Id was null.");
+
+            var videos = new List<PlayableMedia>(10);
+            await foreach (var video in yt.Playlists.GetVideosAsync(info.Id))
+            {
+                if (video is null)
+                    continue;
+                var vidInfo = VideoToMetadata(video);
+                var manifest = await yt.Videos.Streams.GetManifestAsync(video.Id);
+                var streamInfo = manifest.GetAudioOnly().WithHighestBitrate() ?? throw new NullReferenceException("Could not get stream from YouTube.");
+                var data = await yt.Videos.Streams.GetAsync(streamInfo);
+                var media = new PlayableMedia(vidInfo, data);
+                videos.Add(media);
+            }
+            return new MediaCollection(videos);
+        }
+
+        public async Task<MediaCollection> DownloadAsync(MediaInfo info)
+        {
+            if (info.MediaType == MediaType.Playlist)
+            {
+                return await DownloadPlaylist(info).ConfigureAwait(false);
+            }
+
+            if (info.MediaType == MediaType.Livestream)
+            {
+                return await DownloadLivestream(info).ConfigureAwait(false);
+            }
+
+            if (info.Id is null)
+                throw new NullReferenceException("Id was null.");
+
+            if (cache.Contains(info.Id))
+            {
+                var cachedMedia = await cache.GetAsync(info.Id);
+                return new MediaCollection(cachedMedia);
+            }
+
+            var manifest = await yt.Videos.Streams.GetManifestAsync(info.Id);
+            //TODO: Get the audio with the closest bitrate to discord server bitrate.
+            var streamInfo = manifest.GetAudioOnly().WithHighestBitrate() ?? throw new NullReferenceException("Could not get stream from YouTube.");
+            var data = await yt.Videos.Streams.GetAsync(streamInfo);
+            var media = new PlayableMedia(info, data);
+            await cache.CacheMediaAsync(media);
+            return new MediaCollection(media);
+        }
     }
 }

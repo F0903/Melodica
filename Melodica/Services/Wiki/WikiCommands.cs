@@ -16,7 +16,7 @@ namespace Melodica.Services.Wiki
 
         private readonly IWikiProvider wiki;
 
-        private Jukebox GetJukebox => JukeboxFactory.GetJukeboxAsync(Context.Guild).Result;
+        private Jukebox GetJukebox => JukeboxManager.GetJukeboxAsync(Context.Guild).Result;
 
         [Command("Info"), Alias("Wiki"), Summary("Gets info from a wiki for the specified page.")]
         public async Task InfoAsync([Remainder] string? pageTitle = null)
@@ -38,7 +38,7 @@ namespace Melodica.Services.Wiki
             WikiElement info;
             if (pageTitle == null && juke.Playing)
             {
-                string? artist = juke.Song!.Value.info.Artist;
+                string? artist = juke.CurrentSong!.Value.info.Artist;
 
                 info = await wiki.GetInfoAsync(artist);
             }
