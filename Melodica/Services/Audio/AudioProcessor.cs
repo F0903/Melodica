@@ -3,6 +3,8 @@ using System.Diagnostics;
 using System.IO;
 using System.Threading.Tasks;
 
+using Melodica.Services.Media;
+
 namespace Melodica.Services.Audio
 {
     public abstract class AudioProcessor
@@ -34,11 +36,11 @@ namespace Melodica.Services.Audio
 
         public Stream? GetOutput() => outputAvailable ? processorProcess?.StandardOutput.BaseStream : null;
 
-        protected abstract Task<Process> ConstructAsync(string path, string? format, TimeSpan? startingPoint = null);
+        protected abstract Task<Process> CreateAsync(PlayableMedia media, TimeSpan? startingPoint = null);
 
-        public ValueTask Process(string path, string? format, TimeSpan? startingPoint = null)
+        public ValueTask Process(PlayableMedia media, TimeSpan? startingPoint = null)
         {
-            return new ValueTask(Task.Run(async () => (processorProcess = await ConstructAsync(path, format, startingPoint)).Start()));
+            return new ValueTask(Task.Run(async () => (processorProcess = await CreateAsync(media, startingPoint)).Start()));
         }
     }
 }

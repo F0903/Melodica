@@ -8,7 +8,7 @@ using Melodica.Services.Media;
 
 namespace Melodica.Services.Playback.Requests
 {
-    internal class AttachmentMediaRequest : MediaRequest
+    internal class AttachmentMediaRequest : IMediaRequest
     {
         public AttachmentMediaRequest(Discord.Attachment[] attachments) => attachment = attachments[0];
 
@@ -17,7 +17,7 @@ namespace Melodica.Services.Playback.Requests
         private MediaInfo? info;
 
         public override MediaInfo? ParentRequestInfo { get; protected set; }
-        public override List<MediaRequest>? SubRequests { get; set; }
+        public override List<IMediaRequest>? SubRequests { get; set; }
 
         public override MediaInfo GetInfo()
         {

@@ -66,30 +66,19 @@ namespace Melodica.Utility.Extensions
 
         public static string FixURLWhitespace(this string input, string whitespaceReplacement = "%20") => input.Replace(" ", whitespaceReplacement);
 
-        public static async Task<TimeSpan> GetTotalDurationAsync(this YoutubeExplode.Playlists.Playlist pl, YoutubeClient? client = null)
-        {
-            client ??= new YoutubeExplode.YoutubeClient();
-            var videos = client.Playlists.GetVideosAsync(pl.Id);
-            var ts = new TimeSpan();
-            await foreach (var video in videos)
-            {
-                ts += video.Duration;
-            }
-            return ts;
-        }
-
-        public static async Task<string> GetPlaylistThumbnail(this YoutubeExplode.Playlists.Playlist pl, YoutubeExplode.YoutubeClient? client = null)
-        {
-            client ??= new YoutubeClient();
-            var video = (await client.Playlists.GetVideosAsync(pl.Id).BufferAsync(1))[0];
-            return video.Thumbnails.MediumResUrl;
-        }
-
         public static TimeSpan Sum<T>(this IEnumerable<T> input, Func<T, TimeSpan> selector)
         {
             var sum = new TimeSpan();
             foreach (var item in input)
                 sum += selector(item);
+            return sum;
+        }
+
+        public static async Task<TimeSpan> SumAsync<T>(this IEnumerable<T> input, Func<T, Task<TimeSpan>> selector)
+        {
+            var sum = new TimeSpan();
+            foreach (var item in input)
+                sum += await selector(item);
             return sum;
         }
 
@@ -120,22 +109,5 @@ namespace Melodica.Utility.Extensions
              Uri.TryCreate(str, UriKind.Absolute, out var uri)
                 && (uri.Scheme == Uri.UriSchemeHttp
                 || uri.Scheme == Uri.UriSchemeHttps);
-
-        public static bool LikeYouTubeId(this ReadOnlySpan<char> str)
-        {
-            if (str.Length > 34)
-                return false;
-
-            int numOfSmall = 0;
-            int numOfLarge = 0;
-            foreach (char letter in str)
-            {
-                if (letter == ' ')
-                    return false;
-                if (letter.IsLowercaseAscii()) numOfSmall++;
-                else numOfLarge++;
-            }
-            return numOfSmall > 3 && numOfLarge > 2; // Might need tweaking over time.
-        }
     }
 }

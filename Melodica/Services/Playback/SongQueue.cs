@@ -13,52 +13,45 @@ namespace Melodica.Services.Playback
     {
         private readonly object locker = new object();
 
-        private readonly List<MediaRequest> list = new List<MediaRequest>();
+        private readonly List<PlayableMedia> list = new List<PlayableMedia>();
 
         public bool IsEmpty => list.Count == 0;
 
         public int Length => list.Count;
 
-        public MediaRequest this[int i] => list[i];
+        public PlayableMedia this[int i] => list[i];
 
-        public TimeSpan GetTotalDuration() => list.Sum(x => x.GetInfo().Duration);
+        public Task<TimeSpan> GetTotalDurationAsync() => Task.FromResult(list.Sum(x => x.Info.Duration));
 
-        public MediaRequest[] ToArray()
+        public PlayableMedia[] ToArray()
         {
             lock (locker)
                 return list.ToArray();
         }
 
-        public MediaInfo GetMediaInfo() => new MediaInfo() { Duration = GetTotalDuration(), ImageUrl = list[0].GetInfo().ImageUrl };
+        public async Task<MediaInfo> GetMediaInfoAsync() =>
+            new MediaInfo()
+            {
+                Duration = await GetTotalDurationAsync(),
+                ImageUrl = list[0].Info.ImageUrl
+            };
 
-        public Task EnqueueAsync(MediaRequest item)
+        public Task EnqueueAsync(MediaCollection items)
         {
-            list.Add(item);
+            list.AddRange(items.GetMedia());
             return Task.CompletedTask;
         }
 
-        public Task EnqueueAsync(IEnumerable<MediaRequest> items)
+        public Task PutFirstAsync(MediaCollection items)
         {
-            list.AddRange(items);
+            list.InsertRange(0, items.GetMedia());
             return Task.CompletedTask;
         }
 
-        public Task PutFirstAsync(MediaRequest item)
-        {
-            list.Insert(0, item);
-            return Task.CompletedTask;
-        }
-
-        public Task PutFirstAsync(IEnumerable<MediaRequest> items)
-        {
-            list.InsertRange(0, items);
-            return Task.CompletedTask;
-        }
-
-        public Task<MediaRequest> DequeueRandomAsync(bool keep = false)
+        public Task<PlayableMedia> DequeueRandomAsync(bool keep = false)
         {
             var rng = new Random();
-            MediaRequest item;
+            PlayableMedia item;
             lock (locker)
             {
                 item = list[rng.Next(0, list.Count)];
@@ -67,9 +60,9 @@ namespace Melodica.Services.Playback
             return Task.FromResult(item);
         }
 
-        public Task<MediaRequest> DequeueAsync(bool keep = false)
+        public Task<PlayableMedia> DequeueAsync(bool keep = false)
         {
-            MediaRequest item;
+            PlayableMedia item;
             lock (locker)
             {
                 item = list[0];
@@ -84,25 +77,23 @@ namespace Melodica.Services.Playback
             return Task.CompletedTask;
         }
 
-        public Task<MediaRequest> RemoveAtAsync(int index)
+        public Task<PlayableMedia> RemoveAtAsync(int index)
         {
             if (index < 0)
                 throw new Exception("Index cannot be under 0.");
             else if (index > list.Count)
                 throw new Exception("Index cannot be larger than the queues size.");
 
-            MediaRequest item;
+            PlayableMedia item;
             lock (locker)
             {
                 item = list[index];
                 list.RemoveAt(index);
             }
-            if (item.ParentRequestInfo != null) // Subtract duration.
-                item.ParentRequestInfo.Duration -= item.GetInfo().Duration;
             return Task.FromResult(item);
         }
 
-        public Task<MediaRequest> RemoveAtAsync(Index index)
+        public Task<PlayableMedia> RemoveAtAsync(Index index)
         {
             return RemoveAtAsync(index.GetOffset(list.Count - 1));
         }
