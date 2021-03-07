@@ -17,7 +17,7 @@ namespace Melodica.Services.Downloaders.Spotify
     public class AsyncSpotifyDownloader : IAsyncDownloader
     {
         private readonly SpotifyClient spotify =
-            new SpotifyClient(
+            new(
                 SpotifyClientConfig
                 .CreateDefault()
                 .WithAuthenticator(

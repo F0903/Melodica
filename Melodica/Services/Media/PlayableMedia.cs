@@ -9,15 +9,19 @@ namespace Melodica.Services.Media
 {
     public class PlayableMedia
     {
-        public PlayableMedia(MediaInfo meta, Stream? data)
+        public delegate Task<(Stream data, string format)> DataGetter(PlayableMedia self);
+
+        public PlayableMedia(MediaInfo meta, DataGetter? dataGetter)
         {
             Info = meta;
-            this.data = data;
+            this.dataGetter = dataGetter;
         }
 
         public MediaInfo Info { get; set; }
+        
+        public event Func<PlayableMedia, Task>? OnDataRequested;
 
-        private readonly Stream? data;
+        private readonly DataGetter? dataGetter;
 
         public static async Task<PlayableMedia> LoadFromFileAsync(string songPath)
         {
@@ -34,9 +38,16 @@ namespace Melodica.Services.Media
 
         private PlayableMedia(MediaInfo meta) => Info = meta;
 
+        public Task RequestDataAsync()
+        {
+            if (OnDataRequested is null)
+                return Task.CompletedTask;
+            return OnDataRequested(this);
+        }
+
         public virtual async Task<(string mediaPath, string metaPath)> SaveDataAsync(string saveDir)
         {
-            if (data is null)
+            if (dataGetter is null)
                 return ("", "");
 
             if (saveDir is null)
@@ -48,16 +59,15 @@ namespace Melodica.Services.Media
 
             var legalId = id.ReplaceIllegalCharacters();
 
-            var fileExt = Info.DataInformation.FileExtension;
-            if (fileExt is null)
-                throw new NullReferenceException("File extension was null.");
-
             // Write the media data to file.
+            var (data, format) = await dataGetter(this);
+            var fileExt = $".{format}";
             string? mediaLocation = Path.Combine(saveDir, legalId + fileExt);
             using var file = File.OpenWrite(mediaLocation);
             using (data)
             {
                 await data.CopyToAsync(file);
+                Info.DataInformation.Format = format;
             }
             await file.FlushAsync();
 

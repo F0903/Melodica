@@ -8,7 +8,7 @@ namespace Melodica.Services.Playback
 {
     public static class JukeboxManager
     {
-        static readonly ConcurrentDictionary<IGuild, Jukebox> jukeboxes = new ConcurrentDictionary<IGuild, Jukebox>();
+        static readonly ConcurrentDictionary<IGuild, Jukebox> jukeboxes = new();
 
         public static Task<Jukebox> GetJukeboxAsync(IGuild guild) => Task.FromResult(jukeboxes[guild]);
 

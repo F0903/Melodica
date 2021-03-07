@@ -1,4 +1,5 @@
-﻿using System.Threading.Tasks;
+﻿using System;
+using System.Threading.Tasks;
 
 using Discord;
 using Discord.Commands;
@@ -36,9 +37,12 @@ namespace Melodica.Services.Wiki
             }
 
             WikiElement info;
-            if (pageTitle == null && juke.Playing)
+            if (pageTitle is null && juke.Playing)
             {
-                string? artist = juke.CurrentSong!.Value.info.Artist;
+                var song = juke.GetSong();
+                if (song is null)
+                    throw new NullReferenceException("Song was null.");
+                string? artist = song.Value.song.Artist;
 
                 info = await wiki.GetInfoAsync(artist);
             }

@@ -32,9 +32,6 @@ namespace Melodica.Services.Playback.Requests
             };
         }
 
-        public override MediaInfo? ParentRequestInfo { get; protected set; }
-        public override List<IMediaRequest>? SubRequests { get; set; }
-
         private readonly string mediaName;
 
         private readonly string mediaFormat;
@@ -45,7 +42,7 @@ namespace Melodica.Services.Playback.Requests
 
         private readonly MediaInfo info;
 
-        private async Task<PlayableMedia> DownloadMediaAsync()
+        private async Task<MediaCollection> DownloadMediaAsync()
         {
             using var web = new WebClient();
 
@@ -58,14 +55,14 @@ namespace Melodica.Services.Playback.Requests
             var meta = new MediaInfo() { Title = mediaName, Duration = new TimeSpan(0) };
             meta.DataInformation.Format = mediaFormat;
 
-            return new PlayableMedia(meta, new MemoryStream(data));
+            return new MediaCollection(new PlayableMedia(meta, (_) => Task.FromResult(((Stream)new MemoryStream(data), ""))));
         }
 
-        public override Task<PlayableMedia> GetMediaAsync()
+        public Task<MediaCollection> GetMediaAsync()
         {
             if (directStream)
             {
-                return Task.FromResult(new PlayableMedia(info, null));
+                return Task.FromResult(new MediaCollection(new PlayableMedia(info, null)));
             }
             else
             {
@@ -73,6 +70,6 @@ namespace Melodica.Services.Playback.Requests
             }
         }
 
-        public override MediaInfo GetInfo() => info;
+        public Task<MediaInfo> GetInfoAsync() => Task.FromResult(info);
     }
 }

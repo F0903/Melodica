@@ -16,22 +16,19 @@ namespace Melodica.Services.Playback.Requests
 
         private MediaInfo? info;
 
-        public override MediaInfo? ParentRequestInfo { get; protected set; }
-        public override List<IMediaRequest>? SubRequests { get; set; }
-
-        public override MediaInfo GetInfo()
+        public Task<MediaInfo> GetInfoAsync()
         {
             info ??= new MediaInfo() { Duration = TimeSpan.Zero, Id = Path.ChangeExtension(attachment!.Filename, null), ImageUrl = null, Title = attachment!.Filename };
             info.DataInformation.Format = Path.GetExtension(attachment!.Filename).Replace(".", "");
-            return info;
+            return Task.FromResult(info);
         }
 
-        public override Task<PlayableMedia> GetMediaAsync()
+        public async Task<MediaCollection> GetMediaAsync()
         {
             using var web = new WebClient();
             byte[]? data = web.DownloadData(attachment!.Url);
-
-            return Task.FromResult((PlayableMedia)new TempMedia(GetInfo(), new MemoryStream(data)));
+            var info = await GetInfoAsync();
+            return new MediaCollection(new TempMedia(info, (_) => Task.FromResult(((Stream)new MemoryStream(data), ""))));
         }
     }
 }
