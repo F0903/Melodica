@@ -25,15 +25,19 @@ namespace Melodica.Services.Lyrics
             try { juke = await JukeboxManager.GetJukeboxAsync(Context.Guild); }
             catch (Exception) { juke = null; }
 
-            if (songName == null && !(juke != null && juke.Playing))
+            if (songName is null && !(juke is not null && juke.Playing))
             {
                 await ReplyAsync("You either need to specify a search term or have a song playing.");
                 return;
             }
 
-            if (songName == null)
+            if (songName is null)
             {
-                var songInfo = juke!.CurrentSong!.Value.info;
+                var song = juke!.GetSong();
+                if (song is null)
+                    throw new NullReferenceException("Song was null. (dbg-err)");
+
+                var songInfo = song.Value.song;
                 songName = $"{songInfo.Artist} {songInfo.Title}";
             }
 

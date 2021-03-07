@@ -8,9 +8,10 @@ namespace Melodica.Services.Media
 {
     public class MediaCollection
     {
-        public MediaCollection(IEnumerable<PlayableMedia> media)
+        public MediaCollection(IEnumerable<PlayableMedia> media, MediaInfo collectionInfo)
         {
             this.media = media;
+            this.info = collectionInfo;
         }
 
         public MediaCollection(PlayableMedia media)

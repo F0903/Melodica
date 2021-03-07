@@ -11,9 +11,9 @@ namespace Melodica.Services.Playback
 {
     public class SongQueue
     {
-        private readonly object locker = new object();
+        private readonly object locker = new();
 
-        private readonly List<PlayableMedia> list = new List<PlayableMedia>();
+        private readonly List<PlayableMedia> list = new();
 
         public bool IsEmpty => list.Count == 0;
 
@@ -29,26 +29,26 @@ namespace Melodica.Services.Playback
                 return list.ToArray();
         }
 
-        public async Task<MediaInfo> GetMediaInfoAsync() =>
+        public async ValueTask<MediaInfo> GetMediaInfoAsync() =>
             new MediaInfo()
             {
                 Duration = await GetTotalDurationAsync(),
                 ImageUrl = list[0].Info.ImageUrl
             };
 
-        public Task EnqueueAsync(MediaCollection items)
+        public ValueTask EnqueueAsync(MediaCollection items)
         {
             list.AddRange(items.GetMedia());
-            return Task.CompletedTask;
+            return ValueTask.CompletedTask;
         }
 
-        public Task PutFirstAsync(MediaCollection items)
+        public ValueTask PutFirstAsync(MediaCollection items)
         {
             list.InsertRange(0, items.GetMedia());
-            return Task.CompletedTask;
+            return ValueTask.CompletedTask;
         }
 
-        public Task<PlayableMedia> DequeueRandomAsync(bool keep = false)
+        public ValueTask<PlayableMedia> DequeueRandomAsync(bool keep = false)
         {
             var rng = new Random();
             PlayableMedia item;
@@ -57,10 +57,10 @@ namespace Melodica.Services.Playback
                 item = list[rng.Next(0, list.Count)];
                 if (!keep) list.Remove(item);
             }
-            return Task.FromResult(item);
+            return ValueTask.FromResult(item);
         }
 
-        public Task<PlayableMedia> DequeueAsync(bool keep = false)
+        public ValueTask<PlayableMedia> DequeueAsync(bool keep = false)
         {
             PlayableMedia item;
             lock (locker)
@@ -68,16 +68,16 @@ namespace Melodica.Services.Playback
                 item = list[0];
                 if (!keep) list.Remove(item);
             }
-            return Task.FromResult(item);
+            return ValueTask.FromResult(item);
         }
 
-        public Task ClearAsync()
+        public ValueTask ClearAsync()
         {
             list.Clear();
-            return Task.CompletedTask;
+            return ValueTask.CompletedTask;
         }
 
-        public Task<PlayableMedia> RemoveAtAsync(int index)
+        public ValueTask<PlayableMedia> RemoveAtAsync(int index)
         {
             if (index < 0)
                 throw new Exception("Index cannot be under 0.");
@@ -90,10 +90,10 @@ namespace Melodica.Services.Playback
                 item = list[index];
                 list.RemoveAt(index);
             }
-            return Task.FromResult(item);
+            return ValueTask.FromResult(item);
         }
 
-        public Task<PlayableMedia> RemoveAtAsync(Index index)
+        public ValueTask<PlayableMedia> RemoveAtAsync(Index index)
         {
             return RemoveAtAsync(index.GetOffset(list.Count - 1));
         }

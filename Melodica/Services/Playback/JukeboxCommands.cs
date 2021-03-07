@@ -23,7 +23,7 @@ namespace Melodica.Services.Playback
         private Embed? playbackEmbed;
         private IUserMessage? playbackMessage;
         private IUserMessage? playbackPlaylistMessage;
-        private readonly SemaphoreSlim playbackLock = new SemaphoreSlim(1);
+        private readonly SemaphoreSlim playbackLock = new(1);
 
         private async void MediaCallback(MediaInfo info, MediaState state, MediaInfo? parentInfo)
         {
@@ -173,7 +173,13 @@ namespace Melodica.Services.Playback
             }
 
             var dur = Jukebox.Elapsed;
-            var songDur = Jukebox.CurrentSong!.Value.info.Duration;
+            var song = Jukebox.GetSong();
+            if(song is null)
+            {
+                await ReplyAsync("Could not get song from jukebox.");
+                return;
+            }
+            var songDur = song.Value.song.Duration;
             await ReplyAsync((songDur != TimeSpan.Zero ? $"__{songDur}__\n" : "") + $"{dur}");
         }
 
@@ -192,7 +198,7 @@ namespace Melodica.Services.Playback
         }
 
         [Command("Skip", RunMode = RunMode.Sync), Summary("Skips current song.")]
-        public Task SkipAsync()
+        public ValueTask SkipAsync()
         {
             return Jukebox.SkipAsync();
         }
@@ -200,16 +206,17 @@ namespace Melodica.Services.Playback
         [Command("Clear"), Summary("Clears queue.")]
         public async Task ClearQueue()
         {
-            await Jukebox.Queue.ClearAsync();
+            await Jukebox.ClearAsync();
             await ReplyAsync("Cleared queue.");
         }
 
         [Command("Remove"), Summary("Removes song from queue by index, or removes the last element if no parameter is given.")]
         public async Task RemoveSongFromQueue(int? index = null)
         {
+            var queue = Jukebox.GetQueue();
             // If index is null (default) then remove the last element.
-            var removed = index == null ? await Jukebox.Queue.RemoveAtAsync(^0) : await Jukebox.Queue.RemoveAtAsync(index.Value - 1);
-            var removedInfo = await removed.GetInfo();
+            var removed = index == null ? await queue.RemoveAtAsync(^0) : await queue.RemoveAtAsync(index.Value - 1);
+            var removedInfo = removed.Info;
             await ReplyAsync(null, false, new EmbedBuilder()
             {
                 Title = "**Removed**",
@@ -220,8 +227,7 @@ namespace Melodica.Services.Playback
         [Command("Queue"), Summary("Shows current queue.")]
         public async Task QueueAsync()
         {
-            var queue = Jukebox.Queue;
-
+            var queue = Jukebox.GetQueue();
             var eb = new EmbedBuilder();
             if (queue.IsEmpty)
             {
@@ -231,9 +237,10 @@ namespace Melodica.Services.Playback
             }
             else
             {
-                var queueDuration = queue.GetTotalDurationAsync();
+                var queueDuration = await queue.GetTotalDurationAsync();
+                var info = await queue.GetMediaInfoAsync();
                 eb.WithTitle("**Queue**")
-                  .WithThumbnailUrl(queue.GetMediaInfoAsync().ImageUrl)
+                  .WithThumbnailUrl(info.ImageUrl)
                   .WithFooter($"{(queueDuration == TimeSpan.Zero ? '\u221E'.ToString() : queueDuration.ToString())}{(Jukebox.Shuffle ? " | Shuffle" : "")}");
 
                 int maxElems = 20;
@@ -242,7 +249,7 @@ namespace Melodica.Services.Playback
                     if (i > queue.Length)
                         break;
                     var song = queue[i - 1];
-                    var songInfo = await song.GetInfo();
+                    var songInfo = song.Info;
                     eb.AddField(i == 1 ? "Next:" : i == maxElems ? "And more" : i.ToString(), i == 1 ? $"**{songInfo.Artist} - {songInfo.Title}**" : i == maxElems ? $"Plus {queue.Length - (i - 1)} other songs!" : $"{songInfo.Artist} - {songInfo.Title}", false);
                 }
             }
@@ -265,7 +272,7 @@ namespace Melodica.Services.Playback
             var info = await request.GetInfoAsync();
 
             Jukebox.Shuffle = false;
-            await Jukebox.Queue.PutFirstAsync(request);
+            await Jukebox.SetNextAsync(request);
             await ReplyAsync(null, false, CreateMediaEmbed(info, null));
         }
 
@@ -278,13 +285,6 @@ namespace Melodica.Services.Playback
                 return;
             }
 
-            var queue = Jukebox.Queue;
-            if (queue.IsEmpty)
-            {
-                await ReplyAsync("Cannot continue from an empty queue.");
-                return;
-            }
-
             var voice = GetUserVoiceChannel();
             if (voice == null)
             {
@@ -292,7 +292,7 @@ namespace Melodica.Services.Playback
                 return;
             }
 
-            await Jukebox.PlayAsync(await queue.DequeueAsync(), voice);
+            await Jukebox.ContinueFromQueue(voice);
         }
 
         [Command("Switch"), Summary("Changes the current song.")]
@@ -317,9 +317,13 @@ namespace Melodica.Services.Playback
             {
                 var jukebox = Jukebox;
                 if (jukebox.Playing)
-                    await jukebox.SwitchAsync(await GetRequestAsync(mediaQuery!));
+                {
+                    await jukebox.SwitchAsync(await GetRequestAsync(mediaQuery!), userVoice);
+                }
                 else
+                {
                     await jukebox.PlayAsync(await GetRequestAsync(mediaQuery!), userVoice);
+                }
             }
             catch (EmptyChannelException) { await ReplyAsync("All users have left the channel. Disconnecting..."); }
         }
@@ -366,7 +370,7 @@ namespace Melodica.Services.Playback
                 await ReplyAsync("No song is playing.");
                 return;
             }
-            await Jukebox.DisconnectAsync();
+            await Jukebox.StopAsync();
         }
 
         [Command("Fisk")]

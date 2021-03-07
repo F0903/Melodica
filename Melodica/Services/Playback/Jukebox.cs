@@ -62,21 +62,31 @@ namespace Melodica.Services.Playback
 
         public bool Repeat { get; set; }
 
-        public SongQueue Queue { get; } = new SongQueue();
-
-        public (MediaInfo info, MediaInfo? playlistInfo)? CurrentSong { get; private set; }
-
-        public TimeSpan Elapsed => new TimeSpan(durationTimer.Elapsed.Hours, durationTimer.Elapsed.Minutes, durationTimer.Elapsed.Seconds);
+        public TimeSpan Elapsed => new(durationTimer.Elapsed.Hours, durationTimer.Elapsed.Minutes, durationTimer.Elapsed.Seconds);
 
         private readonly MediaCallback mediaCallback;
-        private readonly PlaybackStopwatch durationTimer = new PlaybackStopwatch();
-        private readonly SemaphoreSlim writeLock = new SemaphoreSlim(1);
+        private readonly PlaybackStopwatch durationTimer = new();
+        private readonly SemaphoreSlim writeLock = new(1);
+        private readonly SongQueue queue = new();
 
         private IAudioClient? audioClient;
+        private IAudioChannel? audioChannel;
         private CancellationTokenSource? tokenSource;
-        private bool busy = false;
+        private bool skipRequested = false; //TODO:
 
-        static async Task<bool> CheckIfAloneAsync(IAudioChannel channel)
+        private PlayableMedia? currentSong;
+        private MediaInfo? currentPlaylist;
+
+        public SongQueue GetQueue() => queue;
+
+        public (MediaInfo song, MediaInfo? playlist)? GetSong()
+        {
+            if (currentSong is null)
+                return null;
+            return (currentSong.Info, currentPlaylist);
+        }
+
+        static async ValueTask<bool> CheckIfAloneAsync(IAudioChannel channel)
         {
             var users = await channel.GetUsersAsync().FirstAsync();
             if (!users.IsOverSize(1))
@@ -93,7 +103,7 @@ namespace Melodica.Services.Playback
             };
         }
 
-        private Task<bool> SendDataAsync(AudioProcessor audioProcessor, IAudioChannel channel, int bitrate, CancellationToken cancellation)
+        private async Task<bool> SendDataAsync(AudioProcessor audioProcessor, IAudioChannel channel, int bitrate, CancellationToken cancellation)
         {
             bool abort = false;
             bool isAlone = false;
@@ -126,13 +136,13 @@ namespace Melodica.Services.Playback
 
             var writeThread = new Thread(() =>
             {
-                using var aloneTimer = new Timer(x => isAlone = CheckIfAloneAsync(channel).Result, null, 0, 5000);
+                using var aloneTimer = new Timer(async x => isAlone = await CheckIfAloneAsync(channel), null, 0, 5000);
 
                 try
                 {
                     WriteData();
                 }
-                catch (Exception ex) when (!(ex is TaskCanceledException))
+                catch (Exception ex) when (ex is not TaskCanceledException)
                 {
                     abort = true;
                 }
@@ -154,21 +164,38 @@ namespace Melodica.Services.Playback
 
             if (isAlone)
             {
-                StopAsync().ConfigureAwait(false);
+                await StopAsync().ConfigureAwait(false);
                 throw new EmptyChannelException();
             }
 
-            return Task.FromResult(abort); // Returns true if an error occured.
+            return abort; // Returns true if an error occured.
         }
 
-        public Task StopAsync()
+        public async ValueTask StopAsync(bool disconnect = true)
         {
             tokenSource?.Cancel();
-            audioClient?.Dispose();
-            return Task.CompletedTask;
+            if (audioChannel is not null && disconnect)
+                await audioChannel.DisconnectAsync();
+            if (audioClient is not null)
+            {
+                await audioClient.StopAsync();
+                audioClient.Dispose();
+                audioClient = null;
+            }
         }
 
-        private async Task ConnectAsync(IAudioChannel audioChannel)
+        public ValueTask SkipAsync()
+        {
+            skipRequested = true;
+            return ValueTask.CompletedTask;
+        }
+
+        public ValueTask ClearAsync()
+        {
+            return queue.ClearAsync();
+        }
+
+        private async ValueTask ConnectAsync(IAudioChannel audioChannel)
         {
             if (audioClient is not null && (audioClient.ConnectionState == ConnectionState.Connected || audioClient.ConnectionState == ConnectionState.Connecting))
                 return;
@@ -176,50 +203,118 @@ namespace Melodica.Services.Playback
             audioClient = await audioChannel.ConnectAsync();
         }
 
-        async Task PlayMediaAsync(PlayableMedia media, IAudioChannel channel, TimeSpan? startingPoint = null)
+        async Task PlaySameAsync(IAudioChannel channel)
         {
+            if (currentSong is null)
+                throw new NullReferenceException("CurrentSong was null. Cannot play same. (dbg-err)");
+
             tokenSource = new CancellationTokenSource();
             var token = tokenSource.Token;
             var bitrate = GetChannelBitrate(channel);
             var audio = new FFmpegAudioProcessor();
 
-            await audio.Process(media, startingPoint);
+            await audio.Process(currentSong);
             await SendDataAsync(audio, channel, bitrate, token);
+        }
+
+        async Task PlayNextAsync(MediaInfo? collectionInfo, IAudioChannel channel, TimeSpan? startingPoint = null)
+        {
+            tokenSource = new CancellationTokenSource();
+            var token = tokenSource.Token;
+            var bitrate = GetChannelBitrate(channel);
+            var audio = new FFmpegAudioProcessor();
+            PlayableMedia media = Shuffle ? await queue.DequeueRandomAsync(Repeat) : await queue.DequeueAsync(Repeat);
+
+            currentSong = media;
+            currentPlaylist = collectionInfo;
+
+            await audio.Process(media, startingPoint);
+            if (collectionInfo is not null && collectionInfo.MediaType == MediaType.Playlist)
+            {
+                mediaCallback(media.Info, MediaState.Playing, collectionInfo);
+            }
+            else
+            {
+                mediaCallback(media.Info, MediaState.Playing, null);
+            }
+            await SendDataAsync(audio, channel, bitrate, token);
+
+            if (Loop)
+            {
+                await PlaySameAsync(channel).ConfigureAwait(false);
+                return;
+            }
+
+            mediaCallback(media.Info, MediaState.Finished, collectionInfo);
+
+            if (queue.IsEmpty)
+            {
+                await StopAsync().ConfigureAwait(false);
+                return;
+            }
+
+            await PlayNextAsync(collectionInfo, channel, null).ConfigureAwait(false);
         }
 
         public async Task PlayAsync(IMediaRequest request, IAudioChannel channel, TimeSpan? startingPoint = null)
         {
-            await ConnectAsync(channel);
-
-            mediaCallback(await request.GetInfoAsync(), MediaState.Downloading, null);
-            var collection = await request.GetMediaAsync();
-
             try
             {
-                await Queue.EnqueueAsync(collection);
-                mediaCallback(collection.CollectionInfo, MediaState.Queued, null);
+                await ConnectAsync(channel);
 
+                var collection = await request.GetMediaAsync();
+
+                await queue.EnqueueAsync(collection);
+                var colInfo = collection.CollectionInfo;
                 if (Playing)
+                {
+                    mediaCallback(colInfo, MediaState.Queued, null);
                     return;
+                }
 
                 Playing = true;
-                var media = Shuffle ? await Queue.DequeueRandomAsync(Repeat) : await Queue.DequeueAsync(Repeat);
-
-                var colMediaType = collection.CollectionInfo.MediaType;
-                if (colMediaType == MediaType.Playlist)
-                {
-                    mediaCallback(media.Info, MediaState.Playing, collection.CollectionInfo);
-                }
-                else
-                {
-                    mediaCallback(media.Info, MediaState.Playing, null);
-                }
-
-                await PlayMediaAsync(media, channel, startingPoint);
+                var reqInfo = await request.GetInfoAsync();
+                var state = reqInfo.MediaType == MediaType.Playlist ? MediaState.Queued : MediaState.Downloading;
+                mediaCallback(reqInfo, state, null);
+                await PlayNextAsync(colInfo, channel, startingPoint);
                 Playing = false;
             }
             catch (TaskCanceledException)
-            { }
+            {
+                mediaCallback(currentSong!.Info, MediaState.Finished, currentPlaylist);
+            }
+            catch (Exception)
+            {
+                await StopAsync();
+                mediaCallback(currentSong!.Info, MediaState.Error, currentPlaylist);
+                throw;
+            }
+            finally
+            {
+                Playing = false;
+            }
+        }
+
+        public async Task SwitchAsync(IMediaRequest request, IAudioChannel channel)
+        {
+            await StopAsync();
+            var media = await request.GetMediaAsync();
+            await queue.PutFirstAsync(media);
+            var colInfo = await request.GetInfoAsync();
+            await PlayNextAsync(colInfo, channel);
+        }
+
+        public async Task SetNextAsync(IMediaRequest request)
+        {
+            var media = await request.GetMediaAsync();
+            await queue.PutFirstAsync(media);
+        }
+
+        public async Task ContinueFromQueue(IAudioChannel channel)
+        {
+            if (queue.IsEmpty)
+                throw new Exception("Cannot continue from an empty queue.");
+            await PlayNextAsync(null, channel).ConfigureAwait(false);
         }
     }
 }

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Threading.Tasks;
 
 using Melodica.Services.Caching;
 
@@ -7,7 +8,7 @@ namespace Melodica.Services.Media
 {
     public sealed class TempMedia : PlayableMedia
     {
-        public TempMedia(MediaInfo meta, Stream data) : base(meta, data)
+        public TempMedia(MediaInfo meta, DataGetter? dataGetter) : base(meta, dataGetter)
         {
             string toSave = Path.Combine(MediaFileCache.RootCacheLocation, "temp/");
             string? toSaveDir = Path.GetDirectoryName(toSave);

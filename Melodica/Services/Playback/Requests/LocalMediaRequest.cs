@@ -26,34 +26,7 @@ namespace Melodica.Services.Playback.Requests
             {
                 throw new CriticalException("Directory does not exist.");
             }
-
-            string? dirName = Path.GetDirectoryName(uri);
-            if (dirName == null)
-                throw new Exception("Directory name returned null.");
-            info = new MediaInfo()
-            {
-                Id = dirName,
-                Title = dirName,
-                MediaType = MediaType.Playlist
-            };
-
-            SubRequests = new List<IMediaRequest>();
-            foreach (var file in Directory.EnumerateFiles(uri).Convert(x => new FileInfo(x)))
-            {
-                if (!AllowedMediaExts.Any(x => x == file.Extension))
-                    return;
-
-                SubRequests.Add(new LocalMediaRequest(file, info));
-            }
-        }
-
-        public override MediaInfo? ParentRequestInfo { get; protected set; }
-        public override List<IMediaRequest>? SubRequests { get; set; }
-
-        private LocalMediaRequest(FileInfo file, MediaInfo parentMeta)
-        {
-            info = EvalInfo(file);
-            ParentRequestInfo = parentMeta;
+            //TODO:
         }
 
         private static readonly string[] AllowedMediaExts =
@@ -78,8 +51,8 @@ namespace Melodica.Services.Playback.Requests
             return meta;
         }
 
-        public override MediaInfo GetInfo() => info;
+        public Task<MediaInfo> GetInfoAsync() => Task.FromResult(info);
 
-        public override Task<PlayableMedia> GetMediaAsync() => Task.FromResult(new PlayableMedia(info, null));
+        public Task<MediaCollection> GetMediaAsync() => Task.FromResult(new MediaCollection(new PlayableMedia(info, null)));
     }
 }
