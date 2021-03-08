@@ -4,10 +4,7 @@
 ## Get latest from https://github.com/github/gitignore/blob/master/VisualStudio.gitignore
 
 # Custom
-token.txt
-spotifysecret.txt
-spotifyid.txt
-geniustoken.txt
+secrets/
 
 # User-specific files
 *.rsuser

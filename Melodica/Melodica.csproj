@@ -83,7 +83,7 @@
 		<None Update="ffmpeg.exe">
 			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
 		</None>
-		<None Update="geniustoken.txt">
+		<None Update="secrets\geniustoken.txt">
 		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 		</None>
 		<None Update="guildsettings.db">
@@ -98,13 +98,13 @@
 		<None Update="RunAsWinDaemon.ps1">
 			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
 		</None>
-		<None Update="spotifyid.txt">
+		<None Update="secrets\spotifyid.txt">
 		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 		</None>
-		<None Update="spotifysecret.txt">
+		<None Update="secrets\spotifysecret.txt">
 		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 		</None>
-		<None Update="token.txt">
+		<None Update="secrets\token.txt">
 		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 		</None>
 	</ItemGroup>

@@ -126,7 +126,8 @@ namespace Melodica.Services.Playback
 
                 output.Write(buffer.Slice(0, count));
 
-                if (BreakConditions()) break;
+                if (BreakConditions())
+                    break;
             }
             output.Flush();
         }
@@ -137,14 +138,15 @@ namespace Melodica.Services.Playback
 
             var writeThread = new Thread(() =>
             {
-                using var aloneTimer = new Timer(async _ =>
-                {
-                    if (await CheckIfAloneAsync(channel))
-                        await StopAsync();
-                }, null, 0, 5000);
-
                 try
                 {
+                    using var aloneTimer = new Timer(async _ =>
+                    {
+                        if (await CheckIfAloneAsync(channel))
+                            await StopAsync();
+                    }, null, 0, 5000);
+
+
                     writeLock.Wait(token);
                     WriteData(ref audio, bitrate, token);
                 }
@@ -174,17 +176,12 @@ namespace Melodica.Services.Playback
             return Task.FromResult(abort); // Returns true if an error occured.
         }
 
-        public async ValueTask StopAsync(bool disconnect = true)
+        async ValueTask DisconnectAsync()
         {
-            if (cancellation is null)
-                return;
-            cancellation.Cancel();
-            Playing = false;
-            if (audioChannel is not null && disconnect)
+            if (audioChannel is not null)
             {
                 await audioChannel.DisconnectAsync();
                 audioChannel = null;
-                await ClearAsync();
             }
             if (audioClient is not null)
             {
@@ -192,6 +189,15 @@ namespace Melodica.Services.Playback
                 audioClient.Dispose();
                 audioClient = null;
             }
+        }
+
+        public async ValueTask StopAsync()
+        {
+            if (cancellation is null || (cancellation is not null && cancellation.IsCancellationRequested))
+                return;
+
+            await ClearAsync();
+            cancellation!.Cancel();
         }
 
         public ValueTask SkipAsync()
@@ -229,25 +235,29 @@ namespace Melodica.Services.Playback
         async Task PlayNextAsync(MediaInfo? collectionInfo, IAudioChannel channel, CancellationToken token, TimeSpan? startingPoint = null)
         {
             var bitrate = GetChannelBitrate(channel);
-            var audio = new FFmpegAudioProcessor();
+            using var audio = new FFmpegAudioProcessor();
             PlayableMedia media = Shuffle ? await queue.DequeueRandomAsync(Repeat) : await queue.DequeueAsync(Repeat);
 
+            var infoToPass = collectionInfo is not null && collectionInfo.MediaType == MediaType.Playlist ?
+                collectionInfo : null;
+
             currentSong = media;
-            currentPlaylist = collectionInfo;
+            currentPlaylist = infoToPass;
 
             await audio.Process(media, startingPoint);
-            if (collectionInfo is not null && collectionInfo.MediaType == MediaType.Playlist)
-            {
-                mediaCallback(media.Info, MediaState.Playing, collectionInfo);
-            }
-            else
-            {
-                mediaCallback(media.Info, MediaState.Playing, null);
-            }
 
-            if(await SendDataAsync(audio, channel, bitrate, token)) // Returns true on fatal error.
+            mediaCallback(media.Info, MediaState.Playing, infoToPass);
+
+            if (await SendDataAsync(audio, channel, bitrate, token)) // Returns true on fatal error.
             {
                 throw new CriticalException("SendDataAsync encountered a fatal error. (dbg-msg)");
+            }
+
+            if (queue.IsEmpty || cancellation!.IsCancellationRequested)
+            {
+                mediaCallback(media.Info, MediaState.Finished, infoToPass);
+                await DisconnectAsync();
+                return;
             }
 
             if (Loop)
@@ -256,14 +266,7 @@ namespace Melodica.Services.Playback
                 return;
             }
 
-            mediaCallback(media.Info, MediaState.Finished, collectionInfo);
-
-            if (queue.IsEmpty)
-            {
-                await StopAsync().ConfigureAwait(false);
-                return;
-            }
-
+            mediaCallback(media.Info, MediaState.Finished, infoToPass);
             await PlayNextAsync(collectionInfo, channel, token, null).ConfigureAwait(false);
         }
 
@@ -305,28 +308,27 @@ namespace Melodica.Services.Playback
 
         public async Task SwitchAsync(IMediaRequest request, IAudioChannel channel)
         {
-            await StopAsync(false);
-            var media = await request.GetMediaAsync();
-            await queue.PutFirstAsync(media);
-            var colInfo = await request.GetInfoAsync();
-            cancellation = new();
-            var token = cancellation.Token;
-            await PlayNextAsync(colInfo, channel, token);
+            await StopAsync();
+            try
+            {
+                await playLock.WaitAsync();
+                var media = await request.GetMediaAsync();
+                await queue.PutFirstAsync(media);
+                var colInfo = await request.GetInfoAsync();
+                cancellation = new();
+                var token = cancellation.Token;
+                await PlayNextAsync(colInfo, channel, token);
+            }
+            finally
+            {
+                playLock.Release();
+            }
         }
 
         public async Task SetNextAsync(IMediaRequest request)
         {
             var media = await request.GetMediaAsync();
             await queue.PutFirstAsync(media);
-        }
-
-        public async Task ContinueFromQueue(IAudioChannel channel)
-        {
-            if (queue.IsEmpty)
-                throw new Exception("Cannot continue from an empty queue.");
-            cancellation = new();
-            var token = cancellation.Token;
-            await PlayNextAsync(null, channel, token).ConfigureAwait(false);
         }
     }
 }
