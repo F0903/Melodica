@@ -100,16 +100,21 @@ namespace Melodica.Services.Playback
 
         private IVoiceChannel GetUserVoiceChannel() => ((SocketGuildUser)Context.User).VoiceChannel;
 
-        private static Embed CreateMediaEmbed(MediaInfo mediaInfo, MediaInfo? parentInfo, Color? color = null, string? footerText = null) =>
-            new EmbedBuilder()
-                   .WithColor(color ?? Color.DarkGrey)
-                   .WithTitle(mediaInfo.Artist)
-                   .WithDescription(parentInfo != null ? $"__{mediaInfo.Title}__\n{parentInfo.Title}" : mediaInfo.Title)
-                   .WithFooter(mediaInfo.Duration != TimeSpan.Zero ?
-                               parentInfo != null ?
-                               $"{mediaInfo.Duration} | {parentInfo.Duration}" :
-                               footerText ?? mediaInfo.Duration.ToString() : "")
-                   .WithThumbnailUrl(mediaInfo.ImageUrl).Build();
+        private static Embed CreateMediaEmbed(MediaInfo mediaInfo, MediaInfo? collectionInfo, Color? color = null, string? footerText = null)
+        {
+            color ??= Color.DarkGrey;
+            var footer = mediaInfo?.Duration != TimeSpan.Zero ?
+                         collectionInfo != null ?
+                         $"{mediaInfo?.Duration} | {collectionInfo?.Duration}" :
+                         footerText ?? mediaInfo?.Duration.ToString() : "";
+            var embed = new EmbedBuilder()
+                        .WithColor(color.Value)
+                        .WithTitle(mediaInfo?.Artist ?? "Unknown")
+                        .WithDescription(collectionInfo != null ? $"__{mediaInfo?.Title}__\n{collectionInfo.Title}" : mediaInfo?.Title)
+                        .WithFooter(footer)
+                        .WithThumbnailUrl(mediaInfo?.ImageUrl).Build();
+            return embed;
+        }
 
         private Task<IMediaRequest> GetRequestAsync(string query)
         {

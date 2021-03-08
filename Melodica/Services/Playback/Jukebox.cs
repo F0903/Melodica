@@ -10,6 +10,7 @@ using Discord.WebSocket;
 
 using Melodica.Core.Exceptions;
 using Melodica.Services.Audio;
+using Melodica.Services.Downloaders.Exceptions;
 using Melodica.Services.Media;
 using Melodica.Services.Playback.Exceptions;
 using Melodica.Services.Playback.Requests;
@@ -295,10 +296,11 @@ namespace Melodica.Services.Playback
                 mediaCallback(reqInfo, state, null);
                 await PlayNextAsync(colInfo, channel, token, startingPoint);
             }
-            catch (Exception)
+            catch (Exception ex)
             {
                 mediaCallback(currentSong?.Info, MediaState.Error, currentPlaylist);
-                throw;
+                if (ex is not MediaUnavailableException)
+                    throw;
             }
             finally
             {
