@@ -24,7 +24,7 @@ namespace Melodica.Services.Caching
             cacheInstances.Add(this);
         }
 
-        private static readonly List<MediaFileCache> cacheInstances = new List<MediaFileCache>(); // Keep track of all instances so we can clear all cache.
+        private static readonly List<MediaFileCache> cacheInstances = new(); // Keep track of all instances so we can clear all cache.
 
         public const int MaxClearAttempt = 5;
 
@@ -34,7 +34,7 @@ namespace Melodica.Services.Caching
 
         private readonly string cacheLocation;
 
-        private readonly Dictionary<string, (MediaInfo media, long accessCount)> cache = new Dictionary<string, (MediaInfo media, long accessCount)>(MaxFilesInCache);
+        private readonly Dictionary<string, (MediaInfo media, long accessCount)> cache = new(MaxFilesInCache);
 
         public static async Task<(int deletedFiles, int filesInUse, long msDuration)> ClearAllCachesAsync()
         {
@@ -75,10 +75,12 @@ namespace Melodica.Services.Caching
             {
                 file.Delete();
                 if (file.DirectoryName != null)
+                {
                     foreach (string? dirFile in Directory.EnumerateFiles(file.DirectoryName, $"{Path.ChangeExtension(file.Name, null)}.*"))
                     {
                         File.Delete(dirFile);
                     }
+                }
             }
 
             file.Delete();
@@ -168,12 +170,11 @@ namespace Melodica.Services.Caching
 
         public async Task<PlayableMedia> GetAsync(string id)
         {
-            PlayableMedia mediaTask;
             try
             {
-                var (media, accessCount) = cache[id];
-                cache[id] = (media, accessCount + 1); // This looks grim
-                mediaTask = await PlayableMedia.LoadFromFileAsync(media.DataInformation.MediaPath!);
+                var (info, accessCount) = cache[id];
+                cache[id] = (info, accessCount + 1);
+                return await PlayableMedia.FromExistingInfo(info);
             }
             catch (FileNotFoundException)
             {
@@ -181,7 +182,6 @@ namespace Melodica.Services.Caching
                 await LoadPreexistingFilesAsync();
                 throw new MissingMetadataException("The metadata file for this media was deleted externally... Please try again.");
             }
-            return mediaTask;
         }
 
         public async Task<PlayableMedia> CacheMediaAsync(PlayableMedia med, bool pruneCache = true)
@@ -193,6 +193,10 @@ namespace Melodica.Services.Caching
             {
                 cache.Add(med.Info.Id, (med.Info, 1));
                 await med.SaveDataAsync(cacheLocation);
+            }
+            else if (med.Info.DataInformation.MediaPath is null) // If path is null, get the cached media.
+            {
+                med = await GetAsync(med.Info.Id);
             }
             return med;
         }

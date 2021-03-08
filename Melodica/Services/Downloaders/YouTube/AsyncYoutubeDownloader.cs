@@ -174,7 +174,7 @@ namespace Melodica.Services.Downloaders.YouTube
                 }
 
                 var media = new PlayableMedia(vidInfo, DataGetter);
-                media.OnDataRequested += async (x) => await cache.CacheMediaAsync(x);
+                media.OnDataInfoRequested += async (x) => await cache.CacheMediaAsync(x);
                 videos.Add(media);
             }
             return new MediaCollection(videos, info);
@@ -211,7 +211,7 @@ namespace Melodica.Services.Downloaders.YouTube
             }
 
             var media = new PlayableMedia(info, DataGetter);
-            media.OnDataRequested += async (x) => await cache.CacheMediaAsync(x);
+            media.OnDataInfoRequested += async (x) => await cache.CacheMediaAsync(x);
             return new MediaCollection(media);
         }
     }
