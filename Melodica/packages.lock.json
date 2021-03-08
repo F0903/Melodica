@@ -90,9 +90,9 @@
       },
       "SpotifyAPI.Web": {
         "type": "Direct",
-        "requested": "[6.0.0, )",
-        "resolved": "6.0.0",
-        "contentHash": "wEj3D6aqVt5mhkDoMbeDvVzqL4WyqDzG75hRMnELGCIhWK/ha5XkOpusilanCmd2+NH/fsNjD8W9o7An+p7Weg==",
+        "requested": "[6.1.0, )",
+        "resolved": "6.1.0",
+        "contentHash": "N5oDw5wiehP+BD1gAb9AW8Q1+LPE7GWrT15mZ71xUJInPmSsGT6alCemuKCFU4dOZdDA4mzk+qhyXhlcD6pxSw==",
         "dependencies": {
           "Newtonsoft.Json": "12.0.3"
         }

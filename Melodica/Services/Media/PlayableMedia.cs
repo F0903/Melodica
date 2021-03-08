@@ -11,6 +11,8 @@ namespace Melodica.Services.Media
     {
         public delegate Task<(Stream data, string format)> DataGetter(PlayableMedia self);
 
+        public delegate Task<PlayableMedia> DataInfoRequester(PlayableMedia self);
+
         public PlayableMedia(MediaInfo meta, DataGetter? dataGetter)
         {
             Info = meta;
@@ -19,30 +21,27 @@ namespace Melodica.Services.Media
 
         public MediaInfo Info { get; set; }
         
-        public event Func<PlayableMedia, Task>? OnDataRequested;
+        public event DataInfoRequester? OnDataInfoRequested;
 
         private readonly DataGetter? dataGetter;
 
-        public static async Task<PlayableMedia> LoadFromFileAsync(string songPath)
+        public static ValueTask<PlayableMedia> FromExistingInfo(MediaInfo info)
         {
-            songPath = Path.ChangeExtension(songPath, MediaInfo.MetaFileExtension);
-            if (!File.Exists(songPath))
-                throw new FileNotFoundException($"Metadata file was not found.");
-
-            var meta = await MediaInfo.LoadFromFile(songPath);
-            if (!File.Exists(meta.DataInformation.MediaPath))
-                throw new FileNotFoundException("The associated media file of this metadata does not exist.");
-
-            return new PlayableMedia(meta);
+            if (info.DataInformation.MediaPath is null)
+                throw new NullReferenceException("Cannot create PlayableMedia from existing info that has no mediapath.");
+            return ValueTask.FromResult(new PlayableMedia(info));
         }
 
         private PlayableMedia(MediaInfo meta) => Info = meta;
 
-        public Task RequestDataAsync()
+        // Call before accessing datainfo, as this caches stuff on demand.
+        public async Task RequestDataInfoAsync()
         {
-            if (OnDataRequested is null)
-                return Task.CompletedTask;
-            return OnDataRequested(this);
+            if (OnDataInfoRequested is null)
+                return;
+            var cachedMedia = await OnDataInfoRequested(this);
+            Info = cachedMedia.Info;
+            return;
         }
 
         public virtual async Task<(string mediaPath, string metaPath)> SaveDataAsync(string saveDir)

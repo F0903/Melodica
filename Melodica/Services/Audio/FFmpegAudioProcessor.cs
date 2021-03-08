@@ -18,7 +18,7 @@ namespace Melodica.Services.Audio
 
         protected override async Task<Process> CreateAsync(PlayableMedia media, TimeSpan? startingPoint = null)
         {
-            await media.RequestDataAsync();
+            await media.RequestDataInfoAsync();
             var dataInfo = media.Info.DataInformation;
             if (string.IsNullOrEmpty(dataInfo.MediaPath))
             {

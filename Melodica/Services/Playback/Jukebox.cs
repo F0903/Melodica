@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Linq;
+using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -32,7 +33,7 @@ namespace Melodica.Services.Playback
             this.mediaCallback = mediaCallback;
         }
 
-        public delegate void MediaCallback(MediaInfo info, MediaState state, MediaInfo? playlistInfo);
+        public delegate void MediaCallback(MediaInfo? info, MediaState state, MediaInfo? playlistInfo);
 
         private bool loop;
         public bool Loop
@@ -66,13 +67,15 @@ namespace Melodica.Services.Playback
 
         private readonly MediaCallback mediaCallback;
         private readonly PlaybackStopwatch durationTimer = new();
-        private readonly SemaphoreSlim writeLock = new(1);
         private readonly SongQueue queue = new();
+        private readonly SemaphoreSlim writeLock = new(1);
+        private readonly SemaphoreSlim playLock = new(1);
+        private CancellationTokenSource? cancellation;
 
         private IAudioClient? audioClient;
         private IAudioChannel? audioChannel;
-        private CancellationTokenSource? tokenSource;
-        private bool skipRequested = false; //TODO:
+
+        private bool skipRequested = false;
 
         private PlayableMedia? currentSong;
         private MediaInfo? currentPlaylist;
@@ -103,46 +106,49 @@ namespace Melodica.Services.Playback
             };
         }
 
-        private async Task<bool> SendDataAsync(AudioProcessor audioProcessor, IAudioChannel channel, int bitrate, CancellationToken cancellation)
+        void WriteData(ref AudioProcessor audio, int bitrate, CancellationToken token)
+        {
+            bool BreakConditions() => token.IsCancellationRequested || skipRequested;
+
+            int count = 0;
+            Span<byte> buffer = stackalloc byte[1024];
+            using var input = audio.GetOutput();
+            using var output = audioClient!.CreatePCMStream(AudioApplication.Music, bitrate, 100, 0);
+            durationTimer.Start();
+            while ((count = input!.Read(buffer)) != 0)
+            {
+                if (Paused)
+                {
+                    durationTimer.Stop();
+                    while (Paused && !BreakConditions()) { Thread.Sleep(1000); }
+                    durationTimer.Start();
+                }
+
+                output.Write(buffer.Slice(0, count));
+
+                if (BreakConditions()) break;
+            }
+            output.Flush();
+        }
+
+        private Task<bool> SendDataAsync(AudioProcessor audio, IAudioChannel channel, int bitrate, CancellationToken token)
         {
             bool abort = false;
-            bool isAlone = false;
-
-            bool BreakConditions() => cancellation.IsCancellationRequested || isAlone;
-
-            void WriteData()
-            {
-                int count = 0;
-                Span<byte> buffer = stackalloc byte[1024];
-                using var input = audioProcessor.GetOutput();
-                using var output = audioClient!.CreatePCMStream(AudioApplication.Music, bitrate, 100, 0);
-                durationTimer.Start();
-                writeLock.Wait(cancellation);
-                while ((count = input!.Read(buffer)) != 0)
-                {
-                    if (Paused)
-                    {
-                        durationTimer.Stop();
-                        while (Paused && !BreakConditions()) { Thread.Sleep(1000); }
-                        durationTimer.Start();
-                    }
-
-                    output.Write(buffer.Slice(0, count));
-
-                    if (BreakConditions()) break;
-                }
-                output.Flush();
-            }
 
             var writeThread = new Thread(() =>
             {
-                using var aloneTimer = new Timer(async x => isAlone = await CheckIfAloneAsync(channel), null, 0, 5000);
+                using var aloneTimer = new Timer(async _ =>
+                {
+                    if (await CheckIfAloneAsync(channel))
+                        await StopAsync();
+                }, null, 0, 5000);
 
                 try
                 {
-                    WriteData();
+                    writeLock.Wait(token);
+                    WriteData(ref audio, bitrate, token);
                 }
-                catch (Exception ex) when (ex is not TaskCanceledException)
+                catch (Exception)
                 {
                     abort = true;
                 }
@@ -162,20 +168,24 @@ namespace Melodica.Services.Playback
             writeThread.Join(); // Thread exit
             Playing = false;
 
-            if (isAlone)
-            {
-                await StopAsync().ConfigureAwait(false);
-                throw new EmptyChannelException();
-            }
+            if (skipRequested)
+                skipRequested = false;
 
-            return abort; // Returns true if an error occured.
+            return Task.FromResult(abort); // Returns true if an error occured.
         }
 
         public async ValueTask StopAsync(bool disconnect = true)
         {
-            tokenSource?.Cancel();
+            if (cancellation is null)
+                return;
+            cancellation.Cancel();
+            Playing = false;
             if (audioChannel is not null && disconnect)
+            {
                 await audioChannel.DisconnectAsync();
+                audioChannel = null;
+                await ClearAsync();
+            }
             if (audioClient is not null)
             {
                 await audioClient.StopAsync();
@@ -201,15 +211,14 @@ namespace Melodica.Services.Playback
                 return;
 
             audioClient = await audioChannel.ConnectAsync();
+            this.audioChannel = audioChannel;
         }
 
-        async Task PlaySameAsync(IAudioChannel channel)
+        async Task PlaySameAsync(IAudioChannel channel, CancellationToken token)
         {
             if (currentSong is null)
                 throw new NullReferenceException("CurrentSong was null. Cannot play same. (dbg-err)");
 
-            tokenSource = new CancellationTokenSource();
-            var token = tokenSource.Token;
             var bitrate = GetChannelBitrate(channel);
             var audio = new FFmpegAudioProcessor();
 
@@ -217,10 +226,8 @@ namespace Melodica.Services.Playback
             await SendDataAsync(audio, channel, bitrate, token);
         }
 
-        async Task PlayNextAsync(MediaInfo? collectionInfo, IAudioChannel channel, TimeSpan? startingPoint = null)
+        async Task PlayNextAsync(MediaInfo? collectionInfo, IAudioChannel channel, CancellationToken token, TimeSpan? startingPoint = null)
         {
-            tokenSource = new CancellationTokenSource();
-            var token = tokenSource.Token;
             var bitrate = GetChannelBitrate(channel);
             var audio = new FFmpegAudioProcessor();
             PlayableMedia media = Shuffle ? await queue.DequeueRandomAsync(Repeat) : await queue.DequeueAsync(Repeat);
@@ -237,11 +244,15 @@ namespace Melodica.Services.Playback
             {
                 mediaCallback(media.Info, MediaState.Playing, null);
             }
-            await SendDataAsync(audio, channel, bitrate, token);
+
+            if(await SendDataAsync(audio, channel, bitrate, token)) // Returns true on fatal error.
+            {
+                throw new CriticalException("SendDataAsync encountered a fatal error. (dbg-msg)");
+            }
 
             if (Loop)
             {
-                await PlaySameAsync(channel).ConfigureAwait(false);
+                await PlaySameAsync(channel, token).ConfigureAwait(false);
                 return;
             }
 
@@ -253,7 +264,7 @@ namespace Melodica.Services.Playback
                 return;
             }
 
-            await PlayNextAsync(collectionInfo, channel, null).ConfigureAwait(false);
+            await PlayNextAsync(collectionInfo, channel, token, null).ConfigureAwait(false);
         }
 
         public async Task PlayAsync(IMediaRequest request, IAudioChannel channel, TimeSpan? startingPoint = null)
@@ -272,36 +283,35 @@ namespace Melodica.Services.Playback
                     return;
                 }
 
+                await playLock.WaitAsync();
                 Playing = true;
                 var reqInfo = await request.GetInfoAsync();
                 var state = reqInfo.MediaType == MediaType.Playlist ? MediaState.Queued : MediaState.Downloading;
+                cancellation = new();
+                var token = cancellation.Token;
                 mediaCallback(reqInfo, state, null);
-                await PlayNextAsync(colInfo, channel, startingPoint);
-                Playing = false;
-            }
-            catch (TaskCanceledException)
-            {
-                mediaCallback(currentSong!.Info, MediaState.Finished, currentPlaylist);
+                await PlayNextAsync(colInfo, channel, token, startingPoint);
             }
             catch (Exception)
             {
-                await StopAsync();
-                mediaCallback(currentSong!.Info, MediaState.Error, currentPlaylist);
+                mediaCallback(currentSong?.Info, MediaState.Error, currentPlaylist);
                 throw;
             }
             finally
             {
-                Playing = false;
+                playLock.Release();
             }
         }
 
         public async Task SwitchAsync(IMediaRequest request, IAudioChannel channel)
         {
-            await StopAsync();
+            await StopAsync(false);
             var media = await request.GetMediaAsync();
             await queue.PutFirstAsync(media);
             var colInfo = await request.GetInfoAsync();
-            await PlayNextAsync(colInfo, channel);
+            cancellation = new();
+            var token = cancellation.Token;
+            await PlayNextAsync(colInfo, channel, token);
         }
 
         public async Task SetNextAsync(IMediaRequest request)
@@ -314,7 +324,9 @@ namespace Melodica.Services.Playback
         {
             if (queue.IsEmpty)
                 throw new Exception("Cannot continue from an empty queue.");
-            await PlayNextAsync(null, channel).ConfigureAwait(false);
+            cancellation = new();
+            var token = cancellation.Token;
+            await PlayNextAsync(null, channel, token).ConfigureAwait(false);
         }
     }
 }

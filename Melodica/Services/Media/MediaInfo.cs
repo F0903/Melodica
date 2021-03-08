@@ -27,7 +27,7 @@ namespace Melodica.Services.Media
     [Serializable]
     public record MediaInfo
     {
-        private static readonly BinarySerializer bin = new BinarySerializer();
+        private static readonly BinarySerializer bin = new();
 
         public static Task<MediaInfo> LoadFromFile(string fullPath) => bin.DeserializeFileAsync<MediaInfo>(fullPath);
 
@@ -48,6 +48,6 @@ namespace Melodica.Services.Media
 
         public string? ImageUrl { get; init; }
 
-        public DataInfo DataInformation = new DataInfo();
+        public DataInfo DataInformation = new();
     }
 }
