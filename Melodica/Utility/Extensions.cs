@@ -48,12 +48,18 @@ namespace Melodica.Utility.Extensions
             return sb.ToString();
         }
 
-        public static (string artist, string newTitle) SeperateArtistName(this ReadOnlySpan<char> songTitle, string backupTitle = " ")
+        public static (string artist, string newTitle) SeperateArtistName(this ReadOnlySpan<char> songTitle, string backupArtistName = " ")
         {
             int charIndx = songTitle.IndexOf('-');
             int spaceIndx;
-            int endIndx = charIndx != -1 ? charIndx - 1 : (spaceIndx = songTitle.IndexOf(' ')) != -1 ? spaceIndx : songTitle.Length;
-            return (songTitle[0..endIndx].ToString(), endIndx != songTitle.Length ? songTitle[(endIndx + (charIndx != -1 ? 3 : 1))..songTitle.Length].ToString() : backupTitle);
+            bool containsSeperator = charIndx != -1;
+            int endIndx = containsSeperator ? charIndx - 1 : (spaceIndx = songTitle.IndexOf(' ')) != -1 ? spaceIndx : songTitle.Length;
+
+            bool useBackup = endIndx == songTitle.Length;
+            var artist = useBackup ? backupArtistName : songTitle[0..endIndx].ToString();
+            var titleOffset = endIndx + (containsSeperator ? 3 : 1);
+            var title = useBackup ? songTitle.ToString() : songTitle[titleOffset..songTitle.Length].ToString();
+            return (artist, title);
         }
 
         public static string ExtractArtistName(this ReadOnlySpan<char> songTitle)

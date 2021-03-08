@@ -183,24 +183,24 @@ namespace Melodica.Services.Playback
             await ReplyAsync((songDur != TimeSpan.Zero ? $"__{songDur}__\n" : "") + $"{dur}");
         }
 
-        [Command("Resume", RunMode = RunMode.Sync), Summary("Resumes playback.")]
+        [Command("Resume"), Summary("Resumes playback.")]
         public Task ResumeAsync()
         {
             Jukebox.Paused = false;
             return Task.CompletedTask;
         }
 
-        [Command("Pause", RunMode = RunMode.Sync), Summary("Pauses playback.")]
+        [Command("Pause"), Summary("Pauses playback.")]
         public Task PauseAsync()
         {
             Jukebox.Paused = true;
             return Task.CompletedTask;
         }
 
-        [Command("Skip", RunMode = RunMode.Sync), Summary("Skips current song.")]
-        public ValueTask SkipAsync()
+        [Command("Skip"), Summary("Skips current song.")]
+        public async Task SkipAsync()
         {
-            return Jukebox.SkipAsync();
+            await Jukebox.SkipAsync();
         }
 
         [Command("Clear"), Summary("Clears queue.")]
@@ -274,25 +274,6 @@ namespace Melodica.Services.Playback
             Jukebox.Shuffle = false;
             await Jukebox.SetNextAsync(request);
             await ReplyAsync(null, false, CreateMediaEmbed(info, null));
-        }
-
-        [Command("Continue"), Summary("Continues the current queue if the bot has disconnected early.")]
-        public async Task ContinueAsync()
-        {
-            if (Jukebox.Playing)
-            {
-                await ReplyAsync("The bot is still playing. (If this is incorrect, please report it to the owner)");
-                return;
-            }
-
-            var voice = GetUserVoiceChannel();
-            if (voice == null)
-            {
-                await ReplyAsync("You need to be in a voice channel!");
-                return;
-            }
-
-            await Jukebox.ContinueFromQueue(voice);
         }
 
         [Command("Switch"), Summary("Changes the current song.")]
@@ -371,14 +352,6 @@ namespace Melodica.Services.Playback
                 return;
             }
             await Jukebox.StopAsync();
-        }
-
-        [Command("Fisk")]
-        public async Task FiskAsync()
-        {
-            var req = new DownloadRequest("https://www.youtube.com/watch?v=JyLCedJJ_Yk");
-
-            await Jukebox.PlayAsync(req, ((SocketGuildUser)Context.User).VoiceChannel);
         }
     }
 }

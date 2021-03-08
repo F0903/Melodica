@@ -7,20 +7,8 @@ using Melodica.Services.Media;
 
 namespace Melodica.Services.Audio
 {
-    public abstract class AudioProcessor
+    public abstract class AudioProcessor : IDisposable
     {
-        ~AudioProcessor()
-        {
-            if (processorProcess == null)
-                return;
-            processorProcess.Kill();
-
-            if (inputAvailable)
-                processorProcess.StandardInput.Dispose();
-            if (outputAvailable)
-                processorProcess.StandardOutput.Dispose();
-        }
-
         protected AudioProcessor(bool input, bool output)
         {
             inputAvailable = input;
@@ -31,6 +19,7 @@ namespace Melodica.Services.Audio
         protected readonly bool outputAvailable;
 
         private Process? processorProcess;
+        private bool disposedValue;
 
         public Stream? GetInput() => inputAvailable ? processorProcess?.StandardInput.BaseStream : null;
 
@@ -41,6 +30,32 @@ namespace Melodica.Services.Audio
         public ValueTask Process(PlayableMedia media, TimeSpan? startingPoint = null)
         {
             return new ValueTask(Task.Run(async () => (processorProcess = await CreateAsync(media, startingPoint)).Start()));
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!disposedValue)
+            {
+                if (disposing)
+                {
+                    if (processorProcess is null)
+                        return;
+                    processorProcess.Kill();
+
+                    if (inputAvailable)
+                        processorProcess.StandardInput.Dispose();
+                    if (outputAvailable)
+                        processorProcess.StandardOutput.Dispose();
+                }
+
+                disposedValue = true;
+            }
+        }
+
+        public void Dispose()
+        {
+            Dispose(disposing: true);
+            GC.SuppressFinalize(this);
         }
     }
 }
