@@ -169,9 +169,20 @@ namespace Melodica.Services.Downloaders.YouTube
                 async Task<(Stream, string)> DataGetter(PlayableMedia self)
                 {
                     var manifest = await yt.Videos.Streams.GetManifestAsync(self.Info.Id);
-                    var streamInfo = manifest.GetAudioOnly().WithHighestBitrate() ?? throw new NullReferenceException("Could not get stream from YouTube.");
+                    var streamInfo = manifest.GetAudioOnly().WithHighestBitrate();
+                    if (streamInfo is null)
+                        throw new MediaUnavailableException("Media was unavailable.");
                     var format = streamInfo.Container.ToString().ToLower();
-                    return (await yt.Videos.Streams.GetAsync(streamInfo), format);
+                    Stream stream;
+                    try 
+                    {
+                        stream = await yt.Videos.Streams.GetAsync(streamInfo);
+                    }
+                    catch (Exception ex) when (IsUnavailable(ex))
+                    {
+                        throw new MediaUnavailableException("Video was unavailable.", ex);
+                    }
+                    return (stream, format);
                 }
 
                 var media = new PlayableMedia(vidInfo, DataGetter);
