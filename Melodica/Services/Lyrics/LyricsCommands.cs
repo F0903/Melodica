@@ -37,7 +37,7 @@ namespace Melodica.Services.Lyrics
                 if (song is null)
                     throw new NullReferenceException("Song was null. (dbg-err)");
 
-                var songInfo = song.Value.song;
+                var songInfo = song.Info;
                 songName = $"{songInfo.Artist} {songInfo.Title}";
             }
 

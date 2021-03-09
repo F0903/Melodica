@@ -10,6 +10,7 @@ using Melodica.Utility.Extensions;
 
 namespace Melodica.Services.Playback.Requests
 {
+    //TODO:
     public class LocalMediaRequest : IMediaRequest
     {
         public LocalMediaRequest(string uri)
@@ -26,7 +27,6 @@ namespace Melodica.Services.Playback.Requests
             {
                 throw new CriticalException("Directory does not exist.");
             }
-            //TODO:
         }
 
         private static readonly string[] AllowedMediaExts =
@@ -53,6 +53,6 @@ namespace Melodica.Services.Playback.Requests
 
         public Task<MediaInfo> GetInfoAsync() => Task.FromResult(info);
 
-        public Task<MediaCollection> GetMediaAsync() => Task.FromResult(new MediaCollection(new PlayableMedia(info, null)));
+        public Task<MediaCollection> GetMediaAsync() => Task.FromResult(new MediaCollection(new PlayableMedia(info, null, null)));
     }
 }
