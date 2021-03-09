@@ -70,7 +70,7 @@ namespace Melodica.Services.Downloaders.YouTube
                 Id = video.Id,
                 Url = video.Url,
                 ImageUrl = video.Thumbnails.MediumResUrl,
-                MediaType = MediaType.Video
+                MediaType = video.Duration != TimeSpan.Zero ? MediaType.Video : MediaType.Livestream
             };
         }
 

@@ -11,7 +11,7 @@ namespace Melodica.Services.Media
         public MediaCollection(IEnumerable<PlayableMedia> media, MediaInfo collectionInfo)
         {
             this.media = media;
-            this.info = collectionInfo;
+            this.CollectionInfo = collectionInfo;
         }
 
         public MediaCollection(PlayableMedia media)
@@ -19,8 +19,7 @@ namespace Melodica.Services.Media
             this.media = new[] { media };
         }
 
-        readonly MediaInfo? info;
-        public MediaInfo CollectionInfo { get => info ?? media.First().Info; init => info = value; }
+        public MediaInfo? CollectionInfo { get; init; }
 
         readonly IEnumerable<PlayableMedia> media;
 
