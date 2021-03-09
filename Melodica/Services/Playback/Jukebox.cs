@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Linq;
 using System.Net.Http;
+using System.Net.WebSockets;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -229,6 +230,7 @@ namespace Melodica.Services.Playback
 
         async Task PlayNextAsync(IAudioChannel channel, CancellationToken token, TimeSpan? startingPoint = null)
         {
+            //TODO: Make not break when two songs are requested at the same time.
             var bitrate = GetChannelBitrate(channel);
             using var audio = new FFmpegAudioProcessor();
             PlayableMedia media = Shuffle ? await queue.DequeueRandomAsync(Repeat) : await queue.DequeueAsync(Repeat);
@@ -236,9 +238,11 @@ namespace Melodica.Services.Playback
             var collectionInfo = media.CollectionInfo;
             currentSong = media;
 
+            var info = media.Info;
+            mediaCallback(info, MediaState.Downloading, null);
             await audio.Process(media, startingPoint);
 
-            mediaCallback(media.Info, MediaState.Playing, collectionInfo);
+            mediaCallback(info, MediaState.Playing, collectionInfo);
 
             if (await SendDataAsync(audio, channel, bitrate, token)) // Returns true on fatal error.
             {
@@ -247,19 +251,19 @@ namespace Melodica.Services.Playback
 
             if (queue.IsEmpty || cancellation!.IsCancellationRequested)
             {
-                mediaCallback(media.Info, MediaState.Finished, collectionInfo);
+                mediaCallback(info, MediaState.Finished, collectionInfo);
                 await DisconnectAsync();
                 return;
             }
 
             if (Loop)
             {
-                await PlaySameAsync(channel, token).ConfigureAwait(false);
+                await PlaySameAsync(channel, token);
                 return;
             }
 
-            mediaCallback(media.Info, MediaState.Finished, collectionInfo);
-            await PlayNextAsync(channel, token, null).ConfigureAwait(false);
+            mediaCallback(info, MediaState.Finished, collectionInfo);
+            await PlayNextAsync(channel, token, null);
         }
 
         public async Task PlayAsync(IMediaRequest request, IAudioChannel channel, TimeSpan? startingPoint = null)
@@ -270,6 +274,8 @@ namespace Melodica.Services.Playback
             {
                 await ConnectAsync(channel);
 
+                var reqInfo = await request.GetInfoAsync();
+                mediaCallback(reqInfo, MediaState.Downloading, null);
                 collection = await request.GetMediaAsync();
                 collectionInfo = collection.CollectionInfo;
 
@@ -282,11 +288,12 @@ namespace Melodica.Services.Playback
 
                 await playLock.WaitAsync();
                 Playing = true;
-                var reqInfo = await request.GetInfoAsync();
-                var state = reqInfo.MediaType == MediaType.Playlist ? MediaState.Queued : MediaState.Downloading;
+                if(reqInfo.MediaType == MediaType.Playlist)
+                {
+                    mediaCallback(reqInfo, MediaState.Queued, null);
+                }
                 cancellation = new();
                 var token = cancellation.Token;
-                mediaCallback(reqInfo, state, null);
                 await PlayNextAsync(channel, token, startingPoint);
             }
             catch (Exception ex)

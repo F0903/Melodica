@@ -32,8 +32,6 @@ namespace Melodica.Services.Media
 
         public static ValueTask<PlayableMedia> FromExistingInfo(MediaInfo info)
         {
-            if (info.DataInformation.MediaPath is null)
-                throw new NullReferenceException("Cannot create PlayableMedia from existing info that has no mediapath.");
             return ValueTask.FromResult(new PlayableMedia(info));
         }
 
