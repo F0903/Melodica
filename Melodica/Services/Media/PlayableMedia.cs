@@ -13,14 +13,19 @@ namespace Melodica.Services.Media
 
         public delegate Task<PlayableMedia> DataInfoRequester(PlayableMedia self);
 
-        public PlayableMedia(MediaInfo meta, DataGetter? dataGetter)
+        public PlayableMedia(MediaInfo info, MediaInfo? collectionInfo, DataGetter? dataGetter)
         {
-            Info = meta;
+            Info = info;
+            CollectionInfo = collectionInfo;
             this.dataGetter = dataGetter;
         }
 
         public MediaInfo Info { get; set; }
-        
+
+        [NonSerialized]
+        MediaInfo? collectionInfo;
+        public MediaInfo? CollectionInfo { get => collectionInfo; set => collectionInfo = value; }
+
         public event DataInfoRequester? OnDataInfoRequested;
 
         private readonly DataGetter? dataGetter;

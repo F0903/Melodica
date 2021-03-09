@@ -55,14 +55,14 @@ namespace Melodica.Services.Playback.Requests
             var meta = new MediaInfo() { Title = mediaName, Duration = new TimeSpan(0) };
             meta.DataInformation.Format = mediaFormat;
 
-            return new MediaCollection(new PlayableMedia(meta, (_) => Task.FromResult(((Stream)new MemoryStream(data), ""))));
+            return new MediaCollection(new PlayableMedia(meta, null, (_) => Task.FromResult(((Stream)new MemoryStream(data), ""))));
         }
 
         public Task<MediaCollection> GetMediaAsync()
         {
             if (directStream)
             {
-                return Task.FromResult(new MediaCollection(new PlayableMedia(info, null)));
+                return Task.FromResult(new MediaCollection(new PlayableMedia(info, null, null)));
             }
             else
             {

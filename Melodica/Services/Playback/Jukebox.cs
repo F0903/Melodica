@@ -79,16 +79,10 @@ namespace Melodica.Services.Playback
         private bool skipRequested = false;
 
         private PlayableMedia? currentSong;
-        private MediaInfo? currentPlaylist;
 
         public SongQueue GetQueue() => queue;
 
-        public (MediaInfo song, MediaInfo? playlist)? GetSong()
-        {
-            if (currentSong is null)
-                return null;
-            return (currentSong.Info, currentPlaylist);
-        }
+        public PlayableMedia? GetSong() => currentSong;
 
         static async ValueTask<bool> CheckIfAloneAsync(IAudioChannel channel)
         {
@@ -233,21 +227,18 @@ namespace Melodica.Services.Playback
             await SendDataAsync(audio, channel, bitrate, token);
         }
 
-        async Task PlayNextAsync(MediaInfo? collectionInfo, IAudioChannel channel, CancellationToken token, TimeSpan? startingPoint = null)
+        async Task PlayNextAsync(IAudioChannel channel, CancellationToken token, TimeSpan? startingPoint = null)
         {
             var bitrate = GetChannelBitrate(channel);
             using var audio = new FFmpegAudioProcessor();
             PlayableMedia media = Shuffle ? await queue.DequeueRandomAsync(Repeat) : await queue.DequeueAsync(Repeat);
 
-            var infoToPass = collectionInfo is not null && collectionInfo.MediaType == MediaType.Playlist ?
-                collectionInfo : null;
-
+            var collectionInfo = media.CollectionInfo;
             currentSong = media;
-            currentPlaylist = infoToPass;
 
             await audio.Process(media, startingPoint);
 
-            mediaCallback(media.Info, MediaState.Playing, infoToPass);
+            mediaCallback(media.Info, MediaState.Playing, collectionInfo);
 
             if (await SendDataAsync(audio, channel, bitrate, token)) // Returns true on fatal error.
             {
@@ -256,7 +247,7 @@ namespace Melodica.Services.Playback
 
             if (queue.IsEmpty || cancellation!.IsCancellationRequested)
             {
-                mediaCallback(media.Info, MediaState.Finished, infoToPass);
+                mediaCallback(media.Info, MediaState.Finished, collectionInfo);
                 await DisconnectAsync();
                 return;
             }
@@ -267,23 +258,25 @@ namespace Melodica.Services.Playback
                 return;
             }
 
-            mediaCallback(media.Info, MediaState.Finished, infoToPass);
-            await PlayNextAsync(collectionInfo, channel, token, null).ConfigureAwait(false);
+            mediaCallback(media.Info, MediaState.Finished, collectionInfo);
+            await PlayNextAsync(channel, token, null).ConfigureAwait(false);
         }
 
         public async Task PlayAsync(IMediaRequest request, IAudioChannel channel, TimeSpan? startingPoint = null)
         {
+            MediaCollection? collection = null;
+            MediaInfo? collectionInfo = null;
             try
             {
                 await ConnectAsync(channel);
 
-                var collection = await request.GetMediaAsync();
+                collection = await request.GetMediaAsync();
+                collectionInfo = collection.CollectionInfo;
 
                 await queue.EnqueueAsync(collection);
-                var colInfo = collection.CollectionInfo;
                 if (Playing)
                 {
-                    mediaCallback(colInfo, MediaState.Queued, null);
+                    mediaCallback(collectionInfo, MediaState.Queued, null);
                     return;
                 }
 
@@ -294,11 +287,11 @@ namespace Melodica.Services.Playback
                 cancellation = new();
                 var token = cancellation.Token;
                 mediaCallback(reqInfo, state, null);
-                await PlayNextAsync(colInfo, channel, token, startingPoint);
+                await PlayNextAsync(channel, token, startingPoint);
             }
             catch (Exception ex)
             {
-                mediaCallback(currentSong?.Info, MediaState.Error, currentPlaylist);
+                mediaCallback(currentSong?.Info ?? collectionInfo, MediaState.Error, collectionInfo);
                 if (ex is not MediaUnavailableException)
                     throw;
             }
@@ -319,7 +312,7 @@ namespace Melodica.Services.Playback
                 var colInfo = await request.GetInfoAsync();
                 cancellation = new();
                 var token = cancellation.Token;
-                await PlayNextAsync(colInfo, channel, token);
+                await PlayNextAsync(channel, token);
             }
             finally
             {

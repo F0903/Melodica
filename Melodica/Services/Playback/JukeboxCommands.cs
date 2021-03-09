@@ -184,7 +184,7 @@ namespace Melodica.Services.Playback
                 await ReplyAsync("Could not get song from jukebox.");
                 return;
             }
-            var songDur = song.Value.song.Duration;
+            var songDur = song.Info.Duration;
             await ReplyAsync((songDur != TimeSpan.Zero ? $"__{songDur}__\n" : "") + $"{dur}");
         }
 

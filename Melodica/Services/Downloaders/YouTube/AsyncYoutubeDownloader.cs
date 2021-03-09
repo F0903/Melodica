@@ -147,10 +147,11 @@ namespace Melodica.Services.Downloaders.YouTube
 
         async Task<MediaCollection> DownloadLivestream(MediaInfo info)
         {
+            //TODO: Fix
             var stream = await yt.Videos.Streams.GetHttpLiveStreamUrlAsync(info.Id ?? throw new NullReferenceException("Id was null."));
             info.DataInformation.MediaPath = stream;
             info.DataInformation.Format = "hls";
-            var media = new PlayableMedia(info, null);
+            var media = new PlayableMedia(info, null, null);
             return new MediaCollection(media);
         }
 
@@ -185,7 +186,7 @@ namespace Melodica.Services.Downloaders.YouTube
                     return (stream, format);
                 }
 
-                var media = new PlayableMedia(vidInfo, DataGetter);
+                var media = new PlayableMedia(vidInfo, info, DataGetter);
                 media.OnDataInfoRequested += async (x) => await cache.CacheMediaAsync(x);
                 videos.Add(media);
             }
@@ -222,7 +223,7 @@ namespace Melodica.Services.Downloaders.YouTube
                 return (await yt.Videos.Streams.GetAsync(streamInfo), format);
             }
 
-            var media = new PlayableMedia(info, DataGetter);
+            var media = new PlayableMedia(info, null, DataGetter);
             media.OnDataInfoRequested += async (x) => await cache.CacheMediaAsync(x);
             return new MediaCollection(media);
         }

@@ -8,7 +8,7 @@ namespace Melodica.Services.Media
 {
     public sealed class TempMedia : PlayableMedia
     {
-        public TempMedia(MediaInfo meta, DataGetter? dataGetter) : base(meta, dataGetter)
+        public TempMedia(MediaInfo meta, DataGetter? dataGetter) : base(meta, null, dataGetter)
         {
             string toSave = Path.Combine(MediaFileCache.RootCacheLocation, "temp/");
             string? toSaveDir = Path.GetDirectoryName(toSave);

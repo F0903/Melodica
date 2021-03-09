@@ -42,7 +42,7 @@ namespace Melodica.Services.Wiki
                 var song = juke.GetSong();
                 if (song is null)
                     throw new NullReferenceException("Song was null.");
-                string? artist = song.Value.song.Artist;
+                string? artist = song.Info.Artist;
 
                 info = await wiki.GetInfoAsync(artist);
             }
