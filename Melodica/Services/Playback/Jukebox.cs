@@ -70,7 +70,6 @@ namespace Melodica.Services.Playback
         private readonly MediaCallback mediaCallback;
         private readonly PlaybackStopwatch durationTimer = new();
         private readonly SongQueue queue = new();
-        private readonly SemaphoreSlim writeLock = new(1);
         private readonly SemaphoreSlim playLock = new(1);
         private CancellationTokenSource? cancellation;
 
@@ -78,6 +77,7 @@ namespace Melodica.Services.Playback
         private IAudioChannel? audioChannel;
 
         private bool skipRequested = false;
+        private bool downloading = false;
 
         private PlayableMedia? currentSong;
 
@@ -109,7 +109,7 @@ namespace Melodica.Services.Playback
             int count = 0;
             Span<byte> buffer = stackalloc byte[1024];
             using var input = audio.GetOutput();
-            using var output = audioClient!.CreatePCMStream(AudioApplication.Music, bitrate, 100, 0);
+            using var output = audioClient!.CreatePCMStream(AudioApplication.Music, bitrate, 1000, 0);
             durationTimer.Start();
             while ((count = input!.Read(buffer)) != 0)
             {
@@ -142,8 +142,6 @@ namespace Melodica.Services.Playback
                             await StopAsync();
                     }, null, 0, 5000);
 
-
-                    writeLock.Wait(token);
                     WriteData(ref audio, bitrate, token);
                 }
                 catch (Exception)
@@ -153,7 +151,6 @@ namespace Melodica.Services.Playback
                 finally
                 {
                     durationTimer.Reset();
-                    writeLock.Release();
                 }
             });
 
@@ -222,7 +219,7 @@ namespace Melodica.Services.Playback
                 throw new NullReferenceException("CurrentSong was null. Cannot play same. (dbg-err)");
 
             var bitrate = GetChannelBitrate(channel);
-            var audio = new FFmpegAudioProcessor();
+            using var audio = new FFmpegAudioProcessor();
 
             await audio.Process(currentSong);
             await SendDataAsync(audio, channel, bitrate, token);
@@ -249,16 +246,17 @@ namespace Melodica.Services.Playback
                 throw new CriticalException("SendDataAsync encountered a fatal error. (dbg-msg)");
             }
 
+            //TODO: Fix loop
+            if (Loop)
+            {
+                await PlaySameAsync(channel, token);
+                return;
+            }
+
             if (queue.IsEmpty || cancellation!.IsCancellationRequested)
             {
                 mediaCallback(info, MediaState.Finished, collectionInfo);
                 await DisconnectAsync();
-                return;
-            }
-
-            if (Loop)
-            {
-                await PlaySameAsync(channel, token);
                 return;
             }
 
@@ -272,6 +270,10 @@ namespace Melodica.Services.Playback
             MediaInfo? collectionInfo = null;
             try
             {
+                if (downloading)
+                    return;
+
+                downloading = true;
                 await ConnectAsync(channel);
 
                 var reqInfo = await request.GetInfoAsync();
@@ -288,6 +290,8 @@ namespace Melodica.Services.Playback
 
                 await playLock.WaitAsync();
                 Playing = true;
+                downloading = false;
+
                 if(reqInfo.MediaType == MediaType.Playlist)
                 {
                     mediaCallback(reqInfo, MediaState.Queued, null);
@@ -304,6 +308,8 @@ namespace Melodica.Services.Playback
             }
             finally
             {
+                Playing = false;
+                downloading = false;
                 playLock.Release();
             }
         }
