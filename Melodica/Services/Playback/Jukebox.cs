@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
 using System.Net.WebSockets;
@@ -61,15 +62,15 @@ namespace Melodica.Services.Playback
 
         public bool Playing { get; private set; }
 
-        public bool Shuffle { get; set; }
+        public bool Shuffle { get => queue.Shuffle; set => queue.Shuffle = value; }
 
-        public bool Repeat { get; set; }
+        public bool Repeat { get => queue.Repeat; set => queue.Repeat = value; }
 
         public TimeSpan Elapsed => new(durationTimer.Elapsed.Hours, durationTimer.Elapsed.Minutes, durationTimer.Elapsed.Seconds);
 
         private readonly MediaCallback mediaCallback;
         private readonly PlaybackStopwatch durationTimer = new();
-        private readonly SongQueue queue = new();
+        private readonly MediaQueue queue = new();
         private readonly SemaphoreSlim playLock = new(1);
         private CancellationTokenSource? cancellation;
 
@@ -81,7 +82,7 @@ namespace Melodica.Services.Playback
 
         private PlayableMedia? currentSong;
 
-        public SongQueue GetQueue() => queue;
+        public MediaQueue GetQueue() => queue;
 
         public PlayableMedia? GetSong() => currentSong;
 
@@ -213,24 +214,12 @@ namespace Melodica.Services.Playback
             this.audioChannel = audioChannel;
         }
 
-        async Task PlaySameAsync(IAudioChannel channel, CancellationToken token)
-        {
-            if (currentSong is null)
-                throw new NullReferenceException("CurrentSong was null. Cannot play same. (dbg-err)");
-
-            var bitrate = GetChannelBitrate(channel);
-            using var audio = new FFmpegAudioProcessor();
-
-            await audio.Process(currentSong);
-            await SendDataAsync(audio, channel, bitrate, token);
-        }
-
         async Task PlayNextAsync(IAudioChannel channel, CancellationToken token, TimeSpan? startingPoint = null)
         {
             //TODO: Make not break when two songs are requested at the same time.
             var bitrate = GetChannelBitrate(channel);
             using var audio = new FFmpegAudioProcessor();
-            PlayableMedia media = Shuffle ? await queue.DequeueRandomAsync(Repeat) : await queue.DequeueAsync(Repeat);
+            PlayableMedia media = await queue.DequeueAsync();
 
             var collectionInfo = media.CollectionInfo;
             currentSong = media;
@@ -244,13 +233,6 @@ namespace Melodica.Services.Playback
             if (await SendDataAsync(audio, channel, bitrate, token)) // Returns true on fatal error.
             {
                 throw new CriticalException("SendDataAsync encountered a fatal error. (dbg-msg)");
-            }
-
-            //TODO: Fix loop
-            if (Loop)
-            {
-                await PlaySameAsync(channel, token);
-                return;
             }
 
             if (queue.IsEmpty || cancellation!.IsCancellationRequested)

@@ -9,11 +9,21 @@ using Melodica.Utility.Extensions;
 
 namespace Melodica.Services.Playback
 {
-    public class SongQueue
+    public class MediaQueue
     {
+        static readonly Random rng = new();
+
         private readonly object locker = new();
 
         private readonly List<PlayableMedia> list = new();
+
+        // Returns same media over and over.
+        public bool Loop { get; set; }
+
+        // Returns next media, putting the last at the end of the queue.
+        public bool Repeat { get; set; }
+
+        public bool Shuffle { get; set; }
 
         public bool IsEmpty => list.Count == 0;
 
@@ -48,27 +58,24 @@ namespace Melodica.Services.Playback
             return ValueTask.CompletedTask;
         }
 
-        public ValueTask<PlayableMedia> DequeueRandomAsync(bool keep = false)
+        ValueTask<PlayableMedia> GetNextAsync()
         {
-            var rng = new Random();
-            PlayableMedia item;
             lock (locker)
             {
-                item = list[rng.Next(0, list.Count)];
-                if (!keep) list.Remove(item);
+                int index = Shuffle ? rng.Next(0, list.Count) : 0;
+                var item = list[index];
+                return ValueTask.FromResult(item);
             }
-            return ValueTask.FromResult(item);
         }
 
-        public ValueTask<PlayableMedia> DequeueAsync(bool keep = false)
+        public async ValueTask<PlayableMedia> DequeueAsync()
         {
-            PlayableMedia item;
-            lock (locker)
+            var next = await GetNextAsync();
+            if (Repeat)
             {
-                item = list[0];
-                if (!keep) list.Remove(item);
+                list.Add(next);
             }
-            return ValueTask.FromResult(item);
+            return next;
         }
 
         public ValueTask ClearAsync()

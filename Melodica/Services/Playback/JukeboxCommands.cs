@@ -143,7 +143,7 @@ namespace Melodica.Services.Playback
             await ReplyAsync($"Shuffle {(state ? "On" : "Off")}");
         }
 
-        [Command("Repeat"), Summary("Toggles repeat of the queue.")]
+        [Command("Repeat"), Alias("Keep"), Summary("Toggles repeat of the queue.")]
         public async Task ToggleRepeatAsync()
         {
             bool state = Jukebox.Repeat = !Jukebox.Repeat;
