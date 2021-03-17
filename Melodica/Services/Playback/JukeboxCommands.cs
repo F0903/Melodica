@@ -25,7 +25,7 @@ namespace Melodica.Services.Playback
         private IUserMessage? playbackPlaylistMessage;
         private readonly SemaphoreSlim playbackLock = new(1);
 
-        //TODO: Could do with a refactor
+        //TODO: Rewrite the whole embed response system. Preferably in its own class(es).
         private async void MediaCallback(MediaInfo? info, MediaState state, MediaInfo? parentInfo)
         {
             await playbackLock.WaitAsync(); // Use a this to make sure no threads send multiple messages at the same time.

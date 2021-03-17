@@ -94,7 +94,7 @@ namespace Melodica.Services.Playback
             };
         }
 
-        void WriteData(AudioProcessor audio, int bitrate, CancellationToken token)
+        void WriteData(AudioProcessor audio, AudioOutStream output, CancellationToken token)
         {
             bool BreakConditions() => token.IsCancellationRequested || skipRequested;
 
@@ -108,11 +108,9 @@ namespace Melodica.Services.Playback
                 durationTimer.Start();
             }
 
-            //TODO: Investigate why the bot is speaking but silent when looping.
             int count = 0;
             Span<byte> buffer = stackalloc byte[1024];
-            using var input = audio.GetOutput();
-            using var output = audioClient!.CreatePCMStream(AudioApplication.Music, bitrate, 1000, 0);
+            var input = audio.GetOutput();
             durationTimer.Start();
             while ((count = input!.Read(buffer)) != 0)
             {
@@ -129,7 +127,7 @@ namespace Melodica.Services.Playback
             output.Flush();
         }
 
-        private Task<bool> SendDataAsync(AudioProcessor audio, IAudioChannel channel, int bitrate, CancellationToken token)
+        private Task<bool> SendDataAsync(AudioProcessor audio, AudioOutStream output, IAudioChannel channel, CancellationToken token)
         {
             bool abort = false;
 
@@ -143,7 +141,7 @@ namespace Melodica.Services.Playback
                             await StopAsync();
                     }, null, 0, 5000);
 
-                    WriteData(audio, bitrate, token);
+                    WriteData(audio, output, token);
                 }
                 catch (Exception)
                 {
@@ -214,10 +212,8 @@ namespace Melodica.Services.Playback
             this.audioChannel = audioChannel;
         }
 
-        async Task PlayNextAsync(IAudioChannel channel, CancellationToken token, TimeSpan? startingPoint = null)
+        async Task PlayNextAsync(IAudioChannel channel, AudioOutStream output, CancellationToken token, TimeSpan? startingPoint = null)
         {
-            //TODO: Make not break when two songs are requested at the same time.
-            var bitrate = GetChannelBitrate(channel);
             using var audio = new FFmpegAudioProcessor();
             var media = await queue.DequeueAsync();
 
@@ -234,7 +230,7 @@ namespace Melodica.Services.Playback
             if (!Loop)
                 mediaCallback(info, MediaState.Playing, collectionInfo);
 
-            bool faulted = await SendDataAsync(audio, channel, bitrate, token);
+            bool faulted = await SendDataAsync(audio, output, channel, token);
             if (faulted)
             {
                 throw new CriticalException("SendDataAsync encountered a fatal error. (dbg-msg)");
@@ -248,8 +244,8 @@ namespace Melodica.Services.Playback
                 await DisconnectAsync();
                 return;
             }
-
-            await PlayNextAsync(channel, token, null);
+            
+            await PlayNextAsync(channel, output, token, null);
         }
 
         public async Task PlayAsync(IMediaRequest request, IAudioChannel channel, TimeSpan? startingPoint = null)
@@ -286,7 +282,11 @@ namespace Melodica.Services.Playback
                 }
                 cancellation = new();
                 var token = cancellation.Token;
-                await PlayNextAsync(channel, token, startingPoint);
+
+                var bitrate = GetChannelBitrate(channel);
+                using var output = audioClient!.CreatePCMStream(AudioApplication.Music, bitrate, 1000, 0);
+
+                await PlayNextAsync(channel, output, token, startingPoint);
             }
             catch (Exception ex)
             {
@@ -306,21 +306,9 @@ namespace Melodica.Services.Playback
 
         public async Task SwitchAsync(IMediaRequest request, IAudioChannel channel)
         {
+            //TODO: test
             await StopAsync();
-            try
-            {
-                await playLock.WaitAsync();
-                var media = await request.GetMediaAsync();
-                await queue.PutFirstAsync(media);
-                var colInfo = await request.GetInfoAsync();
-                cancellation = new();
-                var token = cancellation.Token;
-                await PlayNextAsync(channel, token);
-            }
-            finally
-            {
-                playLock.Release();
-            }
+            await PlayAsync(request, channel);
         }
 
         public async Task SetNextAsync(IMediaRequest request)

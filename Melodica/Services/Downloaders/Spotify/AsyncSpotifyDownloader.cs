@@ -13,7 +13,6 @@ using SpotifyAPI.Web;
 
 namespace Melodica.Services.Downloaders.Spotify
 {
-    //TODO: Rewrite
     public class AsyncSpotifyDownloader : IAsyncDownloader
     {
         private readonly SpotifyClient spotify =
@@ -162,8 +161,6 @@ namespace Melodica.Services.Downloaders.Spotify
             {
                 return await DownloadPlaylistAsync(info).ConfigureAwait(false);
             }
-
-            //TODO: Impl caching
 
             var extInfo = await downloader.GetInfoAsync($"{info.Artist} {info.Title}");
             var extMedia = await downloader.DownloadAsync(extInfo);
