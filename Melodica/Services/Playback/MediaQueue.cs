@@ -29,6 +29,8 @@ namespace Melodica.Services.Playback
 
         public int Length => list.Count;
 
+        PlayableMedia? lastMedia;
+
         public PlayableMedia this[int i] => list[i];
 
         public Task<TimeSpan> GetTotalDurationAsync() => Task.FromResult(list.Sum(x => x.Info.Duration));
@@ -39,22 +41,23 @@ namespace Melodica.Services.Playback
                 return list.ToArray();
         }
 
-        public async ValueTask<MediaInfo> GetMediaInfoAsync() =>
-            new MediaInfo()
-            {
-                Duration = await GetTotalDurationAsync(),
-                ImageUrl = list[0].Info.ImageUrl
-            };
+        public async ValueTask<(TimeSpan duration, string? imageUrl)> GetQueueInfo() => (await GetTotalDurationAsync(), list[0].Info.ImageUrl);
 
         public ValueTask EnqueueAsync(MediaCollection items)
         {
-            list.AddRange(items.GetMedia());
+            lock (locker)
+            {
+                list.AddRange(items.GetMedia());
+            }
             return ValueTask.CompletedTask;
         }
 
         public ValueTask PutFirstAsync(MediaCollection items)
         {
-            list.InsertRange(0, items.GetMedia());
+            lock (locker)
+            {
+                list.InsertRange(0, items.GetMedia());
+            }
             return ValueTask.CompletedTask;
         }
 
@@ -64,23 +67,33 @@ namespace Melodica.Services.Playback
             {
                 int index = Shuffle ? rng.Next(0, list.Count) : 0;
                 var item = list[index];
+                list.RemoveAt(index);
+                lastMedia = item;
                 return ValueTask.FromResult(item);
             }
         }
 
         public async ValueTask<PlayableMedia> DequeueAsync()
         {
+            if (Loop && lastMedia is not null)
+                return lastMedia;
             var next = await GetNextAsync();
             if (Repeat)
             {
-                list.Add(next);
+                lock (locker)
+                {
+                    list.Add(next);
+                }
             }
             return next;
         }
 
         public ValueTask ClearAsync()
         {
-            list.Clear();
+            lock (locker)
+            {
+                list.Clear();
+            }
             return ValueTask.CompletedTask;
         }
 
@@ -102,7 +115,10 @@ namespace Melodica.Services.Playback
 
         public ValueTask<PlayableMedia> RemoveAtAsync(Index index)
         {
-            return RemoveAtAsync(index.GetOffset(list.Count - 1));
+            lock (locker)
+            {
+                return RemoveAtAsync(index.GetOffset(list.Count - 1));
+            }
         }
     }
 }

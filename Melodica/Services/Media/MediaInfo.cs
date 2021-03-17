@@ -15,17 +15,14 @@ namespace Melodica.Services.Media
     }
 
     [Serializable]
-    public struct DataInfo
+    public record DataInfo(string Format)
     {
-        public string? Format { get; set; }
-
-        public string? FileExtension => Format?.Insert(0, ".");
-
-        public string? MediaPath { get; set; }
+        public string FileExtension => Format.Insert(0, ".");
+        public string? MediaPath { get; init; }
     }
 
     [Serializable]
-    public record MediaInfo
+    public record MediaInfo(string Id)
     {
         private static readonly BinarySerializer bin = new();
 
@@ -33,12 +30,9 @@ namespace Melodica.Services.Media
 
         public const string MetaFileExtension = ".meta";
 
-
         public MediaType MediaType { get; init; }
 
         public TimeSpan Duration { get; set; }
-
-        public string? Id { get; init; }
 
         public string Title { get; init; } = "External Media";
 
@@ -48,6 +42,6 @@ namespace Melodica.Services.Media
 
         public string? ImageUrl { get; init; }
 
-        public DataInfo DataInformation = new();
+        public DataInfo? DataInformation { get; set; }
     }
 }

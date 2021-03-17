@@ -73,11 +73,10 @@ namespace Melodica.Services.Downloaders.Spotify
 
         static MediaInfo TrackToMediaInfo(FullTrack track)
         {
-            return new MediaInfo()
+            return new MediaInfo(track.Id)
             {
                 Artist = SeperateArtistNames(track.Artists),
                 Duration = TimeSpan.FromMilliseconds(track.DurationMs),
-                Id = track.Id,
                 ImageUrl = track.Album.Images.FirstOrDefault()?.Url,
                 Url = track.PreviewUrl,
                 MediaType = MediaType.Video,
@@ -88,11 +87,10 @@ namespace Melodica.Services.Downloaders.Spotify
         static MediaInfo PlaylistToMediaInfo(FullPlaylist playlist)
         {
             var tracks = ToTrackList(playlist);
-            return new MediaInfo()
+            return new MediaInfo(playlist.Id ?? throw new NullReferenceException("Playlist id was null. (spotify)"))
             {
                 Artist = (playlist.Owner?.DisplayName) ?? "Unknown",
                 Duration = tracks.Sum(x => TimeSpan.FromMilliseconds(x.DurationMs)),
-                Id = playlist.Id,
                 ImageUrl = playlist.Images?.FirstOrDefault()?.Url,
                 Url = playlist.ExternalUrls?.FirstOrDefault().Value,
                 MediaType = MediaType.Playlist,
@@ -102,11 +100,10 @@ namespace Melodica.Services.Downloaders.Spotify
 
         static MediaInfo AlbumToMediaInfo(FullAlbum album)
         {
-            return new MediaInfo()
+            return new MediaInfo(album.Id)
             {
                 Artist = SeperateArtistNames(album.Artists),
                 Duration = album.Tracks.Items?.Sum(x => TimeSpan.FromMilliseconds(x.DurationMs)) ?? TimeSpan.FromMilliseconds(0),
-                Id = album.Id,
                 ImageUrl = album.Images?.FirstOrDefault()?.Url,
                 Url = album.ExternalUrls.FirstOrDefault().Value,
                 MediaType = MediaType.Playlist,

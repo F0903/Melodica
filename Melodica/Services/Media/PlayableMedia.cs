@@ -5,13 +5,15 @@ using System.Threading.Tasks;
 using Melodica.Services.Serialization;
 using Melodica.Utility.Extensions;
 
+using Microsoft.EntityFrameworkCore.Metadata;
+
 namespace Melodica.Services.Media
 {
     public class PlayableMedia
     {
         public delegate Task<(Stream data, string format)> DataGetter(PlayableMedia self);
 
-        public delegate Task<PlayableMedia> DataInfoRequester(PlayableMedia self);
+        public delegate Task<PlayableMedia> DataRequester(PlayableMedia self);
 
         public PlayableMedia(MediaInfo info, MediaInfo? collectionInfo, DataGetter? dataGetter)
         {
@@ -26,7 +28,7 @@ namespace Melodica.Services.Media
         MediaInfo? collectionInfo;
         public MediaInfo? CollectionInfo { get => collectionInfo; set => collectionInfo = value; }
 
-        public event DataInfoRequester? OnDataInfoRequested;
+        public event DataRequester? OnDataRequested;
 
         private readonly DataGetter? dataGetter;
 
@@ -37,16 +39,24 @@ namespace Melodica.Services.Media
 
         private PlayableMedia(MediaInfo meta) => Info = meta;
 
-        // Call before accessing datainfo, as this caches stuff on demand.
-        public async Task RequestDataInfoAsync()
+        /// <summary>
+        /// Downloads the media data on demand. Call this before accessing DataInformation.
+        /// </summary>
+        /// <returns></returns>
+        public async Task DownloadDataAsync()
         {
-            if (OnDataInfoRequested is null)
+            if (OnDataRequested is null)
                 return;
-            var cachedMedia = await OnDataInfoRequested(this);
+            var cachedMedia = await OnDataRequested(this);
             Info = cachedMedia.Info;
             return;
         }
 
+        /// <summary>
+        /// Saves data to disk. Should only be called by MediaCache.
+        /// </summary>
+        /// <param name="saveDir"></param>
+        /// <returns></returns>
         public virtual async Task<(string mediaPath, string metaPath)> SaveDataAsync(string saveDir)
         {
             if (dataGetter is null)
@@ -66,14 +76,10 @@ namespace Melodica.Services.Media
             var fileExt = $".{format}";
             string? mediaLocation = Path.Combine(saveDir, legalId + fileExt);
             using var file = File.OpenWrite(mediaLocation);
-            using (data)
-            {
-                await data.CopyToAsync(file);
-                Info.DataInformation.Format = format;
-            }
+            using (data) await data.CopyToAsync(file);
             await file.FlushAsync();
-
-            Info.DataInformation.MediaPath = mediaLocation;
+            var dataInfo = Info.DataInformation;
+            Info.DataInformation = new(format) { MediaPath = mediaLocation };
 
             // Serialize the metadata.
             string? metaLocation = Path.Combine(saveDir!, legalId + MediaInfo.MetaFileExtension);

@@ -18,8 +18,9 @@ namespace Melodica.Services.Playback.Requests
 
         public Task<MediaInfo> GetInfoAsync()
         {
-            info ??= new MediaInfo() { Duration = TimeSpan.Zero, Id = Path.ChangeExtension(attachment!.Filename, null), ImageUrl = null, Title = attachment!.Filename };
-            info.DataInformation.Format = Path.GetExtension(attachment!.Filename).Replace(".", "");
+            var format = Path.GetExtension(attachment!.Filename).Replace(".", "");
+            var id = Path.ChangeExtension(attachment!.Filename, null);
+            info ??= new MediaInfo(id) { Duration = TimeSpan.Zero, ImageUrl = null, Title = attachment!.Filename, DataInformation = new(format) };
             return Task.FromResult(info);
         }
 

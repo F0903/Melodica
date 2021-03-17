@@ -38,17 +38,6 @@ namespace Melodica.Services.Playback
 
         public delegate void MediaCallback(MediaInfo? info, MediaState state, MediaInfo? playlistInfo);
 
-        private bool loop;
-        public bool Loop
-        {
-            get => loop;
-            set
-            {
-                if (!Playing) return;
-                loop = value;
-            }
-        }
-
         private bool paused;
         public bool Paused
         {
@@ -61,6 +50,8 @@ namespace Melodica.Services.Playback
         }
 
         public bool Playing { get; private set; }
+
+        public bool Loop { get => queue.Loop; set => queue.Loop = value; }
 
         public bool Shuffle { get => queue.Shuffle; set => queue.Shuffle = value; }
 
@@ -103,10 +94,21 @@ namespace Melodica.Services.Playback
             };
         }
 
-        void WriteData(ref AudioProcessor audio, int bitrate, CancellationToken token)
+        void WriteData(AudioProcessor audio, int bitrate, CancellationToken token)
         {
             bool BreakConditions() => token.IsCancellationRequested || skipRequested;
 
+            void Pause()
+            {
+                durationTimer.Stop();
+                while (Paused && !BreakConditions())
+                {
+                    Thread.Sleep(1000);
+                }
+                durationTimer.Start();
+            }
+
+            //TODO: Investigate why the bot is speaking but silent when looping.
             int count = 0;
             Span<byte> buffer = stackalloc byte[1024];
             using var input = audio.GetOutput();
@@ -116,15 +118,13 @@ namespace Melodica.Services.Playback
             {
                 if (Paused)
                 {
-                    durationTimer.Stop();
-                    while (Paused && !BreakConditions()) { Thread.Sleep(1000); }
-                    durationTimer.Start();
+                    Pause();
                 }
-
-                output.Write(buffer.Slice(0, count));
 
                 if (BreakConditions())
                     break;
+
+                output.Write(buffer.Slice(0, count));
             }
             output.Flush();
         }
@@ -143,7 +143,7 @@ namespace Melodica.Services.Playback
                             await StopAsync();
                     }, null, 0, 5000);
 
-                    WriteData(ref audio, bitrate, token);
+                    WriteData(audio, bitrate, token);
                 }
                 catch (Exception)
                 {
@@ -219,30 +219,36 @@ namespace Melodica.Services.Playback
             //TODO: Make not break when two songs are requested at the same time.
             var bitrate = GetChannelBitrate(channel);
             using var audio = new FFmpegAudioProcessor();
-            PlayableMedia media = await queue.DequeueAsync();
+            var media = await queue.DequeueAsync();
 
             var collectionInfo = media.CollectionInfo;
             currentSong = media;
 
             var info = media.Info;
-            mediaCallback(info, MediaState.Downloading, null);
-            await audio.Process(media, startingPoint);
 
-            mediaCallback(info, MediaState.Playing, collectionInfo);
+            if (!Loop)
+                mediaCallback(info, MediaState.Downloading, null);
 
-            if (await SendDataAsync(audio, channel, bitrate, token)) // Returns true on fatal error.
+            await audio.StartProcess(media, startingPoint);
+
+            if (!Loop)
+                mediaCallback(info, MediaState.Playing, collectionInfo);
+
+            bool faulted = await SendDataAsync(audio, channel, bitrate, token);
+            if (faulted)
             {
                 throw new CriticalException("SendDataAsync encountered a fatal error. (dbg-msg)");
             }
 
-            if (queue.IsEmpty || cancellation!.IsCancellationRequested)
-            {
+            if (!Loop)
                 mediaCallback(info, MediaState.Finished, collectionInfo);
+
+            if ((!Loop && queue.IsEmpty) || cancellation!.IsCancellationRequested)
+            {
                 await DisconnectAsync();
                 return;
             }
 
-            mediaCallback(info, MediaState.Finished, collectionInfo);
             await PlayNextAsync(channel, token, null);
         }
 
@@ -274,7 +280,7 @@ namespace Melodica.Services.Playback
                 Playing = true;
                 downloading = false;
 
-                if(reqInfo.MediaType == MediaType.Playlist)
+                if (reqInfo.MediaType == MediaType.Playlist)
                 {
                     mediaCallback(reqInfo, MediaState.Queued, null);
                 }
@@ -285,6 +291,8 @@ namespace Melodica.Services.Playback
             catch (Exception ex)
             {
                 mediaCallback(currentSong?.Info ?? collectionInfo, MediaState.Error, collectionInfo);
+                await StopAsync();
+                await DisconnectAsync();
                 if (ex is not MediaUnavailableException)
                     throw;
             }

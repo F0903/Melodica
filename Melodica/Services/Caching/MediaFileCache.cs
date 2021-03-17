@@ -147,7 +147,8 @@ namespace Melodica.Services.Caching
 
                 try
                 {
-                    DeleteMediaFile(new FileInfo(x.Value.media.DataInformation.MediaPath ?? throw new Exception("MediaPath was null when trying to delete media file in PruneCache.")));
+                    var file = x.Value.media.DataInformation?.MediaPath ?? throw new Exception("MediaPath or DataInfo was null when trying to delete media file in PruneCache.");
+                    DeleteMediaFile(new FileInfo(file));
                     cache.Remove(x.Key);
                     ++deletedFiles;
                 }
@@ -184,19 +185,20 @@ namespace Melodica.Services.Caching
             }
         }
 
-        public async Task<PlayableMedia> CacheMediaAsync(PlayableMedia med, bool pruneCache = true)
+        public async Task<PlayableMedia> CacheAsync(PlayableMedia med, bool pruneCache = true)
         {
             if (pruneCache)
                 await PruneCacheAsync();
 
-            if (!Contains(med.Info.Id ?? throw new NullReferenceException("Media ID was null.")))
+            var id = med.Info.Id ?? throw new NullReferenceException("Media ID was null.");
+            if (!Contains(id))
             {
-                cache.Add(med.Info.Id, (med.Info, 1));
+                cache.Add(id, (med.Info, 1));
                 await med.SaveDataAsync(cacheLocation);
             }
-            else if (med.Info.DataInformation.MediaPath is null) // If path is null, get the cached media.
+            else if (med.Info.DataInformation?.MediaPath is null) // If path is null, get the cached media.
             {
-                med = await GetAsync(med.Info.Id);
+                med = await GetAsync(id);
             }
             return med;
         }

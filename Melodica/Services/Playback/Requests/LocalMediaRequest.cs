@@ -27,6 +27,7 @@ namespace Melodica.Services.Playback.Requests
             {
                 throw new CriticalException("Directory does not exist.");
             }
+            throw new CriticalException("Unknown error occurred during LocalMediaRequest.");
         }
 
         private static readonly string[] AllowedMediaExts =
@@ -40,14 +41,15 @@ namespace Melodica.Services.Playback.Requests
 
         private static MediaInfo EvalInfo(FileInfo file)
         {
-            var meta = new MediaInfo()
+            var format = file.Extension.Remove(0, 1);
+            var path = file.FullName;
+            var meta = new MediaInfo("")
             {
                 Title = file.Name,
                 Id = file.Name,
-                MediaType = MediaType.Video
+                MediaType = MediaType.Video,
+                DataInformation = new(format) { MediaPath = path },
             };
-            meta.DataInformation.Format = file.Extension.Remove(0, 1);
-            meta.DataInformation.MediaPath = file.FullName;
             return meta;
         }
 

@@ -19,14 +19,13 @@ namespace Melodica.Services.Playback.Requests
             this.mediaUrl = mediaUrl;
             this.directStream = directStream;
 
-            info = new MediaInfo()
+            info = new MediaInfo("")
             {
                 MediaType = directStream ? MediaType.Livestream : MediaType.Video,
                 Url = this.mediaUrl,
                 Title = this.mediaName,
-                DataInformation = new DataInfo()
+                DataInformation = new(mediaFormat)
                 {
-                    Format = mediaFormat,
                     MediaPath = this.mediaUrl
                 }
             };
@@ -52,8 +51,12 @@ namespace Melodica.Services.Playback.Requests
             if (tSrc.IsCancellationRequested)
                 throw new CriticalException("Direct media could not be downloaded. (Timer exceeded 20 seconds)");
 
-            var meta = new MediaInfo() { Title = mediaName, Duration = new TimeSpan(0) };
-            meta.DataInformation.Format = mediaFormat;
+            var meta = new MediaInfo("") 
+            { 
+                Title = mediaName, 
+                Duration = new(0),
+                DataInformation = new(mediaFormat)
+            };
 
             return new MediaCollection(new PlayableMedia(meta, null, (_) => Task.FromResult(((Stream)new MemoryStream(data), ""))));
         }

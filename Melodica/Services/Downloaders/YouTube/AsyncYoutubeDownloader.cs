@@ -24,23 +24,6 @@ namespace Melodica.Services.Downloaders.YouTube
         private readonly YoutubeClient yt = new();
         private readonly MediaFileCache cache = new("YouTube");
 
-        static bool LikeYouTubeId(ReadOnlySpan<char> str)
-        {
-            if (str.Length > 34)
-                return false;
-
-            int numOfSmall = 0;
-            int numOfLarge = 0;
-            foreach (char letter in str)
-            {
-                if (letter == ' ')
-                    return false;
-                if (letter.IsLowercaseAscii()) numOfSmall++;
-                else numOfLarge++;
-            }
-            return numOfSmall > 3 && numOfLarge > 2; // Might need tweaking over time.
-        }
-
         async Task<TimeSpan> GetTotalDurationAsync(Playlist pl)
         {
             var videos = yt.Playlists.GetVideosAsync(pl.Id);
@@ -62,12 +45,11 @@ namespace Melodica.Services.Downloaders.YouTube
         static MediaInfo VideoToMetadata(Video video)
         {
             var (artist, title) = video.Title.AsSpan().SeperateArtistName();
-            return new MediaInfo()
+            return new MediaInfo(video.Id)
             {
                 Title = title,
                 Artist = artist,
                 Duration = video.Duration,
-                Id = video.Id,
                 Url = video.Url,
                 ImageUrl = video.Thumbnails.MediumResUrl,
                 MediaType = video.Duration != TimeSpan.Zero ? MediaType.Video : MediaType.Livestream
@@ -77,12 +59,11 @@ namespace Melodica.Services.Downloaders.YouTube
         static MediaInfo VideoToMetadata(PlaylistVideo video)
         {
             var (artist, title) = video.Title.AsSpan().SeperateArtistName();
-            return new MediaInfo()
+            return new MediaInfo(video.Id)
             {
                 Title = title,
                 Artist = artist,
                 Duration = video.Duration,
-                Id = video.Id,
                 Url = video.Url,
                 ImageUrl = video.Thumbnails.MediumResUrl,
                 MediaType = MediaType.Video
@@ -93,11 +74,10 @@ namespace Melodica.Services.Downloaders.YouTube
         {
             var author = pl.Author;
             var (artist, newTitle) = pl.Title.AsSpan().SeperateArtistName(backupArtistName: string.IsNullOrEmpty(author) ? "Unknown Author" : author);
-            return new MediaInfo()
+            return new MediaInfo(pl.Id)
             {
                 MediaType = MediaType.Playlist,
                 Duration = await GetTotalDurationAsync(pl),
-                Id = pl.Id,
                 ImageUrl = await GetPlaylistThumbnail(pl),
                 Title = newTitle,
                 Artist = artist,
@@ -147,10 +127,8 @@ namespace Melodica.Services.Downloaders.YouTube
 
         async Task<MediaCollection> DownloadLivestream(MediaInfo info)
         {
-            //TODO: Fix
-            var stream = await yt.Videos.Streams.GetHttpLiveStreamUrlAsync(info.Id ?? throw new NullReferenceException("Id was null."));
-            info.DataInformation.MediaPath = stream;
-            info.DataInformation.Format = "hls";
+            var streamUrl = await yt.Videos.Streams.GetHttpLiveStreamUrlAsync(info.Id ?? throw new NullReferenceException("Id was null."));
+            info.DataInformation = new("hls") { MediaPath = streamUrl };
             var media = new PlayableMedia(info, null, null);
             return new MediaCollection(media);
         }
@@ -173,7 +151,7 @@ namespace Melodica.Services.Downloaders.YouTube
                     var streamInfo = manifest.GetAudioOnly().WithHighestBitrate();
                     if (streamInfo is null)
                         throw new MediaUnavailableException("Media was unavailable.");
-                    var format = streamInfo.Container.ToString().ToLower();
+                    var format = streamInfo.Container.Name.ToLower();
                     Stream stream;
                     try 
                     {
@@ -187,7 +165,7 @@ namespace Melodica.Services.Downloaders.YouTube
                 }
 
                 var media = new PlayableMedia(vidInfo, info, DataGetter);
-                media.OnDataInfoRequested += async (x) => await cache.CacheMediaAsync(x);
+                media.OnDataRequested += async (x) => await cache.CacheAsync(x);
                 videos.Add(media);
             }
             return new MediaCollection(videos, info);
@@ -219,12 +197,13 @@ namespace Melodica.Services.Downloaders.YouTube
                 var manifest = await yt.Videos.Streams.GetManifestAsync(self.Info.Id ?? throw new NullReferenceException("Id was null"));
                 //TODO: Get the audio with the closest bitrate to discord server bitrate.
                 var streamInfo = manifest.GetAudioOnly().WithHighestBitrate() ?? throw new NullReferenceException("Could not get stream from YouTube.");
-                var format = streamInfo.Container.ToString().ToLower();
-                return (await yt.Videos.Streams.GetAsync(streamInfo), format);
+                var stream = await yt.Videos.Streams.GetAsync(streamInfo);
+                var format = streamInfo.Container.Name.ToLower();
+                return (stream, format);
             }
 
             var media = new PlayableMedia(info, null, DataGetter);
-            media.OnDataInfoRequested += async (x) => await cache.CacheMediaAsync(x);
+            media.OnDataRequested += async (x) => await cache.CacheAsync(x);
             return new MediaCollection(media);
         }
     }

@@ -18,8 +18,11 @@ namespace Melodica.Services.Audio
 
         protected override async Task<Process> CreateAsync(PlayableMedia media, TimeSpan? startingPoint = null)
         {
-            await media.RequestDataInfoAsync();
+            await media.DownloadDataAsync();
             var dataInfo = media.Info.DataInformation;
+            if (dataInfo is null)
+                throw new NullReferenceException("DataInfo of media was null.");
+
             if (string.IsNullOrEmpty(dataInfo.MediaPath))
             {
                 MediaFileCache.ClearAllCachesAsync().Wait();

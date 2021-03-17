@@ -25,7 +25,8 @@ namespace Melodica.Services.Playback
         private IUserMessage? playbackPlaylistMessage;
         private readonly SemaphoreSlim playbackLock = new(1);
 
-        private async void MediaCallback(MediaInfo info, MediaState state, MediaInfo? parentInfo)
+        //TODO: Could do with a refactor
+        private async void MediaCallback(MediaInfo? info, MediaState state, MediaInfo? parentInfo)
         {
             await playbackLock.WaitAsync(); // Use a this to make sure no threads send multiple messages at the same time.
 
@@ -46,13 +47,13 @@ namespace Melodica.Services.Playback
             var newEmbed = state switch
             {
                 MediaState.Error => OnUnavailable(),
-                MediaState.Downloading => CreateMediaEmbed(info!, parentInfo, Color.Blue),
-                MediaState.Queued => CreateMediaEmbed(info!, parentInfo, null, info.MediaType == MediaType.Livestream ? '\u221E'.ToString() : null),
-                MediaState.Playing => info.MediaType switch
+                MediaState.Downloading => CreateMediaEmbed(info, parentInfo, Color.Blue),
+                MediaState.Queued => CreateMediaEmbed(info, parentInfo, null, info!.MediaType == MediaType.Livestream ? '\u221E'.ToString() : null),
+                MediaState.Playing => info!.MediaType switch
                 {
-                    MediaType.Video => CreateMediaEmbed(info!, parentInfo, Color.Green),
-                    MediaType.Playlist => CreateMediaEmbed(info!, parentInfo, Color.Green),
-                    MediaType.Livestream => CreateMediaEmbed(info!, parentInfo, Color.DarkGreen, '\u221E'.ToString()),
+                    MediaType.Video => CreateMediaEmbed(info, parentInfo, Color.Green),
+                    MediaType.Playlist => CreateMediaEmbed(info, parentInfo, Color.Green),
+                    MediaType.Livestream => CreateMediaEmbed(info, parentInfo, Color.DarkGreen, '\u221E'.ToString()),
                     _ => throw new Exception("Unknown error in PlaybackCallback switch expression"),
                 },
                 MediaState.Finished => OnDone(),
@@ -61,7 +62,7 @@ namespace Melodica.Services.Playback
 
             if (playbackMessage == null)
             {
-                if (info.MediaType == MediaType.Playlist)
+                if (info?.MediaType == MediaType.Playlist)
                 {
                     if (playbackPlaylistMessage == null)
                         playbackPlaylistMessage = await ReplyAsync(null, false, newEmbed);
@@ -100,7 +101,7 @@ namespace Melodica.Services.Playback
 
         private IVoiceChannel GetUserVoiceChannel() => ((SocketGuildUser)Context.User).VoiceChannel;
 
-        private static Embed CreateMediaEmbed(MediaInfo mediaInfo, MediaInfo? collectionInfo, Color? color = null, string? footerText = null)
+        private static Embed CreateMediaEmbed(MediaInfo? mediaInfo, MediaInfo? collectionInfo, Color? color = null, string? footerText = null)
         {
             color ??= Color.DarkGrey;
             var footer = mediaInfo?.Duration != TimeSpan.Zero ?
@@ -153,6 +154,12 @@ namespace Melodica.Services.Playback
         [Command("Loop"), Summary("Toggles loop on the current song.")]
         public async Task SetLoopingAsync()
         {
+            if(!Jukebox.Playing)
+            {
+                await ReplyAsync("Cannot set loop when no song is playing.");
+                return;
+            }
+
             bool state = Jukebox.Loop = !Jukebox.Loop;
             await ReplyAsync($"Loop {(state ? "On" : "Off")}");
         }
@@ -242,10 +249,9 @@ namespace Melodica.Services.Playback
             }
             else
             {
-                var queueDuration = await queue.GetTotalDurationAsync();
-                var info = await queue.GetMediaInfoAsync();
+                var (queueDuration, imageUrl) = await queue.GetQueueInfo();
                 eb.WithTitle("**Queue**")
-                  .WithThumbnailUrl(info.ImageUrl)
+                  .WithThumbnailUrl(imageUrl)
                   .WithFooter($"{(queueDuration == TimeSpan.Zero ? '\u221E'.ToString() : queueDuration.ToString())}{(Jukebox.Shuffle ? " | Shuffle" : "")}");
 
                 int maxElems = 20;
@@ -255,7 +261,10 @@ namespace Melodica.Services.Playback
                         break;
                     var song = queue[i - 1];
                     var songInfo = song.Info;
-                    eb.AddField(i == 1 ? "Next:" : i == maxElems ? "And more" : i.ToString(), i == 1 ? $"**{songInfo.Artist} - {songInfo.Title}**" : i == maxElems ? $"Plus {queue.Length - (i - 1)} other songs!" : $"{songInfo.Artist} - {songInfo.Title}", false);
+                    eb.AddField(
+                        i == 1 ? "Next:" : i == maxElems ? "And more" : i.ToString(), 
+                        i == 1 ? $"**{songInfo.Artist} - {songInfo.Title}**" : i == maxElems ? $"Plus {queue.Length - (i - 1)} other songs!" : $"{songInfo.Artist} - {songInfo.Title}", 
+                        false);
                 }
             }
 

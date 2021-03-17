@@ -27,9 +27,10 @@ namespace Melodica.Services.Audio
 
         protected abstract Task<Process> CreateAsync(PlayableMedia media, TimeSpan? startingPoint = null);
 
-        public ValueTask Process(PlayableMedia media, TimeSpan? startingPoint = null)
+        public async ValueTask StartProcess(PlayableMedia media, TimeSpan? startingPoint = null)
         {
-            return new ValueTask(Task.Run(async () => (processorProcess = await CreateAsync(media, startingPoint)).Start()));
+            processorProcess = await CreateAsync(media, startingPoint);
+            processorProcess.Start();
         }
 
         protected virtual void Dispose(bool disposing)
