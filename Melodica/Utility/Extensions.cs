@@ -48,7 +48,7 @@ namespace Melodica.Utility.Extensions
             return sb.ToString();
         }
 
-        public static (string artist, string newTitle) SeperateArtistName(this ReadOnlySpan<char> songTitle, string backupArtistName = " ")
+        public static (string artist, string newTitle) SeperateArtistName(this ReadOnlySpan<char> songTitle, string backupArtistName = "Unknown Artist")
         {
             int charIndx = songTitle.IndexOf('-');
             int spaceIndx;

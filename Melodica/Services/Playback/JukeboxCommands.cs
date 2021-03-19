@@ -18,104 +18,90 @@ namespace Melodica.Services.Playback
 {
     public class JukeboxCommands : ModuleBase<SocketCommandContext>
     {
-        private Jukebox Jukebox => JukeboxManager.GetOrCreateJukeboxAsync(Context.Guild, () => new Jukebox(MediaCallback)).GetAwaiter().GetResult();
+        Jukebox? cachedJukebox;
+        private Jukebox Jukebox => cachedJukebox ??= JukeboxManager.GetOrCreateJukeboxAsync(Context.Guild, () => new Jukebox(MediaCallback)).GetAwaiter().GetResult();
 
-        private Embed? playbackEmbed;
-        private IUserMessage? playbackMessage;
-        private IUserMessage? playbackPlaylistMessage;
-        private readonly SemaphoreSlim playbackLock = new(1);
+        private readonly ManualResetEventSlim mediaCallbackLock = new(true);
+        private IUserMessage? lastPlayMessage;
 
-        //TODO: Rewrite the whole embed response system. Preferably in its own class(es).
-        private async void MediaCallback(MediaInfo? info, MediaState state, MediaInfo? parentInfo)
+        private static Color MediaStateToColor(MediaState state) => state switch
         {
-            await playbackLock.WaitAsync(); // Use a this to make sure no threads send multiple messages at the same time.
+            MediaState.Error => Color.Red,
+            MediaState.Queued => Color.DarkGrey,
+            MediaState.Downloading => Color.Blue,
+            MediaState.Playing => Color.Green,
+            MediaState.Finished => Color.LighterGrey,
+            _ => Color.Default,
+        };
 
-            bool reset = false;
+        private static Embed CreateMediaEmbed(MediaInfo info, MediaInfo? playlistInfo, MediaState state)
+        {
+            const char InfChar = '\u221E';
 
-            Embed OnDone()
+            var color = MediaStateToColor(state);
+
+            var description = playlistInfo != null ? $"__{info.Title}__\n{playlistInfo.Title}" : info.Title;
+
+            bool isLive = info.MediaType == MediaType.Livestream;
+            var footer = isLive ? InfChar.ToString() : $"{info.Duration}{(playlistInfo is not null ? $" | {playlistInfo.Duration}" : "")}";
+
+            var embed = new EmbedBuilder()
+                        .WithColor(color)
+                        .WithTitle(info.Artist)
+                        .WithDescription(description)
+                        .WithFooter(footer)
+                        .WithThumbnailUrl(info.ImageUrl)
+                        .Build();
+            return embed;
+        }
+
+        async ValueTask MediaCallback(MediaInfo info, MediaInfo? playlistInfo, MediaState state)
+        {
+            if (info is null)
             {
-                reset = true;
-                return CreateMediaEmbed(info, parentInfo, Color.LighterGrey);
+                await ReplyAsync("Info was null in MediaCallback. (dbg)");
+                return;
             }
 
-            Embed OnUnavailable()
+            try
             {
-                reset = true;
-                return CreateMediaEmbed(info, parentInfo, Color.Red);
-            }
+                mediaCallbackLock.Wait();
+                mediaCallbackLock.Reset();
 
-            var newEmbed = state switch
-            {
-                MediaState.Error => OnUnavailable(),
-                MediaState.Downloading => CreateMediaEmbed(info, parentInfo, Color.Blue),
-                MediaState.Queued => CreateMediaEmbed(info, parentInfo, null, info!.MediaType == MediaType.Livestream ? '\u221E'.ToString() : null),
-                MediaState.Playing => info!.MediaType switch
+                if (info.MediaType == MediaType.Playlist)
                 {
-                    MediaType.Video => CreateMediaEmbed(info, parentInfo, Color.Green),
-                    MediaType.Playlist => CreateMediaEmbed(info, parentInfo, Color.Green),
-                    MediaType.Livestream => CreateMediaEmbed(info, parentInfo, Color.DarkGreen, '\u221E'.ToString()),
-                    _ => throw new Exception("Unknown error in PlaybackCallback switch expression"),
-                },
-                MediaState.Finished => OnDone(),
-                _ => throw new Exception("Unknown error in PlaybackCallback"),
-            };
-
-            if (playbackMessage == null)
-            {
-                if (info?.MediaType == MediaType.Playlist)
-                {
-                    if (playbackPlaylistMessage == null)
-                        playbackPlaylistMessage = await ReplyAsync(null, false, newEmbed);
-                    else
-                        await playbackPlaylistMessage.ModifyAsync(x => x.Embed = newEmbed);
-                }
-                else
-                {
-                    playbackMessage = await ReplyAsync(null, false, newEmbed);
-                }
-            }
-            else
-            {
-                if (state == MediaState.Queued)
-                {
-                    await ReplyAsync(null, false, newEmbed);
-                    playbackLock.Release();
+                    var plEmbed = CreateMediaEmbed(info, null, MediaState.Queued);
+                    await ReplyAsync(null, false, plEmbed);
                     return;
                 }
-                else
+
+                var embed = CreateMediaEmbed(info, playlistInfo, state);
+
+                if (state == MediaState.Downloading || state == MediaState.Queued)
                 {
-                    await playbackMessage.ModifyAsync(x => x.Embed = newEmbed);
+                    lastPlayMessage = await ReplyAsync(null, false, embed);
+                }
+
+                if (lastPlayMessage is null)
+                {
+                    await ReplyAsync(null, false, embed);
+                    return;
+                }
+
+                await lastPlayMessage.ModifyAsync(x => x.Embed = embed);
+
+                if (state == MediaState.Finished || state == MediaState.Error)
+                {
+                    lastPlayMessage = null;
                 }
             }
-
-            playbackEmbed = newEmbed;
-
-            if (reset)
+            finally
             {
-                playbackMessage = null;
-                reset = false;
+                mediaCallbackLock.Set();
             }
-
-            playbackLock.Release();
         }
 
         private IVoiceChannel GetUserVoiceChannel() => ((SocketGuildUser)Context.User).VoiceChannel;
-
-        private static Embed CreateMediaEmbed(MediaInfo? mediaInfo, MediaInfo? collectionInfo, Color? color = null, string? footerText = null)
-        {
-            color ??= Color.DarkGrey;
-            var footer = mediaInfo?.Duration != TimeSpan.Zero ?
-                         collectionInfo != null ?
-                         $"{mediaInfo?.Duration} | {collectionInfo?.Duration}" :
-                         footerText ?? mediaInfo?.Duration.ToString() : "";
-            var embed = new EmbedBuilder()
-                        .WithColor(color.Value)
-                        .WithTitle(mediaInfo?.Artist ?? "Unknown")
-                        .WithDescription(collectionInfo != null ? $"__{mediaInfo?.Title}__\n{collectionInfo.Title}" : mediaInfo?.Title)
-                        .WithFooter(footer)
-                        .WithThumbnailUrl(mediaInfo?.ImageUrl).Build();
-            return embed;
-        }
 
         private Task<IMediaRequest> GetRequestAsync(string query)
         {
@@ -123,7 +109,7 @@ namespace Melodica.Services.Playback
             if (attach.Count != 0)
             {
                 return Task.FromResult(new AttachmentMediaRequest(attach.ToArray()) as IMediaRequest);
-                
+
             }
             var downloader = DownloaderResolver.GetDownloaderFromQuery(query) ?? (query.IsUrl() ? null : IAsyncDownloader.Default);
             IMediaRequest request = downloader == null ? new URLMediaRequest(null, query, true) : new DownloadRequest(query!, downloader);
@@ -154,7 +140,7 @@ namespace Melodica.Services.Playback
         [Command("Loop"), Summary("Toggles loop on the current song.")]
         public async Task SetLoopingAsync()
         {
-            if(!Jukebox.Playing)
+            if (!Jukebox.Playing)
             {
                 await ReplyAsync("Cannot set loop when no song is playing.");
                 return;
@@ -172,7 +158,14 @@ namespace Melodica.Services.Playback
                 await ReplyAsync("No song is playing.");
                 return;
             }
-            await ReplyAsync(null, false, playbackEmbed!);
+            var media = Jukebox.GetSong();
+            if (media is null)
+            {
+                await ReplyAsync("GetSong returned null.");
+                return;
+            }
+            var embed = CreateMediaEmbed(media.Info, media.CollectionInfo, MediaState.Queued);
+            await ReplyAsync(null, false, embed);
         }
 
         [Command("Duration"), Summary("Gets the elapsed time of the song.")]
@@ -186,7 +179,7 @@ namespace Melodica.Services.Playback
 
             var dur = Jukebox.Elapsed;
             var song = Jukebox.GetSong();
-            if(song is null)
+            if (song is null)
             {
                 await ReplyAsync("Could not get song from jukebox.");
                 return;
@@ -262,8 +255,8 @@ namespace Melodica.Services.Playback
                     var song = queue[i - 1];
                     var songInfo = song.Info;
                     eb.AddField(
-                        i == 1 ? "Next:" : i == maxElems ? "And more" : i.ToString(), 
-                        i == 1 ? $"**{songInfo.Artist} - {songInfo.Title}**" : i == maxElems ? $"Plus {queue.Length - (i - 1)} other songs!" : $"{songInfo.Artist} - {songInfo.Title}", 
+                        i == 1 ? "Next:" : i == maxElems ? "And more" : i.ToString(),
+                        i == 1 ? $"**{songInfo.Artist} - {songInfo.Title}**" : i == maxElems ? $"Plus {queue.Length - (i - 1)} other songs!" : $"{songInfo.Artist} - {songInfo.Title}",
                         false);
                 }
             }
@@ -287,7 +280,7 @@ namespace Melodica.Services.Playback
 
             Jukebox.Shuffle = false;
             await Jukebox.SetNextAsync(request);
-            await ReplyAsync(null, false, CreateMediaEmbed(info, null));
+            await ReplyAsync(null, false, CreateMediaEmbed(info, null, MediaState.Queued));
         }
 
         [Command("Switch"), Summary("Changes the current song.")]

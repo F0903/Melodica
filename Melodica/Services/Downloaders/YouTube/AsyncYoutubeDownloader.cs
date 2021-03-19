@@ -73,7 +73,7 @@ namespace Melodica.Services.Downloaders.YouTube
         async Task<MediaInfo> PlaylistToMetadataAsync(Playlist pl)
         {
             var author = pl.Author;
-            var (artist, newTitle) = pl.Title.AsSpan().SeperateArtistName(backupArtistName: string.IsNullOrEmpty(author) ? "Unknown Author" : author);
+            var (artist, newTitle) = pl.Title.AsSpan().SeperateArtistName(string.IsNullOrEmpty(author) ? "Unknown Artist" : author);
             return new MediaInfo(pl.Id)
             {
                 MediaType = MediaType.Playlist,
