@@ -26,7 +26,12 @@ jobs:
         uses: actions/setup-dotnet@v1.7.2
         with:
           dotnet-version: ${{ env.DOTNET_VER }}
-
+  
+      - name: Setup NuGet
+        run: |
+          nuget update -self 
+          nuget locals all -clear
+      
       - name: Setup Custom NuGet Sources
         run: dotnet nuget add source https://www.myget.org/F/discord-net/api/v3/index.json
 
