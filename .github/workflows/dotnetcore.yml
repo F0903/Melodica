@@ -8,7 +8,7 @@ env:
 jobs:
   build:    
     name: Build Project
-    # Just run on ubuntu. It's much faster than Windows, and the result will most likely be the same.
+    # Just run on ubuntu. It builds faster than Windows, and the result will most likely be the same.
     runs-on: ubuntu-latest
 
     steps:
@@ -27,7 +27,7 @@ jobs:
         with:
           dotnet-version: ${{ env.DOTNET_VER }}
 
-      - name: Setup Discord.Net MyGet Source
+      - name: Setup Custom NuGet Sources
         run: dotnet nuget add source https://www.myget.org/F/discord-net/api/v3/index.json
 
       - name: Check NuGet Cache
