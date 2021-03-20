@@ -29,7 +29,6 @@ jobs:
   
       - name: Setup NuGet
         run: |
-          nuget update -self 
           nuget locals all -clear
       
       - name: Setup Custom NuGet Sources
