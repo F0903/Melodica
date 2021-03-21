@@ -48,6 +48,9 @@ namespace Melodica.Core.CommandHandlers
             if (message is not SocketUserMessage msg)
                 return;
 
+            if (msg.Channel is IDMChannel)
+                return;
+
             if (msg.Author.IsBot)
                 return;
 

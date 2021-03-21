@@ -31,9 +31,9 @@ namespace Melodica.Services.Playback
 
     public class Jukebox
     {
-        public Jukebox(MediaCallback mediaCallback)
+        public Jukebox(IMessageChannel mediaCallback)
         {
-            this.mediaCallback = mediaCallback;
+            this.embedHandler = new(mediaCallback);
         }
 
         public delegate ValueTask MediaCallback(MediaInfo info, MediaInfo? playlistInfo, MediaState state);
@@ -59,7 +59,7 @@ namespace Melodica.Services.Playback
 
         public TimeSpan Elapsed => new(durationTimer.Elapsed.Hours, durationTimer.Elapsed.Minutes, durationTimer.Elapsed.Seconds);
 
-        private readonly MediaCallback mediaCallback;
+        private readonly PlaybackEmbedHandler embedHandler;
         private readonly PlaybackStopwatch durationTimer = new();
         private readonly MediaQueue queue = new();
         private readonly ManualResetEventSlim playLock = new(true);
@@ -98,7 +98,8 @@ namespace Melodica.Services.Playback
         {
             const int channels = 2;
             const int bits = 16;
-            Span<byte> buffer = stackalloc byte[(channels * bits) * samples];
+            var bytes = (channels * bits) * samples;
+            Span<byte> buffer = bytes < 1024 ? stackalloc byte[bytes] : new byte[bytes];
             output.Write(buffer);
         }
 
@@ -232,12 +233,12 @@ namespace Melodica.Services.Playback
 
 
             if (!Loop)
-                await mediaCallback(info, collectionInfo, MediaState.Downloading);
+                await embedHandler.MediaCallback(info, collectionInfo, MediaState.Downloading);
 
             await audio.StartProcess(media, startingPoint);
 
             if (!Loop)
-                await mediaCallback(info, collectionInfo, MediaState.Playing);
+                await embedHandler.MediaCallback(info, collectionInfo, MediaState.Playing);
 
             bool faulted = await SendDataAsync(audio, output, channel, token);
             if (faulted)
@@ -246,7 +247,7 @@ namespace Melodica.Services.Playback
             }
 
             if (!Loop)
-                await mediaCallback(info, collectionInfo, MediaState.Finished);
+                await embedHandler.MediaCallback(info, collectionInfo, MediaState.Finished);
 
             if ((!Loop && queue.IsEmpty) || cancellation!.IsCancellationRequested)
             {
@@ -276,7 +277,7 @@ namespace Melodica.Services.Playback
                 await queue.EnqueueAsync(collection);
                 if (Playing)
                 {
-                    await mediaCallback(reqInfo, colInfo, MediaState.Queued);
+                    await embedHandler.MediaCallback(reqInfo, colInfo, MediaState.Queued);
                     return;
                 }
 
@@ -286,7 +287,7 @@ namespace Melodica.Services.Playback
 
                 if (reqInfo.MediaType == MediaType.Playlist)
                 {
-                    await mediaCallback(reqInfo, colInfo, MediaState.Queued);
+                    await embedHandler.MediaCallback(reqInfo, colInfo, MediaState.Queued);
                 }
                 cancellation = new();
                 var token = cancellation.Token;
@@ -298,8 +299,9 @@ namespace Melodica.Services.Playback
             }
             catch (Exception ex)
             {
+                downloading = false;
                 if (reqInfo is not null)
-                    await mediaCallback(reqInfo, colInfo, MediaState.Error);
+                    await embedHandler.MediaCallback(reqInfo, colInfo, MediaState.Error);
                 await StopAsync();
                 await DisconnectAsync();
                 if (ex is not MediaUnavailableException)
@@ -307,14 +309,13 @@ namespace Melodica.Services.Playback
             }
             finally
             {
-                downloading = false;
                 playLock.Set();
             }
         }
 
         public async Task SwitchAsync(IMediaRequest request, IAudioChannel channel)
         {
-            //TODO: test
+            //TODO: Make work
             await StopAsync();
             await PlayAsync(request, channel);
         }
