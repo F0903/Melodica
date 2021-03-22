@@ -259,18 +259,6 @@ namespace Melodica.Services.Playback
             catch (EmptyChannelException) { await ReplyAsync("All users have left the channel. Disconnecting..."); }
         }
 
-        // Used to play an audio file on the server. Mainly used when youtube is down.
-        [Command("PlayLocal"), RequireOwner]
-        public async Task PlayLocalMedia([Remainder] string directUrl)
-        {
-            var userVoice = GetUserVoiceChannel();
-
-            GuildPermissionsChecker.AssertVoicePermissions(Context.Guild, Context.Client.CurrentUser, userVoice);
-
-            var req = new LocalMediaRequest(directUrl);
-            await Jukebox.PlayAsync(req, userVoice);
-        }
-
         [Command("Stop"), Summary("Stops playback.")]
         public async Task StopAsync()
         {

@@ -128,8 +128,7 @@ namespace Melodica.Services.Downloaders.YouTube
         async Task<MediaCollection> DownloadLivestream(MediaInfo info)
         {
             var streamUrl = await yt.Videos.Streams.GetHttpLiveStreamUrlAsync(info.Id ?? throw new NullReferenceException("Id was null."));
-            info.DataInformation = new("hls") { MediaPath = streamUrl };
-            var media = new PlayableMedia(info, null, null);
+            var media = new StreamableMedia(info, streamUrl, "hls");
             return new MediaCollection(media);
         }
 
@@ -144,8 +143,7 @@ namespace Melodica.Services.Downloaders.YouTube
                 if (video is null)
                     continue;
 
-                var vidInfo = VideoToMetadata(video);
-                async Task<(Stream, string)> DataGetter(PlayableMedia self)
+                async Task<DataPair> DataGetter(PlayableMedia self)
                 {
                     var manifest = await yt.Videos.Streams.GetManifestAsync(self.Info.Id);
                     var streamInfo = manifest.GetAudioOnly().WithHighestBitrate();
@@ -161,11 +159,14 @@ namespace Melodica.Services.Downloaders.YouTube
                     {
                         throw new MediaUnavailableException("Video was unavailable.", ex);
                     }
-                    return (stream, format);
+
+                    var savedPath = await cache.CacheAsync(self);
+                    var dataInfo = new DataInfo(format, savedPath);
+                    return new(stream, dataInfo);
                 }
 
+                var vidInfo = VideoToMetadata(video);
                 var media = new PlayableMedia(vidInfo, info, DataGetter);
-                media.OnDataRequested += async (x) => await cache.CacheAsync(x);
                 videos.Add(media);
             }
             return new MediaCollection(videos, info);
@@ -186,24 +187,24 @@ namespace Melodica.Services.Downloaders.YouTube
             if (info.Id is null)
                 throw new NullReferenceException("Id was null.");
 
-            if (cache.Contains(info.Id))
+            if (cache.TryGetAsync(info.Id, out var cachedMedia))
             {
-                var cachedMedia = await cache.GetAsync(info.Id);
-                return new MediaCollection(cachedMedia);
+                return new MediaCollection(cachedMedia!);
             }
 
-            async Task<(Stream, string)> DataGetter(PlayableMedia self)
+            async Task<DataPair> DataGetter(PlayableMedia self)
             {
                 var manifest = await yt.Videos.Streams.GetManifestAsync(self.Info.Id ?? throw new NullReferenceException("Id was null"));
                 //TODO: Get the audio with the closest bitrate to discord server bitrate.
                 var streamInfo = manifest.GetAudioOnly().WithHighestBitrate() ?? throw new NullReferenceException("Could not get stream from YouTube.");
                 var stream = await yt.Videos.Streams.GetAsync(streamInfo);
                 var format = streamInfo.Container.Name.ToLower();
-                return (stream, format);
+                var savedPath = await cache.CacheAsync(self);
+                var dataInfo = new DataInfo(format, savedPath);
+                return new(stream, dataInfo);
             }
 
             var media = new PlayableMedia(info, null, DataGetter);
-            media.OnDataRequested += async (x) => await cache.CacheAsync(x);
             return new MediaCollection(media);
         }
     }

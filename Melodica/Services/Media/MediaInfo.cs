@@ -15,13 +15,6 @@ namespace Melodica.Services.Media
     }
 
     [Serializable]
-    public record DataInfo(string Format)
-    {
-        public string FileExtension => Format.Insert(0, ".");
-        public string? MediaPath { get; init; }
-    }
-
-    [Serializable]
     public record MediaInfo(string Id)
     {
         private static readonly BinarySerializer bin = new();
@@ -41,7 +34,5 @@ namespace Melodica.Services.Media
         public string? Url { get; init; }
 
         public string? ImageUrl { get; init; }
-
-        public DataInfo? DataInformation { get; set; }
     }
 }

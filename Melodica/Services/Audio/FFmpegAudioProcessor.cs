@@ -16,10 +16,9 @@ namespace Melodica.Services.Audio
         private const bool input = false;
         private const bool output = true;
 
-        protected override async Task<Process> CreateAsync(PlayableMedia media, TimeSpan? startingPoint = null)
+        protected override Task<Process> CreateAsync(PlayableMedia media, TimeSpan? startingPoint = null)
         {
-            await media.DownloadDataAsync();
-            var dataInfo = media.Info.DataInformation;
+            var dataInfo = media.DataInfo;
             if (dataInfo is null)
                 throw new NullReferenceException("DataInfo of media was null.");
 
@@ -46,7 +45,7 @@ namespace Melodica.Services.Audio
                     CreateNoWindow = true,
                 }
             };
-            return proc;
+            return Task.FromResult(proc);
         }
     }
 }

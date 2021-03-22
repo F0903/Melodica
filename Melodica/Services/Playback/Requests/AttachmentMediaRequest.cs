@@ -8,7 +8,8 @@ using Melodica.Services.Media;
 
 namespace Melodica.Services.Playback.Requests
 {
-    internal class AttachmentMediaRequest : IMediaRequest
+    //TODO:
+    public class AttachmentMediaRequest : IMediaRequest
     {
         public AttachmentMediaRequest(Discord.Attachment[] attachments) => attachment = attachments[0];
 
@@ -18,18 +19,12 @@ namespace Melodica.Services.Playback.Requests
 
         public Task<MediaInfo> GetInfoAsync()
         {
-            var format = Path.GetExtension(attachment!.Filename).Replace(".", "");
-            var id = Path.ChangeExtension(attachment!.Filename, null);
-            info ??= new MediaInfo(id) { Duration = TimeSpan.Zero, ImageUrl = null, Title = attachment!.Filename, DataInformation = new(format) };
-            return Task.FromResult(info);
+            throw new NotImplementedException();
         }
 
         public async Task<MediaCollection> GetMediaAsync()
         {
-            using var web = new WebClient();
-            byte[]? data = web.DownloadData(attachment!.Url);
-            var info = await GetInfoAsync();
-            return new MediaCollection(new TempMedia(info, (_) => Task.FromResult(((Stream)new MemoryStream(data), ""))));
+            throw new NotImplementedException();
         }
     }
 }

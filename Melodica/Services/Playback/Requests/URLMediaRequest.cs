@@ -10,67 +10,24 @@ using Melodica.Services.Media;
 
 namespace Melodica.Services.Playback.Requests
 {
+    //TODO:
     public class URLMediaRequest : IMediaRequest
     {
         public URLMediaRequest(string? mediaName, string mediaUrl, bool directStream)
         {
-            mediaFormat = Utility.Utils.GetUrlResourceFormat(mediaUrl);
-            this.mediaName = mediaName ?? $"External {mediaFormat.ToUpper()} {(directStream ? "Stream" : "File")}";
-            this.mediaUrl = mediaUrl;
-            this.directStream = directStream;
-
-            info = new MediaInfo("")
-            {
-                MediaType = directStream ? MediaType.Livestream : MediaType.Video,
-                Url = this.mediaUrl,
-                Title = this.mediaName,
-                DataInformation = new(mediaFormat)
-                {
-                    MediaPath = this.mediaUrl
-                }
-            };
+            throw new NotImplementedException();
         }
-
-        private readonly string mediaName;
-
-        private readonly string mediaFormat;
-
-        private readonly string mediaUrl;
-
-        private readonly bool directStream;
 
         private readonly MediaInfo info;
 
         private async Task<MediaCollection> DownloadMediaAsync()
         {
-            using var web = new WebClient();
-
-            var tSrc = new CancellationTokenSource(20000);
-
-            byte[]? data = await Task.Run(() => web.DownloadData(mediaUrl), tSrc.Token);
-            if (tSrc.IsCancellationRequested)
-                throw new CriticalException("Direct media could not be downloaded. (Timer exceeded 20 seconds)");
-
-            var meta = new MediaInfo("") 
-            { 
-                Title = mediaName, 
-                Duration = new(0),
-                DataInformation = new(mediaFormat)
-            };
-
-            return new MediaCollection(new PlayableMedia(meta, null, (_) => Task.FromResult(((Stream)new MemoryStream(data), ""))));
+            throw new NotImplementedException();
         }
 
         public Task<MediaCollection> GetMediaAsync()
         {
-            if (directStream)
-            {
-                return Task.FromResult(new MediaCollection(new PlayableMedia(info, null, null)));
-            }
-            else
-            {
-                return DownloadMediaAsync();
-            }
+            throw new NotImplementedException();
         }
 
         public Task<MediaInfo> GetInfoAsync() => Task.FromResult(info);

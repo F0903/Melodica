@@ -5,63 +5,68 @@ using System.Threading.Tasks;
 using Melodica.Services.Serialization;
 using Melodica.Utility.Extensions;
 
-using Microsoft.EntityFrameworkCore.Metadata;
-
 namespace Melodica.Services.Media
 {
+    public record DataPair(Stream? Data, DataInfo Info);
+
+    public delegate Task<DataPair> DataGetter(PlayableMedia media);
+
+    public record DataInfo(string Format, string MediaPath)
+    {
+        public string FileExtension => Format.Insert(0, ".");
+    }
+
     public class PlayableMedia
     {
-        public delegate Task<(Stream data, string format)> DataGetter(PlayableMedia self);
+        private PlayableMedia(MediaInfo meta) => Info = meta;
 
-        public delegate Task<PlayableMedia> DataRequester(PlayableMedia self);
-
-        public PlayableMedia(MediaInfo info, MediaInfo? collectionInfo, DataGetter? dataGetter)
+        public PlayableMedia(MediaInfo info, MediaInfo? collectionInfo, DataGetter dataGetter)
         {
             Info = info;
             CollectionInfo = collectionInfo;
             this.dataGetter = dataGetter;
         }
 
-        public MediaInfo Info { get; set; }
+        [NonSerialized]
+        private readonly DataGetter? dataGetter;
 
         [NonSerialized]
         MediaInfo? collectionInfo;
         public MediaInfo? CollectionInfo { get => collectionInfo; set => collectionInfo = value; }
 
-        public event DataRequester? OnDataRequested;
+        public MediaInfo Info { get; set; }
 
-        private readonly DataGetter? dataGetter;
+        DataPair? cachedData;
+        public DataInfo DataInfo
+        {
+            get
+            {
+                var pair = cachedData ?? LoadData().GetAwaiter().GetResult();
+                return pair.Info;
+            }
+        }
 
         public static ValueTask<PlayableMedia> FromExistingInfo(MediaInfo info)
         {
             return ValueTask.FromResult(new PlayableMedia(info));
         }
 
-        private PlayableMedia(MediaInfo meta) => Info = meta;
-
-        /// <summary>
-        /// Downloads the media data on demand. Call this before accessing DataInformation.
-        /// </summary>
-        /// <returns></returns>
-        public async Task DownloadDataAsync()
+        async Task<DataPair> LoadData()
         {
-            if (OnDataRequested is null)
-                return;
-            var cachedMedia = await OnDataRequested(this);
-            Info = cachedMedia.Info;
-            return;
+            //TODO: Make this stuff not recurse forever.
+            if (dataGetter is null)
+                throw new NullReferenceException("DataGetter was null. (1)");
+
+            return cachedData ??= await dataGetter(this);
         }
 
         /// <summary>
-        /// Saves data to disk. Should only be called by MediaCache.
+        /// Saves data to disk. Should only be called through MediaCache.
         /// </summary>
         /// <param name="saveDir"></param>
         /// <returns></returns>
-        public virtual async Task<(string mediaPath, string metaPath)> SaveDataAsync(string saveDir)
+        public virtual async Task<string> SaveDataAsync(string saveDir)
         {
-            if (dataGetter is null)
-                return ("", "");
-
             if (saveDir is null)
                 throw new NullReferenceException("SaveDir was not set.");
 
@@ -72,20 +77,25 @@ namespace Melodica.Services.Media
             var legalId = id.ReplaceIllegalCharacters();
 
             // Write the media data to file.
-            var (data, format) = await dataGetter(this);
+            var (s, info) = await LoadData();
+            if (s is null)
+                throw new NullReferenceException("Data stream was null.");
+            using var stream = s;
+            var format = info.Format;
             var fileExt = $".{format}";
-            string? mediaLocation = Path.Combine(saveDir, legalId + fileExt);
+
+            var mediaLocation = Path.Combine(saveDir, legalId + fileExt);
+
             using var file = File.OpenWrite(mediaLocation);
-            using (data) await data.CopyToAsync(file);
+            await stream.CopyToAsync(file);
             await file.FlushAsync();
-            var dataInfo = Info.DataInformation;
-            Info.DataInformation = new(format) { MediaPath = mediaLocation };
 
             // Serialize the metadata.
-            string? metaLocation = Path.Combine(saveDir!, legalId + MediaInfo.MetaFileExtension);
+            string metaLocation = Path.Combine(saveDir!, legalId + MediaInfo.MetaFileExtension);
             var bs = new BinarySerializer();
             await bs.SerializeToFileAsync(metaLocation, Info);
-            return (mediaLocation, metaLocation);
+
+            return mediaLocation;
         }
     }
 }
