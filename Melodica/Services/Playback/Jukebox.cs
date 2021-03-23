@@ -49,7 +49,7 @@ namespace Melodica.Services.Playback
             }
         }
 
-        public bool Playing => !playLock.IsSet; //TODO: Test
+        public bool Playing => !playLock.IsSet;
 
         public bool Loop { get => queue.Loop; set => queue.Loop = value; }
 
