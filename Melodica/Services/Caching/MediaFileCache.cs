@@ -8,11 +8,12 @@ using System.Threading.Tasks;
 using Melodica.Core;
 using Melodica.Services.Downloaders.Exceptions;
 using Melodica.Services.Media;
+using Melodica.Services.Serialization;
 using Melodica.Utility.Extensions;
 
 namespace Melodica.Services.Caching
 {
-    public class MediaFileCache
+    public class MediaFileCache : IMediaCache
     {
         public MediaFileCache(string dirName)
         {
@@ -27,6 +28,8 @@ namespace Melodica.Services.Caching
         record CachePair(PlayableMedia Media, long AccessCount);
 
         private static readonly List<MediaFileCache> cacheInstances = new(); // Keep track of all instances so we can clear all cache.
+
+        private static readonly BinarySerializer serializer = new();
 
         public const int MaxClearAttempt = 5;
 
@@ -59,7 +62,7 @@ namespace Melodica.Services.Caching
                 try
                 {
                     var info = await MediaInfo.LoadFromFile(metaFile.FullName);
-                    var med = await PlayableMedia.FromExistingInfo(info);
+                    var med = await PlayableMedia.FromExisting(info);
                     var id = info.Id ?? throw new Exception("Id was null.");
                     cache.Add(id, new(med, 0));
                 }
@@ -95,7 +98,7 @@ namespace Melodica.Services.Caching
             return Task.FromResult(files.AsParallel().Convert(x => new FileInfo(x)).Sum(f => f.Length));
         }
 
-        private (int deletedFiles, int filesInUse, long msDuration) NukeCache()
+        private Task<(int deletedFiles, int filesInUse, long msDuration)> NukeCacheAsync()
         {
             int deletedFiles = 0;
             int filesInUse = 0;
@@ -122,14 +125,14 @@ namespace Melodica.Services.Caching
                 }
             });
             sw.Stop();
-            return (deletedFiles, filesInUse, sw.ElapsedMilliseconds);
+            return Task.FromResult((deletedFiles, filesInUse, sw.ElapsedMilliseconds));
         }
 
-        private (int deletedFiles, int filesInUse, long msDuration) PruneCache(bool force)
+        private Task<(int deletedFiles, int filesInUse, long msDuration)> PruneCacheAsync(bool force)
         {
             var maxSize = BotSettings.CacheSizeMB;
             if (!force && cache.Count < maxSize)
-                return (0, 0, 0);
+                return Task.FromResult((0, 0, 0L));
 
             int deletedFiles = 0;
             int filesInUse = 0;
@@ -150,9 +153,9 @@ namespace Melodica.Services.Caching
                 {
                     var pair = x.Value;
                     var media = pair.Media;
-                    var dataInfo = media.DataInfo;
-                    var file = dataInfo.MediaPath ?? throw new Exception("MediaPath or DataInfo was null when trying to delete media file in PruneCache.");
-                    DeleteMediaFile(new FileInfo(file));
+                    var dataInfo = media.Info.DataInfo;
+                    var file = dataInfo!.MediaPath ?? throw new Exception("MediaPath or DataInfo was null when trying to delete media file in PruneCache.");
+                    DeleteMediaFile(new(file));
                     cache.Remove(x.Key);
                     ++deletedFiles;
                 }
@@ -160,7 +163,7 @@ namespace Melodica.Services.Caching
             });
 
             sw.Stop();
-            return (deletedFiles, filesInUse, sw.ElapsedMilliseconds);
+            return Task.FromResult((deletedFiles, filesInUse, sw.ElapsedMilliseconds));
         }
 
         public async Task<(int deletedFiles, int filesInUse, long msDuration)> PruneCacheAsync(bool forceClear = false, bool nuke = false)
@@ -168,7 +171,7 @@ namespace Melodica.Services.Caching
             if (!forceClear && await GetCacheSizeAsync() < BotSettings.CacheSizeMB * 1024 * 1024)
                 return (0, 0, 0);
 
-            var (deletedFiles, filesInUse, msDuration) = nuke ? NukeCache() : PruneCache(forceClear);
+            var (deletedFiles, filesInUse, msDuration) = nuke ? await NukeCacheAsync() : await PruneCacheAsync(forceClear);
 
             return (deletedFiles, filesInUse, msDuration);
         }
@@ -177,7 +180,7 @@ namespace Melodica.Services.Caching
         {
             var pair = cache[id];
             cache[id] = pair with { AccessCount = pair.AccessCount + 1 };
-            return await PlayableMedia.FromExistingInfo(pair.Media.Info);
+            return await PlayableMedia.FromExisting(pair.Media.Info);
         }
 
         public async Task<PlayableMedia> GetAsync(string id)
@@ -194,7 +197,7 @@ namespace Melodica.Services.Caching
             }
         }
 
-        public bool TryGetAsync(string id, out PlayableMedia? media)
+        public bool TryGet(string id, out PlayableMedia? media)
         {
             try
             {
@@ -208,7 +211,7 @@ namespace Melodica.Services.Caching
             }
         }
 
-        public async Task<string> CacheAsync(PlayableMedia med, bool pruneCache = true)
+        public async Task<DataInfo> CacheAsync(PlayableMedia med, DataPair data, bool pruneCache = true)
         {
             if (pruneCache)
                 await PruneCacheAsync();
@@ -217,8 +220,26 @@ namespace Melodica.Services.Caching
             var id = info.Id ?? throw new NullReferenceException("Media ID was null.");
             try { cache.Add(id, new(med, 1)); }
             catch (ArgumentException) { }
-            var savedPath = await med.SaveDataAsync(cacheLocation);
-            return savedPath;
+
+            var fileLegalId = id.ReplaceIllegalCharacters();
+
+            // Write to file.
+            using var dataStream = data.Data;
+            if (dataStream is null)
+                throw new NullReferenceException("Data stream was null.");
+
+            var format = data.Format;
+            var fileExt = $".{format}";
+            string mediaLocation = Path.Combine(cacheLocation, fileLegalId + fileExt);
+            using var file = File.OpenWrite(mediaLocation);
+            await dataStream.CopyToAsync(file);
+            var dataInfo = info.DataInfo = new(format, mediaLocation);
+
+            // Serialize the metadata.
+            string metaLocation = Path.Combine(cacheLocation, fileLegalId + MediaInfo.MetaFileExtension);
+            await serializer.SerializeToFileAsync(metaLocation, info);
+
+            return dataInfo;
         }
     }
 }

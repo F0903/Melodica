@@ -160,13 +160,11 @@ namespace Melodica.Services.Downloaders.YouTube
                         throw new MediaUnavailableException("Video was unavailable.", ex);
                     }
 
-                    var savedPath = await cache.CacheAsync(self);
-                    var dataInfo = new DataInfo(format, savedPath);
-                    return new(stream, dataInfo);
+                    return new(stream, format);
                 }
 
                 var vidInfo = VideoToMetadata(video);
-                var media = new PlayableMedia(vidInfo, info, DataGetter);
+                var media = new PlayableMedia(vidInfo, info, DataGetter, cache);
                 videos.Add(media);
             }
             return new MediaCollection(videos, info);
@@ -187,11 +185,6 @@ namespace Melodica.Services.Downloaders.YouTube
             if (info.Id is null)
                 throw new NullReferenceException("Id was null.");
 
-            if (cache.TryGetAsync(info.Id, out var cachedMedia))
-            {
-                return new MediaCollection(cachedMedia!);
-            }
-
             async Task<DataPair> DataGetter(PlayableMedia self)
             {
                 var manifest = await yt.Videos.Streams.GetManifestAsync(self.Info.Id ?? throw new NullReferenceException("Id was null"));
@@ -199,12 +192,10 @@ namespace Melodica.Services.Downloaders.YouTube
                 var streamInfo = manifest.GetAudioOnly().WithHighestBitrate() ?? throw new NullReferenceException("Could not get stream from YouTube.");
                 var stream = await yt.Videos.Streams.GetAsync(streamInfo);
                 var format = streamInfo.Container.Name.ToLower();
-                var savedPath = await cache.CacheAsync(self);
-                var dataInfo = new DataInfo(format, savedPath);
-                return new(stream, dataInfo);
+                return new(stream, format);
             }
 
-            var media = new PlayableMedia(info, null, DataGetter);
+            var media = new PlayableMedia(info, null, DataGetter, cache);
             return new MediaCollection(media);
         }
     }

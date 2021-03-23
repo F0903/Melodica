@@ -16,9 +16,8 @@ namespace Melodica.Services.Audio
         private const bool input = false;
         private const bool output = true;
 
-        protected override Task<Process> CreateAsync(PlayableMedia media, TimeSpan? startingPoint = null)
+        protected override Task<Process> CreateAsync(DataInfo dataInfo, TimeSpan? startingPoint = null)
         {
-            var dataInfo = media.DataInfo;
             if (dataInfo is null)
                 throw new NullReferenceException("DataInfo of media was null.");
 

@@ -8,27 +8,10 @@ namespace Melodica.Services.Media
 {
     public sealed class TempMedia : PlayableMedia
     {
-        public TempMedia(MediaInfo meta, DataGetter dataGetter) : base(meta, null, dataGetter)
+        public TempMedia(MediaInfo meta, DataGetter dataGetter) : base(meta, null, dataGetter, null)
         {
-            string toSave = Path.Combine(MediaFileCache.RootCacheLocation, "temp/");
-            string? toSaveDir = Path.GetDirectoryName(toSave);
-            if (toSaveDir == null)
-                throw new NullReferenceException("toSaveDir was null for temp media. Wrong path probably specified.");
-
-            if (!Directory.Exists(toSaveDir))
-                Directory.CreateDirectory(toSaveDir);
-
-            fullSavePath = toSave;
-            fullSavePath = SaveDataAsync(fullSavePath).Result;
+            throw new NotImplementedException();
+            //TODO:
         }
-
-        ~TempMedia()
-        {
-            Destroy();
-        }
-
-        private readonly string fullSavePath;
-
-        private void Destroy() => File.Delete(fullSavePath);
     }
 }

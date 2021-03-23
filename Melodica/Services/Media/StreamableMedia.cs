@@ -4,20 +4,23 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
+using Melodica.Services.Caching;
+
 namespace Melodica.Services.Media
 {
     public class StreamableMedia : PlayableMedia
     {
         public StreamableMedia(MediaInfo info, string url, string format) 
-            : base(info, null, _ => Task.FromResult(new DataPair(null, new(format, url))))
+            : base(info, null, _ => Task.FromResult(new DataPair(null, new(format))), null)
         {
-
+            dataInfo = new(format, url);
         }
 
-        public override Task<string> SaveDataAsync(string saveDir)
+        private readonly DataInfo dataInfo;
+
+        public override Task<DataInfo> SaveDataAsync()
         {
-            // Used for caching purposes, so just return empty string.
-            return Task.FromResult("");
+            return Task.FromResult(dataInfo);
         }
     }
 }

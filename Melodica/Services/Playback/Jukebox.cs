@@ -235,7 +235,8 @@ namespace Melodica.Services.Playback
             if (!Loop)
                 await embedHandler.MediaCallback(info, collectionInfo, MediaState.Downloading);
 
-            await audio.StartProcess(media, startingPoint);
+            var dataInfo = await media.SaveDataAsync();
+            await audio.StartProcess(dataInfo, startingPoint);
 
             if (!Loop)
                 await embedHandler.MediaCallback(info, collectionInfo, MediaState.Playing);

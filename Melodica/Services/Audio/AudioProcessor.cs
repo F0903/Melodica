@@ -25,11 +25,11 @@ namespace Melodica.Services.Audio
 
         public Stream? GetOutput() => outputAvailable ? processorProcess?.StandardOutput.BaseStream : null;
 
-        protected abstract Task<Process> CreateAsync(PlayableMedia media, TimeSpan? startingPoint = null);
+        protected abstract Task<Process> CreateAsync(DataInfo dataInfo, TimeSpan? startingPoint = null);
 
-        public async ValueTask StartProcess(PlayableMedia media, TimeSpan? startingPoint = null)
+        public async ValueTask StartProcess(DataInfo dataInfo, TimeSpan? startingPoint = null)
         {
-            processorProcess = await CreateAsync(media, startingPoint);
+            processorProcess = await CreateAsync(dataInfo, startingPoint);
             processorProcess.Start();
         }
 
