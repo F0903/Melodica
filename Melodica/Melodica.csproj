@@ -35,7 +35,6 @@
 			<PrivateAssets>all</PrivateAssets>
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 		</PackageReference>
-		<PackageReference Include="Newtonsoft.Json" Version="12.0.3" />
 		<PackageReference Include="Ninject" Version="3.3.4" />
 		<PackageReference Include="SoundCloud.Api" Version="3.0.0" />
 		<PackageReference Include="SpotifyAPI.Web" Version="6.1.0" />
