@@ -84,11 +84,11 @@
       },
       "SpotifyAPI.Web": {
         "type": "Direct",
-        "requested": "[6.1.0, )",
-        "resolved": "6.1.0",
-        "contentHash": "N5oDw5wiehP+BD1gAb9AW8Q1+LPE7GWrT15mZ71xUJInPmSsGT6alCemuKCFU4dOZdDA4mzk+qhyXhlcD6pxSw==",
+        "requested": "[6.2.0, )",
+        "resolved": "6.2.0",
+        "contentHash": "3XiyyYV+UGM/zx9+d5u6PgadXHnhzMhiF737kHrTG5gf4hb0V5OM/gOL4PBTjMnqOl3NFOf7GX1yY00Bmhorwg==",
         "dependencies": {
-          "Newtonsoft.Json": "12.0.3"
+          "Newtonsoft.Json": "13.0.1"
         }
       },
       "System.Runtime": {
@@ -103,11 +103,12 @@
       },
       "YoutubeExplode": {
         "type": "Direct",
-        "requested": "[6.0.0-alpha2, )",
-        "resolved": "6.0.0-alpha2",
-        "contentHash": "3rQ9ynoFsYLIAD9BfRMgteMbGRl8yI/34/ggs9pHbUCWEkY6SC2EYGyxaSHGrYYFiwDoUnhZvomYeGunYluWYw==",
+        "requested": "[6.0.0, )",
+        "resolved": "6.0.0",
+        "contentHash": "Hi4Ob8xLFl/KXHl1SB0ZePwbZ4fWwZkM9O2QM/gQsnUZVRagEDMhrsxk0tosDjRFbOcvOpWPO9taLshOOPHUgQ==",
         "dependencies": {
-          "AngleSharp": "0.14.0"
+          "AngleSharp": "0.14.0",
+          "System.Text.Json": "4.7.2"
         }
       },
       "AngleSharp": {
@@ -313,8 +314,8 @@
       },
       "Newtonsoft.Json": {
         "type": "Transitive",
-        "resolved": "12.0.3",
-        "contentHash": "6mgjfnRB4jKMlzHSl+VD+oUc1IebOZabkbyWj2RiTgWwYPPuaK1H97G1sHqGwPlS5npiF5Q0OrxN1wni2n5QWg=="
+        "resolved": "13.0.1",
+        "contentHash": "ppPFpBcvxdsfUonNcvITKqLl3bqxWbDCZIzDWHzjpdAHRFfZe0Dw9HmA0+za13IdyrgJwpkDTDA9fHaxOrt20A=="
       },
       "SQLitePCLRaw.bundle_e_sqlite3": {
         "type": "Transitive",
@@ -458,6 +459,11 @@
           "Microsoft.NETCore.Platforms": "2.0.0",
           "System.Runtime.CompilerServices.Unsafe": "4.5.0"
         }
+      },
+      "System.Text.Json": {
+        "type": "Transitive",
+        "resolved": "4.7.2",
+        "contentHash": "TcMd95wcrubm9nHvJEQs70rC0H/8omiSGGpU4FQ/ZA1URIqD4pjmFJh2Mfv1yH1eHgJDWTi2hMDXwTET+zOOyg=="
       },
       "System.Threading.Tasks": {
         "type": "Transitive",
