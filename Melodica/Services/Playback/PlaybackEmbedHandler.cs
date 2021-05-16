@@ -27,7 +27,6 @@ namespace Melodica.Services.Playback
             return await callbackChannel.SendMessageAsync(msg, tts, embed);
         }
 
-        //TODO: make work
         public async ValueTask MediaCallback(MediaInfo info, MediaInfo? playlistInfo, MediaState state)
         {
             if (info is null)

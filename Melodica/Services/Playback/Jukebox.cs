@@ -162,10 +162,11 @@ namespace Melodica.Services.Playback
                 {
                     durationTimer.Reset();
                 }
-            });
-
-            writeThread.IsBackground = false;
-            writeThread.Priority = ThreadPriority.Highest;
+            })
+            {
+                IsBackground = false,
+                Priority = ThreadPriority.Highest
+            };
 
             writeThread.Start();
             writeThread.Join(); // Thread exit
@@ -230,7 +231,6 @@ namespace Melodica.Services.Playback
             currentSong = media;
             var info = media.Info;
             var collectionInfo = media.CollectionInfo;
-
 
             if (!Loop)
                 await embedHandler.MediaCallback(info, collectionInfo, MediaState.Downloading);

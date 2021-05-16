@@ -11,7 +11,7 @@ namespace Melodica.Services.Serialization
         // Disable redundant warning. These files are only stored locally and contain no sensitive info.
 #pragma warning disable SYSLIB0011
 
-        private static readonly BinaryFormatter bin = new BinaryFormatter(null, new StreamingContext(StreamingContextStates.File | StreamingContextStates.CrossProcess | StreamingContextStates.Persistence));
+        private static readonly BinaryFormatter bin = new(null, new StreamingContext(StreamingContextStates.File | StreamingContextStates.Persistence));
 
         public Task SerializeToFileAsync(string path, object toSerialize)
         {

@@ -19,7 +19,7 @@ namespace Melodica.Services.Playback
     public class JukeboxCommands : ModuleBase<SocketCommandContext>
     {
         Jukebox? cachedJukebox;
-        private Jukebox Jukebox => cachedJukebox ??= 
+        private Jukebox Jukebox => cachedJukebox ??=
             JukeboxManager.GetOrCreateJukeboxAsync(Context.Guild, () => new Jukebox(Context.Channel)).GetAwaiter().GetResult();
 
         private IVoiceChannel GetUserVoiceChannel() => ((SocketGuildUser)Context.User).VoiceChannel;

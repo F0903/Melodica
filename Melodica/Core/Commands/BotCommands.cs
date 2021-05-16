@@ -9,6 +9,7 @@ namespace Melodica.Core.Commands
     public class BotCommands : ModuleBase<SocketCommandContext>
     {
         [Command("Shutdown")]
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Performance", "CA1822:Mark members as static", Justification = "Cannot be static due to Discord library.")]
         public Task Shutdown()
         {
             Environment.Exit(0);

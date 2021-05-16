@@ -93,7 +93,7 @@ namespace Melodica.Services.Downloaders.YouTube
             ex is YoutubeExplode.Exceptions.VideoUnavailableException ||
             ex is YoutubeExplode.Exceptions.VideoRequiresPurchaseException;
 
-        static bool IsUrlPlaylist(string url) => url.StartsWith(@"http://www.youtube.com/playlist?list=") || url.StartsWith(@"https://www.youtube.com/playlist?list=");
+        static bool IsUrlPlaylist(string url) => url.StartsWith("http://www.youtube.com/playlist?list=") || url.StartsWith("https://www.youtube.com/playlist?list=");
 
         public bool IsUrlSupported(string url) => url.StartsWith("https://www.youtube.com/") || url.StartsWith("http://www.youtube.com/");
 
@@ -108,7 +108,7 @@ namespace Melodica.Services.Downloaders.YouTube
         {
             if (IsUrlPlaylist(url))
             {
-                return await GetInfoFromPlaylistUrlAsync(url).ConfigureAwait(false);
+                return await GetInfoFromPlaylistUrlAsync(url);
             }
 
             var id = VideoId.Parse(url);
@@ -120,7 +120,7 @@ namespace Melodica.Services.Downloaders.YouTube
         {
             if (query.IsUrl())
             {
-                return await GetInfoFromUrlAsync(query).ConfigureAwait(false);
+                return await GetInfoFromUrlAsync(query);
             }
 
             var videos = yt.Search.GetVideosAsync(query);
@@ -155,7 +155,7 @@ namespace Melodica.Services.Downloaders.YouTube
                         throw new MediaUnavailableException("Media was unavailable.");
                     var format = streamInfo.Container.Name.ToLower();
                     Stream stream;
-                    try 
+                    try
                     {
                         stream = await yt.Videos.Streams.GetAsync(streamInfo);
                     }
@@ -178,12 +178,12 @@ namespace Melodica.Services.Downloaders.YouTube
         {
             if (info.MediaType == MediaType.Playlist)
             {
-                return await DownloadPlaylist(info).ConfigureAwait(false);
+                return await DownloadPlaylist(info);
             }
 
             if (info.MediaType == MediaType.Livestream)
             {
-                return await DownloadLivestream(info).ConfigureAwait(false);
+                return await DownloadLivestream(info);
             }
 
             if (info.Id is null)
