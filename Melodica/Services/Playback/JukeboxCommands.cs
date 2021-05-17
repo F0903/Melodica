@@ -85,7 +85,7 @@ namespace Melodica.Services.Playback
                 await ReplyAsync("GetSong returned null.");
                 return;
             }
-            var embed = PlaybackUtils.CreateMediaEmbed(media.Info, media.CollectionInfo, MediaState.Queued);
+            var embed = EmbedUtils.CreateMediaEmbed(media.Info, media.CollectionInfo, MediaState.Queued);
             await ReplyAsync(null, false, embed);
         }
 
@@ -141,7 +141,7 @@ namespace Melodica.Services.Playback
         {
             var queue = Jukebox.GetQueue();
             // If index is null (default) then remove the last element.
-            var removed = index == null ? await queue.RemoveAtAsync(^0) : await queue.RemoveAtAsync(index.Value - 1);
+            PlayableMedia removed = index == null ? await queue.RemoveAtAsync(^0) : await queue.RemoveAtAsync(index.Value - 1);
             var removedInfo = removed.Info;
             await ReplyAsync(null, false, new EmbedBuilder()
             {
@@ -201,7 +201,7 @@ namespace Melodica.Services.Playback
 
             Jukebox.Shuffle = false;
             await Jukebox.SetNextAsync(request);
-            await ReplyAsync(null, false, PlaybackUtils.CreateMediaEmbed(info, null, MediaState.Queued));
+            await ReplyAsync(null, false, EmbedUtils.CreateMediaEmbed(info, null, MediaState.Queued));
         }
 
         [Command("Switch"), Summary("Changes the current song.")]

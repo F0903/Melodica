@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
 using System.Net.WebSockets;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -31,9 +32,9 @@ namespace Melodica.Services.Playback
 
     public class Jukebox
     {
-        public Jukebox(IMessageChannel mediaCallback)
+        public Jukebox(IMessageChannel callbackChannel)
         {
-            this.embedHandler = new(mediaCallback);
+            this.callbackChannel = callbackChannel;
         }
 
         public delegate ValueTask MediaCallback(MediaInfo info, MediaInfo? playlistInfo, MediaState state);
@@ -59,7 +60,6 @@ namespace Melodica.Services.Playback
 
         public TimeSpan Elapsed => new(durationTimer.Elapsed.Hours, durationTimer.Elapsed.Minutes, durationTimer.Elapsed.Seconds);
 
-        private readonly PlaybackEmbedHandler embedHandler;
         private readonly PlaybackStopwatch durationTimer = new();
         private readonly MediaQueue queue = new();
         private readonly ManualResetEventSlim playLock = new(true);
@@ -67,6 +67,7 @@ namespace Melodica.Services.Playback
 
         private IAudioClient? audioClient;
         private IAudioChannel? audioChannel;
+        private readonly IMessageChannel callbackChannel;
 
         private bool skipRequested = false;
         private bool downloading = false;
@@ -224,23 +225,22 @@ namespace Melodica.Services.Playback
 
         async Task PlayNextAsync(IAudioChannel channel, AudioOutStream output, CancellationToken token, TimeSpan? startingPoint = null)
         {
+            PlaybackStatusHandler status = new(callbackChannel);
             using var audio = new FFmpegAudioProcessor();
             var media = await queue.DequeueAsync();
             if (media is null)
                 throw new CriticalException("Song from queue was null.");
 
             currentSong = media;
-            var info = media.Info;
-            var collectionInfo = media.CollectionInfo;
 
             if (!Loop)
-                await embedHandler.MediaCallback(info, collectionInfo, MediaState.Downloading);
+                await status.Send(media.Info, media.CollectionInfo, MediaState.Downloading);
 
             var dataInfo = await media.GetDataAsync();
             await audio.StartProcess(dataInfo, startingPoint);
 
             if (!Loop)
-                await embedHandler.MediaCallback(info, collectionInfo, MediaState.Playing);
+                await status.SetPlaying();
 
             bool faulted = await SendDataAsync(audio, output, channel, token);
             if (faulted)
@@ -257,7 +257,7 @@ namespace Melodica.Services.Playback
             }
 
             if (!Loop)
-                await embedHandler.MediaCallback(info, collectionInfo, MediaState.Finished);
+                await status.SetFinished();
 
             if ((!Loop && queue.IsEmpty) || cancellation!.IsCancellationRequested)
             {
@@ -270,55 +270,51 @@ namespace Melodica.Services.Playback
 
         public async Task PlayAsync(IMediaRequest request, IAudioChannel channel, TimeSpan? startingPoint = null)
         {
-            MediaInfo? reqInfo = null;
-            MediaInfo? colInfo = null;
+            if (downloading)
+                return;
+
+            PlaybackStatusHandler status = new(callbackChannel);
+
+            MediaInfo reqInfo;
+            MediaCollection collection;
             try
             {
-                if (downloading)
-                    return;
-
                 downloading = true;
                 reqInfo = await request.GetInfoAsync();
-                var collection = await request.GetMediaAsync();
-                colInfo = collection.CollectionInfo;
-
-                await queue.EnqueueAsync(collection);
-                if (Playing)
-                {
-                    await embedHandler.MediaCallback(reqInfo, colInfo, MediaState.Queued);
-                    return;
-                }
-
-                playLock.Wait();
-                playLock.Reset();
+                collection = await request.GetMediaAsync();
                 downloading = false;
-
-                if (reqInfo.MediaType == MediaType.Playlist)
-                {
-                    await embedHandler.MediaCallback(reqInfo, colInfo, MediaState.Queued);
-                }
-                cancellation = new();
-                var token = cancellation.Token;
-
-                await ConnectAsync(channel);
-                var bitrate = GetChannelBitrate(channel);
-                using var output = audioClient!.CreatePCMStream(AudioApplication.Music, bitrate, 1000, 0);
-                await PlayNextAsync(channel, output, token, startingPoint);
             }
             catch (Exception ex)
             {
                 downloading = false;
-                if (reqInfo is not null)
-                    await embedHandler.MediaCallback(reqInfo, colInfo, MediaState.Error);
-                await StopAsync();
-                await DisconnectAsync();
-                if (ex is not MediaUnavailableException)
-                    throw;
+                var msg = ex is MediaUnavailableException ? "Media is unavailable." : "Unknown error occurred during download of media.";
+                await status.RaiseError(msg);
+                return;
             }
-            finally
+
+            await queue.EnqueueAsync(collection);
+            if (Playing)
             {
-                playLock.Set();
+                await status.Send(reqInfo, collection.CollectionInfo, MediaState.Queued);
+                return;
             }
+
+            playLock.Wait();
+            playLock.Reset();
+
+            if (reqInfo.MediaType == MediaType.Playlist)
+                await status.Send(reqInfo, collection.CollectionInfo, MediaState.Playing);
+
+            cancellation = new();
+            var token = cancellation.Token;
+            await ConnectAsync(channel);
+            var bitrate = GetChannelBitrate(channel);
+            using var output = audioClient!.CreatePCMStream(AudioApplication.Music, bitrate, 1000, 0);
+            await PlayNextAsync(channel, output, token, startingPoint);
+
+            if (reqInfo.MediaType == MediaType.Playlist)
+                await status.SetFinished();
+            playLock.Set();
         }
 
         public async Task SwitchAsync(IMediaRequest request)

@@ -10,8 +10,21 @@ using Melodica.Services.Media;
 
 namespace Melodica.Services.Playback
 {
-    public static class PlaybackUtils
+    public static class EmbedUtils
     {
+        public static Embed SetEmbedToState(this IEmbed e, MediaState state)
+        {
+            var builder = new EmbedBuilder
+            {
+                Color = MediaStateToColor(state),
+                Title = e.Title,
+                Description = e.Description,
+                Footer = new EmbedFooterBuilder().WithText(e.Footer?.ToString()),
+                ThumbnailUrl = e.Thumbnail?.ToString()
+            };
+            return builder.Build();
+        }
+
         public static Color MediaStateToColor(MediaState state) => state switch
         {
             MediaState.Error => Color.Red,
@@ -22,16 +35,17 @@ namespace Melodica.Services.Playback
             _ => Color.Default,
         };
 
-        public static Embed CreateMediaEmbed(MediaInfo info, MediaInfo? playlistInfo, MediaState state)
+        public static Embed CreateMediaEmbed(MediaInfo info, MediaInfo? collectionInfo, MediaState state)
         {
             const char InfChar = '\u221E';
 
             var color = MediaStateToColor(state);
 
-            var description = playlistInfo != null ? $"__{info.Title}__\n{playlistInfo.Title}" : info.Title;
+            var description = (info.MediaType == MediaType.Video && collectionInfo != null) ? $"__[{info.Title}]({info.Url})__\n{collectionInfo.Title}" : info.Title;
 
             bool durationUnknown = info.MediaType == MediaType.Livestream || info.Duration == TimeSpan.Zero;
-            var footer = durationUnknown ? InfChar.ToString() : $"{info.Duration}{(playlistInfo is not null ? $" | {playlistInfo.Duration}" : "")}";
+            var durationStr = $"{info.Duration}{(info.MediaType != MediaType.Playlist && collectionInfo is not null ? $" | {collectionInfo.Duration}" : "")}";
+            var footer = durationUnknown ? InfChar.ToString() : durationStr;
 
             var embed = new EmbedBuilder()
                         .WithColor(color)

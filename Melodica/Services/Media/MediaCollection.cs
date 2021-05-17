@@ -1,30 +1,38 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 
 namespace Melodica.Services.Media
 {
-    public class MediaCollection
+    public class MediaCollection : IEnumerable<LazyMedia>
     {
-        public MediaCollection(IEnumerable<PlayableMedia> media, MediaInfo collectionInfo)
+        public MediaCollection(IEnumerable<LazyMedia> media, MediaInfo collectionInfo)
         {
             this.media = media;
             this.CollectionInfo = collectionInfo;
         }
 
-        public MediaCollection(PlayableMedia media)
+        public MediaCollection(LazyMedia media)
         {
-            this.media = new[] { media };
+            this.media = new LazyMedia[] { new(media) };
         }
 
         public MediaInfo? CollectionInfo { get; init; }
 
-        readonly IEnumerable<PlayableMedia> media;
+        readonly IEnumerable<LazyMedia> media;
 
-        public IEnumerable<PlayableMedia> GetMedia() => media;
+        public IEnumerator<LazyMedia> GetEnumerator()
+        {
+            foreach (var item in media)
+            {
+                yield return item;
+            }
+        }
 
-        public PlayableMedia First() => media.ElementAt(0);
+        IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
     }
 }

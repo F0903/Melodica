@@ -141,7 +141,7 @@ namespace Melodica.Services.Downloaders.YouTube
             if (info.Id is null)
                 throw new NullReferenceException("Id was null.");
 
-            var videos = new List<PlayableMedia>(10);
+            var videos = new List<LazyMedia>(10);
             await foreach (var video in yt.Playlists.GetVideosAsync(info.Id))
             {
                 if (video is null)

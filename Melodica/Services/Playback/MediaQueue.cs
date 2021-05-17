@@ -15,7 +15,7 @@ namespace Melodica.Services.Playback
 
         private readonly object locker = new();
 
-        private readonly List<PlayableMedia> list = new();
+        private readonly List<LazyMedia> list = new();
 
         // Returns same media over and over.
         public bool Loop { get; set; }
@@ -29,25 +29,19 @@ namespace Melodica.Services.Playback
 
         public int Length => list.Count;
 
-        PlayableMedia? lastMedia;
+        LazyMedia? lastMedia;
 
         public PlayableMedia this[int i] => list[i];
 
-        public Task<TimeSpan> GetTotalDurationAsync() => Task.FromResult(list.Sum(x => x.Info.Duration));
+        public Task<TimeSpan> GetTotalDurationAsync() => Task.FromResult(list.Sum(x => ((PlayableMedia)x).Info.Duration));
 
-        public PlayableMedia[] ToArray()
-        {
-            lock (locker)
-                return list.ToArray();
-        }
-
-        public async ValueTask<(TimeSpan duration, string? imageUrl)> GetQueueInfo() => (await GetTotalDurationAsync(), list[0].Info.ImageUrl);
+        public async ValueTask<(TimeSpan duration, string? imageUrl)> GetQueueInfo() => (await GetTotalDurationAsync(), ((PlayableMedia)list[0]).Info.ImageUrl);
 
         public ValueTask EnqueueAsync(MediaCollection items)
         {
             lock (locker)
             {
-                list.AddRange(items.GetMedia());
+                list.AddRange(items);
             }
             return ValueTask.CompletedTask;
         }
@@ -56,7 +50,7 @@ namespace Melodica.Services.Playback
         {
             lock (locker)
             {
-                list.InsertRange(0, items.GetMedia());
+                list.InsertRange(0, items);
             }
             return ValueTask.CompletedTask;
         }
@@ -69,7 +63,7 @@ namespace Melodica.Services.Playback
                 var item = list[index];
                 list.RemoveAt(index);
                 lastMedia = item;
-                return ValueTask.FromResult(item);
+                return ValueTask.FromResult((PlayableMedia)item);
             }
         }
 
@@ -104,13 +98,13 @@ namespace Melodica.Services.Playback
             else if (index > list.Count)
                 throw new Exception("Index cannot be larger than the queues size.");
 
-            PlayableMedia item;
+            LazyMedia item;
             lock (locker)
             {
                 item = list[index];
                 list.RemoveAt(index);
             }
-            return ValueTask.FromResult(item);
+            return ValueTask.FromResult((PlayableMedia)item);
         }
 
         public ValueTask<PlayableMedia> RemoveAtAsync(Index index)

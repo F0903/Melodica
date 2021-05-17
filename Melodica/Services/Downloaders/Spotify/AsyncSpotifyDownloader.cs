@@ -149,8 +149,8 @@ namespace Melodica.Services.Downloaders.Spotify
         {
             var extInfo = await downloader.GetInfoAsync($"{info.Artist} {info.Title}");
             var extMedia = await downloader.DownloadAsync(extInfo);
-            var extVideo = extMedia.First();
-            extVideo.Info = info with { Id = extVideo.Info.Id };
+            PlayableMedia extVideo = extMedia.First();
+            extVideo.Info = info with { Id = extVideo.Info.Id, Url = extVideo.Info.Url };
             return extVideo;
         }
 
@@ -159,16 +159,23 @@ namespace Melodica.Services.Downloaders.Spotify
             var albumInfo = AlbumToMediaInfo(album);
             var tracks = await AlbumToTrackListAsync(album);
             var trackLength = tracks.Count;
-            PlayableMedia[] collection = new PlayableMedia[trackLength];
-            for (int i = 0; i < trackLength; i++)
+
+            IEnumerable<LazyMedia> GetCollection()
             {
-                var track = tracks[i];
-                var info = SimpleTrackToMediaInfo(track, album);
-                var video = await DownloadFromProviderAsync(info);
-                video.CollectionInfo = albumInfo;
-                collection[i] = video;
+                foreach (var track in tracks)
+                {
+                    MediaGetter getter = () =>
+                    {
+                        var info = SimpleTrackToMediaInfo(track, album);
+                        var video = DownloadFromProviderAsync(info).AsTask().Result;
+                        video.CollectionInfo = albumInfo;
+                        return video;
+                    };
+                    yield return getter;
+                }
             }
-            return new MediaCollection(collection, albumInfo);
+
+            return new MediaCollection(GetCollection(), albumInfo);
         }
 
         static async ValueTask<MediaCollection> DownloadSpotifyPlaylistAsync(FullPlaylist playlist)
@@ -176,16 +183,23 @@ namespace Melodica.Services.Downloaders.Spotify
             var playlistInfo = await PlaylistToMediaInfoAsync(playlist);
             var tracks = await PlaylistToTrackListAsync(playlist);
             var trackLength = tracks.Length;
-            PlayableMedia[] collection = new PlayableMedia[trackLength];
-            for (int i = 0; i < trackLength; i++)
+
+            IEnumerable<LazyMedia> GetCollection()
             {
-                var track = tracks[i];
-                var info = FullTrackToMediaInfo(track);
-                var video = await DownloadFromProviderAsync(info);
-                video.CollectionInfo = playlistInfo;
-                collection[i] = video;
+                foreach (var track in tracks)
+                {
+                    MediaGetter getter = () =>
+                    {
+                        var info = FullTrackToMediaInfo(track);
+                        var video = DownloadFromProviderAsync(info).AsTask().Result;
+                        video.CollectionInfo = playlistInfo;
+                        return video;
+                    };
+                    yield return getter;
+                }
             }
-            return new MediaCollection(collection, playlistInfo);
+
+            return new MediaCollection(GetCollection(), playlistInfo);
         }
 
         async Task<MediaCollection> DownloadPlaylistAsync(MediaInfo info)
