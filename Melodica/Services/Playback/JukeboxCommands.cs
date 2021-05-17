@@ -33,7 +33,7 @@ namespace Melodica.Services.Playback
 
             }
             var downloader = DownloaderResolver.GetDownloaderFromQuery(query) ?? (query.IsUrl() ? null : IAsyncDownloader.Default);
-            IMediaRequest request = downloader == null ? new URLMediaRequest(null, query, true) : new DownloadRequest(query!, downloader);
+            IMediaRequest request = downloader == null ? new URLMediaRequest(query) : new DownloadRequest(query!, downloader);
             return Task.FromResult(request);
         }
 
@@ -227,7 +227,7 @@ namespace Melodica.Services.Playback
                 var jukebox = Jukebox;
                 if (jukebox.Playing)
                 {
-                    await jukebox.SwitchAsync(await GetRequestAsync(mediaQuery!), userVoice);
+                    await jukebox.SwitchAsync(await GetRequestAsync(mediaQuery!));
                 }
                 else
                 {

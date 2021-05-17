@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Diagnostics;
 using System.IO;
+using System.Threading;
 using System.Threading.Tasks;
 
 using Melodica.Services.Media;
@@ -18,19 +19,19 @@ namespace Melodica.Services.Audio
         protected readonly bool inputAvailable;
         protected readonly bool outputAvailable;
 
-        private Process? processorProcess;
+        private Process? proc;
         private bool disposedValue;
 
-        public Stream? GetInput() => inputAvailable ? processorProcess?.StandardInput.BaseStream : null;
+        public Stream? GetInput() => inputAvailable ? proc?.StandardInput.BaseStream : null;
 
-        public Stream? GetOutput() => outputAvailable ? processorProcess?.StandardOutput.BaseStream : null;
+        public Stream? GetOutput() => outputAvailable ? proc?.StandardOutput.BaseStream : null;
 
         protected abstract Task<Process> CreateAsync(DataInfo dataInfo, TimeSpan? startingPoint = null);
 
         public async ValueTask StartProcess(DataInfo dataInfo, TimeSpan? startingPoint = null)
         {
-            processorProcess = await CreateAsync(dataInfo, startingPoint);
-            processorProcess.Start();
+            proc = await CreateAsync(dataInfo, startingPoint);
+            proc.Start();
         }
 
         protected virtual void Dispose(bool disposing)
@@ -39,14 +40,14 @@ namespace Melodica.Services.Audio
             {
                 if (disposing)
                 {
-                    if (processorProcess is null)
+                    if (proc is null)
                         return;
-                    processorProcess.Kill();
+                    proc.Kill();
 
                     if (inputAvailable)
-                        processorProcess.StandardInput.Dispose();
+                        proc.StandardInput.Dispose();
                     if (outputAvailable)
-                        processorProcess.StandardOutput.Dispose();
+                        proc.StandardOutput.Dispose();
                 }
 
                 disposedValue = true;
@@ -58,5 +59,7 @@ namespace Melodica.Services.Audio
             Dispose(disposing: true);
             GC.SuppressFinalize(this);
         }
+
+        public Task WaitForExit(CancellationToken token = default) => proc is null ? Task.CompletedTask : proc.WaitForExitAsync(token);
     }
 }

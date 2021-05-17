@@ -30,8 +30,8 @@ namespace Melodica.Services.Playback
 
             var description = playlistInfo != null ? $"__{info.Title}__\n{playlistInfo.Title}" : info.Title;
 
-            bool isLive = info.MediaType == MediaType.Livestream;
-            var footer = isLive ? InfChar.ToString() : $"{info.Duration}{(playlistInfo is not null ? $" | {playlistInfo.Duration}" : "")}";
+            bool durationUnknown = info.MediaType == MediaType.Livestream || info.Duration == TimeSpan.Zero;
+            var footer = durationUnknown ? InfChar.ToString() : $"{info.Duration}{(playlistInfo is not null ? $" | {playlistInfo.Duration}" : "")}";
 
             var embed = new EmbedBuilder()
                         .WithColor(color)

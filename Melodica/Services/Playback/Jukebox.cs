@@ -199,6 +199,7 @@ namespace Melodica.Services.Playback
 
             await ClearAsync();
             cancellation!.Cancel();
+            playLock.Wait(5000);
         }
 
         public ValueTask SkipAsync()
@@ -235,7 +236,7 @@ namespace Melodica.Services.Playback
             if (!Loop)
                 await embedHandler.MediaCallback(info, collectionInfo, MediaState.Downloading);
 
-            var dataInfo = await media.SaveDataAsync();
+            var dataInfo = await media.GetDataAsync();
             await audio.StartProcess(dataInfo, startingPoint);
 
             if (!Loop)
@@ -245,6 +246,14 @@ namespace Melodica.Services.Playback
             if (faulted)
             {
                 throw new CriticalException("SendDataAsync encountered a fatal error. (dbg-msg)");
+            }
+
+            if (!Loop && media is TempMedia temp)
+            {
+                // Dispose first so ffmpeg releases file handles.
+                audio.Dispose();
+                await audio.WaitForExit();
+                temp.DiscardTempMedia();
             }
 
             if (!Loop)
@@ -269,8 +278,6 @@ namespace Melodica.Services.Playback
                     return;
 
                 downloading = true;
-                await ConnectAsync(channel);
-
                 reqInfo = await request.GetInfoAsync();
                 var collection = await request.GetMediaAsync();
                 colInfo = collection.CollectionInfo;
@@ -293,9 +300,9 @@ namespace Melodica.Services.Playback
                 cancellation = new();
                 var token = cancellation.Token;
 
+                await ConnectAsync(channel);
                 var bitrate = GetChannelBitrate(channel);
                 using var output = audioClient!.CreatePCMStream(AudioApplication.Music, bitrate, 1000, 0);
-
                 await PlayNextAsync(channel, output, token, startingPoint);
             }
             catch (Exception ex)
@@ -314,11 +321,10 @@ namespace Melodica.Services.Playback
             }
         }
 
-        public async Task SwitchAsync(IMediaRequest request, IAudioChannel channel)
+        public async Task SwitchAsync(IMediaRequest request)
         {
-            //TODO: Make work
-            await StopAsync();
-            await PlayAsync(request, channel);
+            await SetNextAsync(request);
+            await SkipAsync();
         }
 
         public async Task SetNextAsync(IMediaRequest request)

@@ -192,7 +192,6 @@ namespace Melodica.Services.Downloaders.YouTube
             async Task<DataPair> DataGetter(PlayableMedia self)
             {
                 var manifest = await yt.Videos.Streams.GetManifestAsync(self.Info.Id ?? throw new NullReferenceException("Id was null"));
-                //TODO: Get the audio with the closest bitrate to discord server bitrate.
                 var streamInfo = manifest.GetAudioOnlyStreams().GetWithHighestBitrate() ?? throw new NullReferenceException("Could not get stream from YouTube.");
                 var stream = await yt.Videos.Streams.GetAsync(streamInfo);
                 var format = streamInfo.Container.Name.ToLower();

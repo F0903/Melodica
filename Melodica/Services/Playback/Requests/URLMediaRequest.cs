@@ -7,27 +7,31 @@ using System.Threading.Tasks;
 
 using Melodica.Core.Exceptions;
 using Melodica.Services.Media;
+using Melodica.Utility.Extensions;
 
 namespace Melodica.Services.Playback.Requests
 {
-    //TODO:
     public class URLMediaRequest : IMediaRequest
     {
-        public URLMediaRequest(string? mediaName, string mediaUrl, bool directStream)
+        public URLMediaRequest(string mediaUrl)
         {
-            throw new NotImplementedException();
+            info = new("") { Artist = "External", Title = mediaUrl, Url = mediaUrl };
+            remote = mediaUrl;
         }
 
         private readonly MediaInfo info;
-
-        private async Task<MediaCollection> DownloadMediaAsync()
-        {
-            throw new NotImplementedException();
-        }
+        private readonly string remote;
 
         public Task<MediaCollection> GetMediaAsync()
         {
-            throw new NotImplementedException();
+            var media = new TempMedia(info, async (_) =>
+            {
+                using var web = new WebClient();
+                var data = await web.DownloadDataTaskAsync(remote);
+                var format = remote.AsSpan().ExtractFormatFromFileUrl();
+                return new(new MemoryStream(data), format);
+            });
+            return Task.FromResult(new MediaCollection(media));
         }
 
         public Task<MediaInfo> GetInfoAsync() => Task.FromResult(info);

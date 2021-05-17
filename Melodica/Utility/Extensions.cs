@@ -23,6 +23,12 @@ namespace Melodica.Utility.Extensions
 
         private static char[]? cachedIllegalChars;
 
+        public static string ExtractFormatFromFileUrl(this ReadOnlySpan<char> url)
+        {
+            var dotIndex = url.LastIndexOf('.') + 1;
+            return url[dotIndex..].ToString();
+        }
+
         public static bool IsOverSize<T>(this IEnumerable<T> list, int exclusiveLimit)
         {
             int i = 0;

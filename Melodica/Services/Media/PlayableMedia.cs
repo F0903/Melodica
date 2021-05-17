@@ -42,12 +42,7 @@ namespace Melodica.Services.Media
             return ValueTask.FromResult(media);
         }
 
-        /// <summary>
-        /// Saves data and returns info about it.
-        /// </summary>
-        /// <param name="saveDir"></param>
-        /// <returns></returns>
-        public virtual async Task<DataInfo> SaveDataAsync()
+        public virtual async Task<DataInfo> GetDataAsync()
         {
             if (cache is null)
                 throw new NullReferenceException("Cache was null.");
