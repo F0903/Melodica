@@ -319,6 +319,7 @@ namespace Melodica.Services.Playback
 
         public async Task SwitchAsync(IMediaRequest request)
         {
+            Loop = false;
             await SetNextAsync(request);
             await SkipAsync();
         }
