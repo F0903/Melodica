@@ -236,7 +236,19 @@ namespace Melodica.Services.Playback
             if (!Loop)
                 await status.Send(media.Info, media.CollectionInfo, MediaState.Downloading);
 
-            var dataInfo = await media.GetDataAsync();
+            DataInfo dataInfo;
+            try
+            {
+                dataInfo = await media.GetDataAsync();
+            }
+            catch (Exception ex)
+            {
+                await status.RaiseError($"Could not get media.\nError: ``{ex.Message}``");
+                if (!queue.IsEmpty) await PlayNextAsync(channel, output, token, null);
+                else await DisconnectAsync();
+                return;
+            }
+
             await audio.StartProcess(dataInfo, startingPoint);
 
             if (!Loop)
