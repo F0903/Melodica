@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -11,9 +12,9 @@ namespace Melodica.Services.Downloaders
     {
         public static readonly IAsyncDownloader Default = new AsyncYoutubeDownloader();
 
-        public bool IsUrlSupported(string url);
+        public bool IsUrlSupported(ReadOnlySpan<char> url);
 
-        public Task<MediaInfo> GetInfoAsync(string query);
+        public Task<MediaInfo> GetInfoAsync(ReadOnlyMemory<char> query);
 
         public Task<MediaCollection> DownloadAsync(MediaInfo info);
     }

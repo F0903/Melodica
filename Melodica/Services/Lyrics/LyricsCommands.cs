@@ -22,7 +22,7 @@ namespace Melodica.Services.Lyrics
         public async Task GetLyrics([Remainder] string? songName = null)
         {
             Jukebox? juke;
-            try { juke = await JukeboxManager.GetJukeboxAsync(Context.Guild); }
+            try { juke = JukeboxManager.GetJukebox(Context.Guild); }
             catch (Exception) { juke = null; }
 
             if (songName is null && !(juke is not null && juke.Playing))

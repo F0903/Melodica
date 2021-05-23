@@ -20,7 +20,7 @@ namespace Melodica.Services.Playback
     {
         Jukebox? cachedJukebox;
         private Jukebox Jukebox => cachedJukebox ??=
-            JukeboxManager.GetOrCreateJukeboxAsync(Context.Guild, () => new Jukebox(Context.Channel)).GetAwaiter().GetResult();
+            JukeboxManager.GetOrCreateJukebox(Context.Guild, () => new Jukebox(Context.Channel));
 
         private IVoiceChannel GetUserVoiceChannel() => ((SocketGuildUser)Context.User).VoiceChannel;
 
@@ -33,7 +33,7 @@ namespace Melodica.Services.Playback
 
             }
             var downloader = DownloaderResolver.GetDownloaderFromQuery(query) ?? (query.IsUrl() ? null : IAsyncDownloader.Default);
-            IMediaRequest request = downloader == null ? new URLMediaRequest(query) : new DownloadRequest(query!, downloader);
+            IMediaRequest request = downloader == null ? new URLMediaRequest(query) : new DownloadRequest(query!.AsMemory(), downloader);
             return Task.FromResult(request);
         }
 

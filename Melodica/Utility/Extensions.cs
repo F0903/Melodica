@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 using AngleSharp.Text;
@@ -117,9 +118,10 @@ namespace Melodica.Utility.Extensions
             return outStr;
         }
 
-        public static bool IsUrl(this string str) =>
-             Uri.TryCreate(str, UriKind.Absolute, out var uri)
-                && (uri.Scheme == Uri.UriSchemeHttp
-                || uri.Scheme == Uri.UriSchemeHttps);
+        static readonly Regex urlRegex = new(@"((http)|(https)):\/\/.+", RegexOptions.Compiled);
+
+        public static bool IsUrl(this ReadOnlySpan<char> str) => urlRegex.IsMatch(str.ToString());
+        public static bool IsUrl(this ReadOnlyMemory<char> str) => urlRegex.IsMatch(str.ToString());
+        public static bool IsUrl(this string str) => urlRegex.IsMatch(str);
     }
 }

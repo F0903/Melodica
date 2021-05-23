@@ -12,16 +12,16 @@ namespace Melodica.Services.Playback.Requests
 {
     public class DownloadRequest : IMediaRequest
     {
-        public DownloadRequest(string query) : this(query, new AsyncYoutubeDownloader())
+        public DownloadRequest(ReadOnlyMemory<char> query) : this(query, new AsyncYoutubeDownloader())
         { }
 
-        public DownloadRequest(string query, IAsyncDownloader dl)
+        public DownloadRequest(ReadOnlyMemory<char> query, IAsyncDownloader dl)
         {
             downloader = dl;
             this.query = query;
         }
 
-        readonly string query;
+        readonly ReadOnlyMemory<char> query;
 
         readonly IAsyncDownloader downloader;
 

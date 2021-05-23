@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -21,6 +22,7 @@ namespace Melodica.Services.Downloaders.YouTube
 {
     public class AsyncYoutubeDownloader : IAsyncDownloader
     {
+        private static readonly Regex urlRegex = new(@"((http)|(https)):\/\/(www\.)?((youtube\.com\/((watch\?v=)|(playlist\?list=)))|(youtu\.be\/)).+", RegexOptions.Compiled);
         private readonly YoutubeClient yt = new();
         private readonly MediaFileCache cache = new("YouTube");
 
@@ -93,37 +95,37 @@ namespace Melodica.Services.Downloaders.YouTube
             ex is YoutubeExplode.Exceptions.VideoUnavailableException ||
             ex is YoutubeExplode.Exceptions.VideoRequiresPurchaseException;
 
-        static bool IsUrlPlaylist(string url) => url.StartsWith("http://www.youtube.com/playlist?list=") || url.StartsWith("https://www.youtube.com/playlist?list=");
+        static bool IsUrlPlaylist(ReadOnlySpan<char> url) => url.Contains("playlist", StringComparison.Ordinal);
 
-        public bool IsUrlSupported(string url) => url.StartsWith("https://www.youtube.com/") || url.StartsWith("http://www.youtube.com/");
+        public bool IsUrlSupported(ReadOnlySpan<char> url) => urlRegex.IsMatch(url.ToString());
 
-        async Task<MediaInfo> GetInfoFromPlaylistUrlAsync(string url)
+        async Task<MediaInfo> GetInfoFromPlaylistUrlAsync(ReadOnlyMemory<char> url)
         {
-            var id = PlaylistId.Parse(url);
+            var id = PlaylistId.Parse(url.ToString());
             var playlist = await yt.Playlists.GetAsync(id);
             return await PlaylistToMetadataAsync(playlist);
         }
 
-        async Task<MediaInfo> GetInfoFromUrlAsync(string url)
+        async Task<MediaInfo> GetInfoFromUrlAsync(ReadOnlyMemory<char> url)
         {
-            if (IsUrlPlaylist(url))
+            if (IsUrlPlaylist(url.Span))
             {
                 return await GetInfoFromPlaylistUrlAsync(url);
             }
 
-            var id = VideoId.Parse(url);
+            var id = VideoId.Parse(url.ToString());
             var video = await yt.Videos.GetAsync(id);
             return VideoToMetadata(video);
         }
 
-        public async Task<MediaInfo> GetInfoAsync(string query)
+        public async Task<MediaInfo> GetInfoAsync(ReadOnlyMemory<char> query)
         {
             if (query.IsUrl())
             {
                 return await GetInfoFromUrlAsync(query);
             }
 
-            var videos = yt.Search.GetVideosAsync(query);
+            var videos = yt.Search.GetVideosAsync(query.ToString());
             var result = await videos.FirstAsync();
             var video = await yt.Videos.GetAsync(result.Id);
             return VideoToMetadata(video);

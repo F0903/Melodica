@@ -17,7 +17,7 @@ namespace Melodica.Services.Wiki
 
         private readonly IWikiProvider wiki;
 
-        private Jukebox GetJukebox => JukeboxManager.GetJukeboxAsync(Context.Guild).Result;
+        private Jukebox GetJukebox => JukeboxManager.GetJukebox(Context.Guild);
 
         [Command("Info"), Alias("Wiki"), Summary("Gets info from a wiki for the specified page.")]
         public async Task InfoAsync([Remainder] string? pageTitle = null)

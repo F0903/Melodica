@@ -10,12 +10,12 @@ namespace Melodica.Services.Playback
     {
         static readonly ConcurrentDictionary<IGuild, Jukebox> jukeboxes = new();
 
-        public static Task<Jukebox> GetJukeboxAsync(IGuild guild) => Task.FromResult(jukeboxes[guild]);
+        public static Jukebox GetJukebox(IGuild guild) => jukeboxes[guild];
 
-        public static Task<Jukebox> GetOrCreateJukeboxAsync(IGuild guild, Func<Jukebox> newFactory)
+        public static Jukebox GetOrCreateJukebox(IGuild guild, Func<Jukebox> newFactory)
         {
             var juke = jukeboxes.GetOrAdd(guild, newFactory());
-            return Task.FromResult(juke);
+            return juke;
         }
     }
 }

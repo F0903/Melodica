@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 using Melodica.Core;
@@ -25,19 +26,17 @@ namespace Melodica.Services.Downloaders.Spotify
         // Tie this to the default downloader (can't download directly from Spotify)
         static readonly IAsyncDownloader downloader = IAsyncDownloader.Default;
 
-        static bool IsUrlPlaylist(string url) =>
-            url.Contains("open.spotify.com/playlist/") ||
-            url.StartsWith("api.spotify.com/v1/playlists");
+        static readonly Regex urlRegex = new(@"((http)|(https)):\/\/((api)|(open))\.spotify\.com(\/v\d+)?\/.+\/.+", RegexOptions.Compiled);
 
-        static bool IsUrlAlbum(string url) =>
-            url.Contains("open.spotify.com/album/") ||
-            url.StartsWith("api.spotify.com/v1/albums");
+        static bool IsUrlPlaylist(ReadOnlySpan<char> url) =>
+            url.Contains("playlist", StringComparison.Ordinal) ||
+            url.StartsWith("playlists");
 
-        public bool IsUrlSupported(string url) =>
-            url.StartsWith("https://open.spotify.com/") ||
-            url.StartsWith("http://open.spotify.com/") ||
-            url.StartsWith("https://api.spotify.com/v1/") ||
-            url.StartsWith("http://api.spotify.com/v1/");
+        static bool IsUrlAlbum(ReadOnlySpan<char> url) =>
+            url.Contains("album", StringComparison.Ordinal) ||
+            url.StartsWith("albums");
+
+        public bool IsUrlSupported(ReadOnlySpan<char> url) => urlRegex.IsMatch(url.ToString());
 
         static string SeperateArtistNames(List<SimpleArtist> artists)
         {
@@ -131,23 +130,23 @@ namespace Melodica.Services.Downloaders.Spotify
             };
         }
 
-        async Task<MediaInfo> GetAlbumInfoAsync(string url)
+        async Task<MediaInfo> GetAlbumInfoAsync(ReadOnlyMemory<char> url)
         {
-            var id = await ParseURLToIdAsyncAsync(url);
+            var id = await ParseURLToIdAsyncAsync(url.ToString());
             var album = await spotify.Albums.Get(id);
             return AlbumToMediaInfo(album);
         }
 
-        async Task<MediaInfo> GetPlaylistInfoAsync(string url)
+        async Task<MediaInfo> GetPlaylistInfoAsync(ReadOnlyMemory<char> url)
         {
-            var id = await ParseURLToIdAsyncAsync(url);
+            var id = await ParseURLToIdAsyncAsync(url.ToString());
             var playlist = await spotify.Playlists.Get(id);
             return await PlaylistToMediaInfoAsync(playlist);
         }
 
         static async ValueTask<PlayableMedia> DownloadFromProviderAsync(MediaInfo info)
         {
-            var extInfo = await downloader.GetInfoAsync($"{info.Artist} {info.Title}");
+            var extInfo = await downloader.GetInfoAsync($"{info.Artist} {info.Title}".AsMemory());
             var extMedia = await downloader.DownloadAsync(extInfo);
             PlayableMedia extVideo = extMedia.First();
             extVideo.Info = info with { Id = extVideo.Info.Id, Url = extVideo.Info.Url };
@@ -235,24 +234,24 @@ namespace Melodica.Services.Downloaders.Spotify
             return new MediaCollection(media);
         }
 
-        public async Task<MediaInfo> GetInfoAsync(string query)
+        public async Task<MediaInfo> GetInfoAsync(ReadOnlyMemory<char> query)
         {
             if (!query.IsUrl())
             {
                 throw new UrlNotSupportedException("Must be a valid spotify URL.");
             }
 
-            if (IsUrlPlaylist(query))
+            if (IsUrlPlaylist(query.Span))
             {
                 return await GetPlaylistInfoAsync(query);
             }
 
-            if (IsUrlAlbum(query))
+            if (IsUrlAlbum(query.Span))
             {
                 return await GetAlbumInfoAsync(query);
             }
 
-            var id = await ParseURLToIdAsyncAsync(query);
+            var id = await ParseURLToIdAsyncAsync(query.Span);
             var track = await spotify.Tracks.Get(id);
             return FullTrackToMediaInfo(track);
         }
