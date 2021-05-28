@@ -3,4 +3,5 @@
 # Melodica
 ![](./github-media/logo.png)
 
-Music bot number infinite.
+A music bot with full support for YouTube and Spotify.
+Extra features include lyrics, wikipedia and guild seperate settings. 
