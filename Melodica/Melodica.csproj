@@ -27,14 +27,14 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<PackageReference Include="Discord.Net" Version="3.0.0-dev-20210524.5" />
-		<PackageReference Include="Microsoft.EntityFrameworkCore" Version="5.0.6" />
-		<PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="5.0.6">
+		<PackageReference Include="Discord.Net" Version="3.0.0-dev-20210617.3" />
+		<PackageReference Include="Microsoft.EntityFrameworkCore" Version="5.0.7" />
+		<PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="5.0.7">
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 			<PrivateAssets>all</PrivateAssets>
 		</PackageReference>
-		<PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="5.0.6" />
-		<PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="5.0.6">
+		<PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="5.0.7" />
+		<PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="5.0.7">
 			<PrivateAssets>all</PrivateAssets>
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 		</PackageReference>
@@ -42,7 +42,7 @@
 		<PackageReference Include="SoundCloud.Api" Version="3.0.0" />
 		<PackageReference Include="SpotifyAPI.Web" Version="6.2.0" />
 		<PackageReference Include="System.Runtime" Version="4.3.1" />
-		<PackageReference Include="YoutubeExplode" Version="6.0.0" />
+		<PackageReference Include="YoutubeExplode" Version="6.0.2" />
 	</ItemGroup>
 
 	<ItemGroup>
