@@ -103,12 +103,11 @@
       },
       "YoutubeExplode": {
         "type": "Direct",
-        "requested": "[6.0.3, )",
-        "resolved": "6.0.3",
-        "contentHash": "8GaNtu26KbKjfW0NBtCtC8SWBLOBHgyaggkqexZPNM21CZpShH/W+rSidVHMe5OkFrl9rYBfc8qmiZBy4yAGWQ==",
+        "requested": "[6.0.4, )",
+        "resolved": "6.0.4",
+        "contentHash": "1m0JrNjM7HO2V37Yj5r5S9oAh5+92Z8Ytt7+11R90ftjxchtGHDYlcVQEHA6rfZtuDlkHF3bOOsPY4Q+c+nTvQ==",
         "dependencies": {
-          "AngleSharp": "0.14.0",
-          "System.Text.Json": "4.7.2"
+          "AngleSharp": "0.14.0"
         }
       },
       "AngleSharp": {
@@ -459,11 +458,6 @@
           "Microsoft.NETCore.Platforms": "2.0.0",
           "System.Runtime.CompilerServices.Unsafe": "4.5.0"
         }
-      },
-      "System.Text.Json": {
-        "type": "Transitive",
-        "resolved": "4.7.2",
-        "contentHash": "TcMd95wcrubm9nHvJEQs70rC0H/8omiSGGpU4FQ/ZA1URIqD4pjmFJh2Mfv1yH1eHgJDWTi2hMDXwTET+zOOyg=="
       },
       "System.Threading.Tasks": {
         "type": "Transitive",
