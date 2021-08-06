@@ -224,6 +224,7 @@ namespace Melodica.Services.Playback
 
             try
             {
+                //TODO: Switch doesn't seem to work correctly when playing a playlist
                 var jukebox = Jukebox;
                 if (jukebox.Playing)
                 {
