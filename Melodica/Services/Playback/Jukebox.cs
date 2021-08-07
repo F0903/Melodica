@@ -95,11 +95,12 @@ namespace Melodica.Services.Playback
             };
         }
 
-        static void SendSilence(AudioOutStream output, int samples = 256)
+        static void SendSilence(AudioOutStream output, int frames = 20)
         {
             const int channels = 2;
             const int bits = 16;
-            var bytes = (channels * bits) * samples;
+            const int blockAlign = channels * bits;
+            var bytes = blockAlign * frames;
             Span<byte> buffer = bytes < 1024 ? stackalloc byte[bytes] : new byte[bytes];
             output.Write(buffer);
         }
@@ -139,19 +140,27 @@ namespace Melodica.Services.Playback
             output.Flush();
         }
 
+        readonly struct AloneTimerState
+        {
+            public readonly Func<ValueTask> Stop { get; init; }
+            public readonly IAudioChannel Channel { get; init; }
+        }
+
         private Task<bool> SendDataAsync(AudioProcessor audio, AudioOutStream output, IAudioChannel channel, CancellationToken token)
         {
             bool abort = false;
 
-            var writeThread = new Thread(() =>
+            void StartWrite()
             {
                 try
                 {
-                    using var aloneTimer = new Timer(async _ =>
+                    var timerState = new AloneTimerState() { Stop = StopAsync, Channel = channel };
+                    using var aloneTimer = new Timer(static async state =>
                     {
-                        if (await CheckIfAloneAsync(channel))
-                            await StopAsync();
-                    }, null, 0, 5000);
+                        AloneTimerState ts = (AloneTimerState)(state ?? throw new NullReferenceException("AloneTimer state parameter cannot be null."));
+                        if (await CheckIfAloneAsync(ts.Channel))
+                            await ts.Stop();
+                    }, timerState, 0, 20000);
 
                     WriteData(audio, output, token);
                 }
@@ -163,7 +172,9 @@ namespace Melodica.Services.Playback
                 {
                     durationTimer.Reset();
                 }
-            })
+            }
+
+            var writeThread = new Thread(StartWrite)
             {
                 IsBackground = false,
                 Priority = ThreadPriority.Highest
@@ -321,7 +332,7 @@ namespace Melodica.Services.Playback
             var token = cancellation.Token;
             await ConnectAsync(channel);
             var bitrate = GetChannelBitrate(channel);
-            using var output = audioClient!.CreatePCMStream(AudioApplication.Music, bitrate, 1000, 0);
+            using var output = audioClient!.CreatePCMStream(AudioApplication.Music, bitrate, 200, 0);
             await PlayNextAsync(channel, output, token, startingPoint);
 
             if (reqInfo.MediaType == MediaType.Playlist)
