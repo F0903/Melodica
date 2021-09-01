@@ -219,7 +219,7 @@ namespace Melodica.Services.Playback
             if (audioClient is not null && (audioClient.ConnectionState == ConnectionState.Connected || audioClient.ConnectionState == ConnectionState.Connecting))
                 return;
 
-            audioClient = await audioChannel.ConnectAsync();
+            audioClient = await audioChannel.ConnectAsync(true);
             this.audioChannel = audioChannel;
         }
 
