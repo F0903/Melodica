@@ -40,7 +40,7 @@
 		</PackageReference>
 		<PackageReference Include="Ninject" Version="3.3.4" />
 		<PackageReference Include="SoundCloud.Api" Version="3.0.0" />
-		<PackageReference Include="SpotifyAPI.Web" Version="6.2.1" />
+		<PackageReference Include="SpotifyAPI.Web" Version="6.2.2" />
 		<PackageReference Include="System.Runtime" Version="4.3.1" />
 		<PackageReference Include="YoutubeExplode" Version="6.0.5" />
 	</ItemGroup>

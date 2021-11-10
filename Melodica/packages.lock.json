@@ -84,9 +84,9 @@
       },
       "SpotifyAPI.Web": {
         "type": "Direct",
-        "requested": "[6.2.1, )",
-        "resolved": "6.2.1",
-        "contentHash": "zT1WiHTYcpGHLoSijs4X3La5Tdc2x9OMHTh75fuDSI53Focnipp60Zvs+zTmNJl54DFKgrLJxkt+PEnB/xRULA==",
+        "requested": "[6.2.2, )",
+        "resolved": "6.2.2",
+        "contentHash": "WNAqhQYg1xXNCPZ4QKavwFl05wXZ8XiHT89u3SrMeGlPPpJETzKmfozk5BoLaTCRV2HyceGERRrHOvK/BNtC2A==",
         "dependencies": {
           "Newtonsoft.Json": "13.0.1"
         }
