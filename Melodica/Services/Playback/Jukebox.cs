@@ -1,9 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Net.Http;
-using System.Net.WebSockets;
-using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -15,7 +11,6 @@ using Melodica.Core.Exceptions;
 using Melodica.Services.Audio;
 using Melodica.Services.Downloaders.Exceptions;
 using Melodica.Services.Media;
-using Melodica.Services.Playback.Exceptions;
 using Melodica.Services.Playback.Requests;
 using Melodica.Utility.Extensions;
 

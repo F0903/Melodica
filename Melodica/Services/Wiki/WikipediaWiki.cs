@@ -1,4 +1,4 @@
-﻿using System.Net;
+﻿using System.Net.Http;
 using System.Text.Json;
 using System.Threading.Tasks;
 
@@ -8,28 +8,19 @@ namespace Melodica.Services.Wiki
 {
     public class WikipediaWiki : IWikiProvider
     {
+        static readonly HttpClient http = new() { DefaultRequestHeaders = { { "Accept", "application/json; charset=utf-8" } } };
+
         private const string wikipediaEndpoint = "https://en.wikipedia.org/api/rest_v1";
         private const string wikipediaSummaryEndpoint = wikipediaEndpoint + "/page/summary/";
 
-        private static WikiElement GetSummary(string pageName)
+        private static async Task<WikiElement> GetSummary(string pageName)
         {
             string? fullEndpoint = $"{wikipediaSummaryEndpoint}{pageName}?redirect=false";
-            var request = WebRequest.CreateHttp(fullEndpoint);
-            request.Method = "GET";
 
-            var headers = request.Headers;
-            headers.Add("accept: application/json; charset=utf-8");
+            var response = await http.GetAsync(fullEndpoint);
+            response.EnsureSuccessStatusCode();
 
-            HttpWebResponse response;
-            try { response = (HttpWebResponse)request.GetResponse(); }
-            catch (WebException ex) when (ex.Status == WebExceptionStatus.ProtocolError)
-            { throw new WebException($"Page was not found. Query was: \"{pageName}\"\nRemember that the name is case-sensitive."); }
-            if (response == null) throw new WebException("Response from Wikipedia was null.");
-
-            var status = response.StatusCode;
-            if (status != HttpStatusCode.OK) throw new WebException($"Wikipedia returned code {status}");
-
-            using var resStream = response.GetResponseStream();
+            using var resStream = await response.Content.ReadAsStreamAsync();
             JsonDocument doc;
             try { doc = JsonDocument.Parse(resStream); }
             catch { throw new JsonException("Could not parse the response stream."); }
@@ -39,7 +30,10 @@ namespace Melodica.Services.Wiki
             string? imageUrl = null;
             try { imageUrl = root.GetProperty("thumbnail").GetProperty("source").GetString(); } catch { }
             string? summary = root.GetProperty("extract").GetString();
-            response.Close();
+
+            if (root.GetProperty("type").GetString() == "disambiguation")
+                summary = $"Could not find a wiki page with the name '{pageName}'. Was directed to disambiguation page.";
+
             doc.Dispose();
 
             return new WikiElement()
@@ -50,6 +44,6 @@ namespace Melodica.Services.Wiki
             };
         }
 
-        public Task<WikiElement> GetInfoAsync(string query) => Task.FromResult(GetSummary(query.FixURLWhitespace("_")));
+        public Task<WikiElement> GetInfoAsync(string query) => GetSummary(query.FixURLWhitespace("_"));
     }
 }

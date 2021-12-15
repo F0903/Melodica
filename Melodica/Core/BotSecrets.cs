@@ -1,9 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Melodica.Core
 {
@@ -22,12 +18,12 @@ namespace Melodica.Core
 
         }
 
-        public static string SpotifyClientSecret { get; } 
+        public static string SpotifyClientSecret { get; }
 
-        public static string SpotifyClientID { get; } 
+        public static string SpotifyClientID { get; }
 
-        public static string GeniusAccessToken { get; } 
+        public static string GeniusAccessToken { get; }
 
-        public static string DiscordToken { get; } 
+        public static string DiscordToken { get; }
     }
 }

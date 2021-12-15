@@ -1,9 +1,10 @@
 ﻿using System;
-using System.Net;
 using System.Net.Http;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Text;
+using System.Text.RegularExpressions;
 
 using AngleSharp;
 using AngleSharp.Dom;
@@ -15,43 +16,46 @@ namespace Melodica.Services.Lyrics
 {
     public class GeniusLyrics : ILyricsProvider
     {
+        static readonly HttpClient http = new() { DefaultRequestHeaders = { { "Authorization", $"Bearer {Core.BotSecrets.GeniusAccessToken}" } } };
+
         private static async Task<string> ParseLyricsAsync(string url)
         {
             var config = Configuration.Default.WithDefaultLoader();
             var context = BrowsingContext.New(config);
 
-            IElement? lyricElement = null;
+            using var doc = await context.OpenAsync(url);
+
+            IHtmlCollection<IElement>? lyricElements = null;
             int tries = 0;
-            while (lyricElement == null)
+            while (lyricElements == null)
             {
                 if (tries > 5)
                     throw new CriticalException("GeniusLyrics exceeded max attempts. Could not get lyrics content from html.");
 
-                using var doc = await context.OpenAsync(url);
-                lyricElement = doc.QuerySelector("div.lyrics");
+                lyricElements = doc.QuerySelectorAll("div[data-lyrics-container=true]");
 
                 Thread.Sleep(250 * tries);
                 ++tries;
             }
-            return lyricElement.TextContent;
+
+            StringBuilder str = new(200);
+            foreach (var item in lyricElements)
+            {
+                str.Append(item.InnerHtml);
+            }
+            str.Replace("<br>", "\n");
+
+            var finalStr = Regex.Replace(str.ToString(), @"<(?!\s*br\s*\/?)[^>]+>", "");
+            return finalStr;
         }
 
         private static async Task<LyricsInfo> SearchForSongAsync(string query)
         {
             string? fixedQuery = query.FixURLWhitespace();
-            var req = WebRequest.CreateHttp($"https://api.genius.com/search?q={fixedQuery}");
-            req.Headers = new WebHeaderCollection
-            {
-                $"Authorization:Bearer {Core.BotSecrets.GeniusAccessToken}"
-            };
-            req.Method = "GET";
 
-            using var response = req.GetResponse();
-            string? status = response.Headers.Get("Status");
-            if (status == null || (status != null && status != "200 OK"))
-                throw new HttpRequestException($"Server returned invalid status: {status}");
+            var req = await http.GetAsync($"https://api.genius.com/search?q={fixedQuery}");
 
-            var responseStream = response.GetResponseStream();
+            var responseStream = req.EnsureSuccessStatusCode().Content.ReadAsStream();
             using var fullResponse = await JsonDocument.ParseAsync(responseStream);
 
             var responseSection = fullResponse.RootElement.GetProperty("response");

@@ -2,8 +2,6 @@
 using System.IO;
 using System.Threading.Tasks;
 
-using Melodica.Services.Caching;
-
 namespace Melodica.Services.Media
 {
     public sealed class TempMedia : PlayableMedia

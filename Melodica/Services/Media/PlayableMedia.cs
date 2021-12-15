@@ -3,8 +3,6 @@ using System.IO;
 using System.Threading.Tasks;
 
 using Melodica.Services.Caching;
-using Melodica.Services.Serialization;
-using Melodica.Utility.Extensions;
 
 namespace Melodica.Services.Media
 {

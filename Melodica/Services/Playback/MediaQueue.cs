@@ -4,7 +4,6 @@ using System.Linq;
 using System.Threading.Tasks;
 
 using Melodica.Services.Media;
-using Melodica.Services.Playback.Requests;
 using Melodica.Utility.Extensions;
 
 namespace Melodica.Services.Playback

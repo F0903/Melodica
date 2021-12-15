@@ -1,10 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 
 using Melodica.Services.Downloaders;
-using Melodica.Services.Downloaders.Exceptions;
 using Melodica.Services.Downloaders.YouTube;
 using Melodica.Services.Media;
 

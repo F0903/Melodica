@@ -6,12 +6,8 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
-using AngleSharp.Text;
-
 using Discord;
 using Discord.WebSocket;
-
-using YoutubeExplode;
 
 namespace Melodica.Utility.Extensions
 {

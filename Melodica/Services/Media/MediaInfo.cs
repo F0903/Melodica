@@ -1,9 +1,7 @@
 ﻿using System;
 using System.Threading.Tasks;
 
-using Melodica.Services.Downloaders;
 using Melodica.Services.Serialization;
-using Melodica.Utility.Extensions;
 
 namespace Melodica.Services.Media
 {

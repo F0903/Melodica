@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-using Melodica.Services.Caching;
+﻿using System.Threading.Tasks;
 
 namespace Melodica.Services.Media
 {

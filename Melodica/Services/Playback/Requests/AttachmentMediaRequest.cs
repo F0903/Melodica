@@ -1,7 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Net;
+using System.Net.Http;
 using System.Threading.Tasks;
 
 using Melodica.Services.Media;
@@ -12,6 +10,8 @@ namespace Melodica.Services.Playback.Requests
     public class AttachmentMediaRequest : IMediaRequest
     {
         public AttachmentMediaRequest(Discord.Attachment[] attachments) => attachment = attachments[0];
+
+        static readonly HttpClient http = new();
 
         private readonly Discord.Attachment attachment;
 
@@ -37,10 +37,9 @@ namespace Melodica.Services.Playback.Requests
             var media = new TempMedia(await GetInfoAsync(), async (_) =>
             {
                 var remote = attachment.Url;
-                using var web = new WebClient();
-                var data = await web.DownloadDataTaskAsync(remote);
+                var data = await http.GetStreamAsync(remote);
                 var format = remote.AsSpan().ExtractFormatFromFileUrl();
-                return new DataPair(new MemoryStream(data), format);
+                return new DataPair(data, format);
             });
             return new MediaCollection(media);
         }

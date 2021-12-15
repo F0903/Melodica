@@ -4,7 +4,6 @@ using Discord;
 using Discord.Commands;
 
 using Melodica.Services.Settings;
-using Melodica.Utility.Extensions;
 
 namespace Melodica.Core.Commands
 {

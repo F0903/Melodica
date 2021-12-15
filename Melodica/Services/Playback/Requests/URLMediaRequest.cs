@@ -1,11 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Net;
-using System.Threading;
+using System.Net.Http;
 using System.Threading.Tasks;
 
-using Melodica.Core.Exceptions;
 using Melodica.Services.Media;
 using Melodica.Utility.Extensions;
 
@@ -19,6 +15,8 @@ namespace Melodica.Services.Playback.Requests
             remote = mediaUrl;
         }
 
+        static readonly HttpClient http = new();
+
         private readonly MediaInfo info;
         private readonly string remote;
 
@@ -26,10 +24,9 @@ namespace Melodica.Services.Playback.Requests
         {
             var media = new TempMedia(info, async (_) =>
             {
-                using var web = new WebClient();
-                var data = await web.DownloadDataTaskAsync(remote);
+                var data = await http.GetStreamAsync(remote);
                 var format = remote.AsSpan().ExtractFormatFromFileUrl();
-                return new(new MemoryStream(data), format);
+                return new(data, format);
             });
             return Task.FromResult(new MediaCollection(media));
         }
