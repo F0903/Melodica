@@ -95,7 +95,7 @@ namespace Melodica.Services.Playback
             };
         }
 
-        static void SendSilence(AudioOutStream output, int frames = 20)
+        static void SendSilence(AudioOutStream output, int frames = 100)
         {
             const int channels = 2;
             const int bits = 16;
@@ -103,6 +103,7 @@ namespace Melodica.Services.Playback
             var bytes = blockAlign * frames;
             Span<byte> buffer = bytes < 1024 ? stackalloc byte[bytes] : new byte[bytes];
             output.Write(buffer);
+            output.Flush();
         }
 
         void WriteData(AudioProcessor audio, AudioOutStream output, CancellationToken token)
@@ -132,12 +133,14 @@ namespace Melodica.Services.Playback
                 }
 
                 if (BreakConditions())
+                {
+                    SendSilence(output);
                     break;
+                }
 
-                output.Write(buffer.Slice(0, count));
+                output.Write(buffer[0..count]);
             }
             SendSilence(output);
-            output.Flush();
         }
 
         readonly struct AloneTimerState

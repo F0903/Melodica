@@ -6,7 +6,7 @@
 
 		<Nullable>enable</Nullable>
 		<OutputType>exe</OutputType>
-		<TargetFramework>net5.0</TargetFramework>
+		<TargetFramework>net6.0</TargetFramework>
 		<Platforms>AnyCPU;x64</Platforms>
         <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
 	</PropertyGroup>
@@ -27,7 +27,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<PackageReference Include="Discord.Net" Version="3.0.0-dev-20210822.1" />
+		<PackageReference Include="Discord.Net" Version="3.0.0-dev-20211206.5" />
 		<PackageReference Include="Microsoft.EntityFrameworkCore" Version="5.0.8" />
 		<PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="5.0.8">
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
@@ -42,7 +42,7 @@
 		<PackageReference Include="SoundCloud.Api" Version="3.0.0" />
 		<PackageReference Include="SpotifyAPI.Web" Version="6.2.2" />
 		<PackageReference Include="System.Runtime" Version="4.3.1" />
-		<PackageReference Include="YoutubeExplode" Version="6.0.5" />
+		<PackageReference Include="YoutubeExplode" Version="6.0.7" />
 	</ItemGroup>
 
 	<ItemGroup>
