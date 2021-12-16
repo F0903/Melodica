@@ -8,7 +8,7 @@
 		<Nullable>enable</Nullable>
 		<OutputType>exe</OutputType>
 		<TargetFramework>net6.0</TargetFramework>
-		<Platforms>AnyCPU;x64</Platforms>
+		<Platforms>x64</Platforms>
         <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
 	</PropertyGroup>
 

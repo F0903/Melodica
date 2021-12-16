@@ -263,6 +263,12 @@ namespace Melodica.Services.Playback
             if (!Loop)
                 await status.SetPlaying();
 
+            //TESTING TO SEE IF THIS GETS CALLED ON RANDOM DISCONNECTS
+            audioClient!.Disconnected += async (ex) => 
+            {
+                await DisconnectAsync();
+            };
+
             bool faulted = await SendDataAsync(audio, output, channel, token);
             if (faulted)
             {
