@@ -189,6 +189,7 @@ namespace Melodica.Services.Playback
 
         async ValueTask DisconnectAsync()
         {
+            await StopAsync();
             if (audioChannel is not null)
             {
                 await audioChannel.DisconnectAsync();
