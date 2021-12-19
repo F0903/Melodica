@@ -25,6 +25,12 @@ namespace Melodica.Services.Playback
         Finished
     };
 
+    readonly struct AloneTimerState
+    {
+        public readonly Func<ValueTask> Stop { get; init; }
+        public readonly IAudioChannel Channel { get; init; }
+    }
+
     public class Jukebox
     {
         public Jukebox(IMessageChannel callbackChannel)
@@ -138,12 +144,6 @@ namespace Melodica.Services.Playback
             SendSilence(output);
         }
 
-        readonly struct AloneTimerState
-        {
-            public readonly Func<ValueTask> Stop { get; init; }
-            public readonly IAudioChannel Channel { get; init; }
-        }
-
         private Task<bool> SendDataAsync(AudioProcessor audio, AudioOutStream output, IAudioChannel channel, CancellationToken token)
         {
             bool abort = false;
@@ -208,6 +208,7 @@ namespace Melodica.Services.Playback
             if (cancellation is null || (cancellation is not null && cancellation.IsCancellationRequested))
                 return;
 
+            Loop = false;
             await ClearAsync();
             cancellation!.Cancel();
             playLock.Wait(5000);
@@ -271,12 +272,8 @@ namespace Melodica.Services.Playback
             };
 
             bool faulted = await SendDataAsync(audio, output, channel, token);
-            if (faulted)
-            {
-                throw new CriticalException("SendDataAsync encountered a fatal error. (dbg-msg)");
-            }
 
-            if (!Loop && media is TempMedia temp)
+            if ((!Loop || faulted) && media is TempMedia temp)
             {
                 // Dispose first so ffmpeg releases file handles.
                 audio.Dispose();
@@ -284,8 +281,15 @@ namespace Melodica.Services.Playback
                 temp.DiscardTempMedia();
             }
 
-            if (!Loop)
+            if (!Loop || faulted)
                 await status.SetFinished();
+
+            if (faulted)
+            {
+                throw new CriticalException("SendDataAsync encountered a fatal error. (dbg-msg)");
+            }
+
+            
 
             if ((!Loop && queue.IsEmpty) || cancellation!.IsCancellationRequested)
             {
@@ -329,20 +333,25 @@ namespace Melodica.Services.Playback
 
             playLock.Wait();
             playLock.Reset();
+            try
+            {
+                if (reqInfo.MediaType == MediaType.Playlist)
+                    await status.Send(reqInfo, collection.CollectionInfo, MediaState.Playing);
 
-            if (reqInfo.MediaType == MediaType.Playlist)
-                await status.Send(reqInfo, collection.CollectionInfo, MediaState.Playing);
+                cancellation = new();
+                var token = cancellation.Token;
+                await ConnectAsync(channel);
+                var bitrate = GetChannelBitrate(channel);
+                using var output = audioClient!.CreatePCMStream(AudioApplication.Music, bitrate, 200, 0);
+                await PlayNextAsync(channel, output, token, startingPoint);
 
-            cancellation = new();
-            var token = cancellation.Token;
-            await ConnectAsync(channel);
-            var bitrate = GetChannelBitrate(channel);
-            using var output = audioClient!.CreatePCMStream(AudioApplication.Music, bitrate, 200, 0);
-            await PlayNextAsync(channel, output, token, startingPoint);
-
-            if (reqInfo.MediaType == MediaType.Playlist)
-                await status.SetFinished();
-            playLock.Set();
+                if (reqInfo.MediaType == MediaType.Playlist)
+                    await status.SetFinished();
+            }
+            finally
+            {
+                playLock.Set();
+            }
         }
 
         public async Task SwitchAsync(IMediaRequest request)

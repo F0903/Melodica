@@ -4,16 +4,16 @@
     "net6.0": {
       "Discord.Net": {
         "type": "Direct",
-        "requested": "[3.0.0-dev-20211215.1, )",
-        "resolved": "3.0.0-dev-20211215.1",
-        "contentHash": "LV2zu2JLcSzIfSY4JTSvJ9ypFT475m7T7IbaUvhqB6ZM6Uvdggmgjxngf6Hcn0HUogRObruos/i//oGYF9bZpw==",
+        "requested": "[3.0.0-dev-20211218.3, )",
+        "resolved": "3.0.0-dev-20211218.3",
+        "contentHash": "do2TKqSDfcAqCl81s3KUuVBLw+f/rqHXRmvftfknYaJ/r6b2Fhsy3imWOQO3+G+urFZk1DnK9vsW4F2DQfZpSA==",
         "dependencies": {
-          "Discord.Net.Commands": "3.0.0-20211215.1",
-          "Discord.Net.Core": "3.0.0-20211215.1",
-          "Discord.Net.Interactions": "3.0.0-20211215.1",
-          "Discord.Net.Rest": "3.0.0-20211215.1",
-          "Discord.Net.WebSocket": "3.0.0-20211215.1",
-          "Discord.Net.Webhook": "3.0.0-20211215.1"
+          "Discord.Net.Commands": "3.0.0-20211218.3",
+          "Discord.Net.Core": "3.0.0-20211218.3",
+          "Discord.Net.Interactions": "3.0.0-20211218.3",
+          "Discord.Net.Rest": "3.0.0-20211218.3",
+          "Discord.Net.WebSocket": "3.0.0-20211218.3",
+          "Discord.Net.Webhook": "3.0.0-20211218.3"
         }
       },
       "Microsoft.EntityFrameworkCore": {
