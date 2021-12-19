@@ -1,13 +1,10 @@
-﻿using System.Threading.Tasks;
+﻿namespace Melodica.Core;
 
-namespace Melodica.Core
+public interface IBot
 {
-    public interface IBot
-    {
-        public Task ConnectAsync(bool startOnConnect = false);
+    public Task ConnectAsync(bool startOnConnect = false);
 
-        public Task StartAsync();
+    public Task StartAsync();
 
-        public Task StopAsync();
-    }
+    public Task StopAsync();
 }

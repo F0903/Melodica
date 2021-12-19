@@ -1,31 +1,29 @@
-﻿using System;
-using System.Diagnostics;
+﻿using System.Diagnostics;
 
-namespace Melodica.Services.Playback
+namespace Melodica.Services.Playback;
+
+public class PlaybackStopwatch : Stopwatch
 {
-    public class PlaybackStopwatch : Stopwatch
+    private TimeSpan offset;
+
+    public new TimeSpan Elapsed
     {
-        private TimeSpan offset;
+        get => offset + base.Elapsed;
+        set => offset = value;
+    }
 
-        public new TimeSpan Elapsed
-        {
-            get => offset + base.Elapsed;
-            set => offset = value;
-        }
+    public TimeSpan LastDuration { get; private set; }
 
-        public TimeSpan LastDuration { get; private set; }
+    public new void Reset()
+    {
+        LastDuration = Elapsed;
+        base.Reset();
+        offset = TimeSpan.Zero;
+    }
 
-        public new void Reset()
-        {
-            LastDuration = Elapsed;
-            base.Reset();
-            offset = TimeSpan.Zero;
-        }
-
-        public new void Stop()
-        {
-            LastDuration = Elapsed;
-            base.Stop();
-        }
+    public new void Stop()
+    {
+        LastDuration = Elapsed;
+        base.Stop();
     }
 }

@@ -1,117 +1,118 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-
+﻿
 using Melodica.Services.Media;
 using Melodica.Utility.Extensions;
 
-namespace Melodica.Services.Playback
+namespace Melodica.Services.Playback;
+
+public class MediaQueue
 {
-    public class MediaQueue
+    static readonly Random rng = new();
+
+    private readonly object locker = new();
+
+    private readonly List<LazyMedia> list = new();
+
+    // Returns same media over and over.
+    public bool Loop { get; set; }
+
+    // Returns next media, putting the last at the end of the queue.
+    public bool Repeat { get; set; }
+
+    public bool Shuffle { get; set; }
+
+    public bool IsEmpty => list.Count == 0;
+
+    public int Length => list.Count;
+
+    LazyMedia? lastMedia;
+
+    public PlayableMedia this[int i] => list[i];
+
+    public Task<TimeSpan> GetTotalDurationAsync()
     {
-        static readonly Random rng = new();
+        return Task.FromResult(list.Sum(x => ((PlayableMedia)x).Info.Duration));
+    }
 
-        private readonly object locker = new();
+    public async ValueTask<(TimeSpan duration, string? imageUrl)> GetQueueInfo()
+    {
+        return (await GetTotalDurationAsync(), ((PlayableMedia)list[0]).Info.ImageUrl);
+    }
 
-        private readonly List<LazyMedia> list = new();
-
-        // Returns same media over and over.
-        public bool Loop { get; set; }
-
-        // Returns next media, putting the last at the end of the queue.
-        public bool Repeat { get; set; }
-
-        public bool Shuffle { get; set; }
-
-        public bool IsEmpty => list.Count == 0;
-
-        public int Length => list.Count;
-
-        LazyMedia? lastMedia;
-
-        public PlayableMedia this[int i] => list[i];
-
-        public Task<TimeSpan> GetTotalDurationAsync() => Task.FromResult(list.Sum(x => ((PlayableMedia)x).Info.Duration));
-
-        public async ValueTask<(TimeSpan duration, string? imageUrl)> GetQueueInfo() => (await GetTotalDurationAsync(), ((PlayableMedia)list[0]).Info.ImageUrl);
-
-        public ValueTask EnqueueAsync(MediaCollection items)
+    public ValueTask EnqueueAsync(MediaCollection items)
+    {
+        lock (locker)
         {
-            lock (locker)
-            {
-                list.AddRange(items);
-            }
-            return ValueTask.CompletedTask;
+            list.AddRange(items);
         }
+        return ValueTask.CompletedTask;
+    }
 
-        public ValueTask PutFirstAsync(MediaCollection items)
+    public ValueTask PutFirstAsync(MediaCollection items)
+    {
+        lock (locker)
         {
-            lock (locker)
-            {
-                list.InsertRange(0, items);
-            }
-            return ValueTask.CompletedTask;
+            list.InsertRange(0, items);
         }
+        return ValueTask.CompletedTask;
+    }
 
-        ValueTask<PlayableMedia> GetNextAsync()
+    ValueTask<PlayableMedia> GetNextAsync()
+    {
+        lock (locker)
         {
-            lock (locker)
-            {
-                int index = Shuffle ? rng.Next(0, list.Count) : 0;
-                var item = list[index];
-                list.RemoveAt(index);
-                lastMedia = item;
-                return ValueTask.FromResult((PlayableMedia)item);
-            }
-        }
-
-        public async ValueTask<PlayableMedia> DequeueAsync()
-        {
-            if (Loop && lastMedia is not null)
-                return lastMedia;
-            var next = await GetNextAsync();
-            if (Repeat)
-            {
-                lock (locker)
-                {
-                    list.Add(next);
-                }
-            }
-            return next;
-        }
-
-        public ValueTask ClearAsync()
-        {
-            lock (locker)
-            {
-                list.Clear();
-            }
-            return ValueTask.CompletedTask;
-        }
-
-        public ValueTask<PlayableMedia> RemoveAtAsync(int index)
-        {
-            if (index < 0)
-                throw new Exception("Index cannot be under 0.");
-            else if (index > list.Count)
-                throw new Exception("Index cannot be larger than the queues size.");
-
-            LazyMedia item;
-            lock (locker)
-            {
-                item = list[index];
-                list.RemoveAt(index);
-            }
+            int index = Shuffle ? rng.Next(0, list.Count) : 0;
+            LazyMedia? item = list[index];
+            list.RemoveAt(index);
+            lastMedia = item;
             return ValueTask.FromResult((PlayableMedia)item);
         }
+    }
 
-        public ValueTask<PlayableMedia> RemoveAtAsync(Index index)
+    public async ValueTask<PlayableMedia> DequeueAsync()
+    {
+        if (Loop && lastMedia is not null)
+            return lastMedia;
+        PlayableMedia? next = await GetNextAsync();
+        if (Repeat)
         {
             lock (locker)
             {
-                return RemoveAtAsync(index.GetOffset(list.Count - 1));
+                list.Add(next);
             }
+        }
+        return next;
+    }
+
+    public ValueTask ClearAsync()
+    {
+        lock (locker)
+        {
+            list.Clear();
+        }
+        return ValueTask.CompletedTask;
+    }
+
+    public ValueTask<PlayableMedia> RemoveAtAsync(int index)
+    {
+        if (index < 0)
+            throw new Exception("Index cannot be under 0.");
+        else if (index > list.Count)
+            throw new Exception("Index cannot be larger than the queues size.");
+
+        LazyMedia item;
+        lock (locker)
+        {
+            item = list[index];
+            list.RemoveAt(index);
+        }
+        return ValueTask.FromResult((PlayableMedia)item);
+    }
+
+    public ValueTask<PlayableMedia> RemoveAtAsync(Index index)
+    {
+        lock (locker)
+        {
+            return RemoveAtAsync(index.GetOffset(list.Count - 1));
         }
     }
 }

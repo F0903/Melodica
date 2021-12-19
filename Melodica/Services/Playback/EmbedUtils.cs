@@ -1,27 +1,28 @@
-﻿using System;
-
+﻿
 using Discord;
 
 using Melodica.Services.Media;
 
-namespace Melodica.Services.Playback
-{
-    public static class EmbedUtils
-    {
-        public static Embed SetEmbedToState(this IEmbed e, MediaState state)
-        {
-            var builder = new EmbedBuilder
-            {
-                Color = MediaStateToColor(state),
-                Title = e.Title,
-                Description = e.Description,
-                Footer = new EmbedFooterBuilder().WithText(e.Footer?.ToString()),
-                ThumbnailUrl = e.Thumbnail?.ToString()
-            };
-            return builder.Build();
-        }
+namespace Melodica.Services.Playback;
 
-        public static Color MediaStateToColor(MediaState state) => state switch
+public static class EmbedUtils
+{
+    public static Embed SetEmbedToState(this IEmbed e, MediaState state)
+    {
+        EmbedBuilder? builder = new EmbedBuilder
+        {
+            Color = MediaStateToColor(state),
+            Title = e.Title,
+            Description = e.Description,
+            Footer = new EmbedFooterBuilder().WithText(e.Footer?.ToString()),
+            ThumbnailUrl = e.Thumbnail?.ToString()
+        };
+        return builder.Build();
+    }
+
+    public static Color MediaStateToColor(MediaState state)
+    {
+        return state switch
         {
             MediaState.Error => Color.Red,
             MediaState.Queued => Color.DarkGrey,
@@ -30,27 +31,27 @@ namespace Melodica.Services.Playback
             MediaState.Finished => Color.LighterGrey,
             _ => Color.Default,
         };
+    }
 
-        public static Embed CreateMediaEmbed(MediaInfo info, MediaInfo? collectionInfo, MediaState state)
-        {
-            const char InfChar = '\u221E';
+    public static Embed CreateMediaEmbed(MediaInfo info, MediaInfo? collectionInfo, MediaState state)
+    {
+        const char InfChar = '\u221E';
 
-            var color = MediaStateToColor(state);
+        Color color = MediaStateToColor(state);
 
-            var description = (info.MediaType == MediaType.Video && collectionInfo != null) ? $"__[{info.Title}]({info.Url})__\n{collectionInfo.Title}" : info.Title;
+        string? description = (info.MediaType == MediaType.Video && collectionInfo != null) ? $"__[{info.Title}]({info.Url})__\n{collectionInfo.Title}" : info.Title;
 
-            bool durationUnknown = info.MediaType == MediaType.Livestream || info.Duration == TimeSpan.Zero;
-            var durationStr = $"{info.Duration}{(info.MediaType != MediaType.Playlist && collectionInfo is not null ? $" | {collectionInfo.Duration}" : "")}";
-            var footer = durationUnknown ? InfChar.ToString() : durationStr;
+        bool durationUnknown = info.MediaType == MediaType.Livestream || info.Duration == TimeSpan.Zero;
+        string? durationStr = $"{info.Duration}{(info.MediaType != MediaType.Playlist && collectionInfo is not null ? $" | {collectionInfo.Duration}" : "")}";
+        string? footer = durationUnknown ? InfChar.ToString() : durationStr;
 
-            var embed = new EmbedBuilder()
-                        .WithColor(color)
-                        .WithTitle(info.Artist)
-                        .WithDescription(description)
-                        .WithFooter(footer)
-                        .WithThumbnailUrl(info.ImageUrl)
-                        .Build();
-            return embed;
-        }
+        Embed? embed = new EmbedBuilder()
+                    .WithColor(color)
+                    .WithTitle(info.Artist)
+                    .WithDescription(description)
+                    .WithFooter(footer)
+                    .WithThumbnailUrl(info.ImageUrl)
+                    .Build();
+        return embed;
     }
 }

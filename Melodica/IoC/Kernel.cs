@@ -2,18 +2,29 @@
 
 using Ninject;
 
-namespace Melodica.IoC
+namespace Melodica.IoC;
+
+public static class Kernel
 {
-    public static class Kernel
+    static Kernel()
     {
-        static Kernel() => kernel.Load(Assembly.GetExecutingAssembly());
+        kernel.Load(Assembly.GetExecutingAssembly());
+    }
 
-        private static readonly IKernel kernel = new StandardKernel();
+    private static readonly IKernel kernel = new StandardKernel();
 
-        public static IKernel GetRawKernel() => kernel;
+    public static IKernel GetRawKernel()
+    {
+        return kernel;
+    }
 
-        public static T Get<T>() => kernel.Get<T>();
+    public static T Get<T>()
+    {
+        return kernel.Get<T>();
+    }
 
-        public static void RegisterInstance<T>(T instance) => kernel.Bind<T>().ToConstant(instance).InSingletonScope();
+    public static void RegisterInstance<T>(T instance)
+    {
+        kernel.Bind<T>().ToConstant(instance).InSingletonScope();
     }
 }

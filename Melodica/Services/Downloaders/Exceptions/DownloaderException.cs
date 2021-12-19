@@ -1,11 +1,8 @@
-﻿using System;
+﻿namespace Melodica.Services.Downloaders.Exceptions;
 
-namespace Melodica.Services.Downloaders.Exceptions
+public class DownloaderException : Exception
 {
-    public class DownloaderException : Exception
+    public DownloaderException(string? msg = null, Exception? inner = null) : base(msg, inner)
     {
-        public DownloaderException(string? msg = null, Exception? inner = null) : base(msg, inner)
-        {
-        }
     }
 }

@@ -1,34 +1,31 @@
-﻿using System.IO;
-using System.Runtime.Serialization;
+﻿using System.Runtime.Serialization;
 using System.Runtime.Serialization.Formatters.Binary;
-using System.Threading.Tasks;
 
-namespace Melodica.Services.Serialization
+namespace Melodica.Services.Serialization;
+
+public class BinarySerializer : IAsyncSerializer
 {
-    public class BinarySerializer : IAsyncSerializer
-    {
-        // Disable redundant warning. These files are only stored locally and contain no sensitive info.
+    // Disable redundant warning. These files are only stored locally and contain no sensitive info.
 #pragma warning disable SYSLIB0011
 
-        private static readonly BinaryFormatter bin = new(null, new StreamingContext(StreamingContextStates.File | StreamingContextStates.Persistence));
+    private static readonly BinaryFormatter bin = new(null, new StreamingContext(StreamingContextStates.File | StreamingContextStates.Persistence));
 
-        public Task SerializeToFileAsync(string path, object toSerialize)
-        {
-            using var file = new FileStream(path, FileMode.OpenOrCreate, FileAccess.Write, FileShare.Write);
-
-
-            bin.Serialize(file, toSerialize);
+    public Task SerializeToFileAsync(string path, object toSerialize)
+    {
+        using FileStream? file = new FileStream(path, FileMode.OpenOrCreate, FileAccess.Write, FileShare.Write);
 
 
-            return Task.CompletedTask;
-        }
+        bin.Serialize(file, toSerialize);
 
-        public Task<T> DeserializeFileAsync<T>(string path)
-        {
-            using var file = File.Open(path, FileMode.Open, FileAccess.Read, FileShare.Read);
-            return Task.FromResult((T)bin.Deserialize(file));
-        }
+
+        return Task.CompletedTask;
+    }
+
+    public Task<T> DeserializeFileAsync<T>(string path)
+    {
+        using FileStream? file = File.Open(path, FileMode.Open, FileAccess.Read, FileShare.Read);
+        return Task.FromResult((T)bin.Deserialize(file));
+    }
 
 #pragma warning restore SYSLIB0011
-    }
 }

@@ -1,9 +1,11 @@
 ﻿using Ninject.Modules;
 
-namespace Melodica.Services.Lyrics
+namespace Melodica.Services.Lyrics;
+
+public class LyricsModule : NinjectModule
 {
-    public class LyricsModule : NinjectModule
+    public override void Load()
     {
-        public override void Load() => Kernel.Bind<ILyricsProvider>().To<GeniusLyrics>();
+        Kernel.Bind<ILyricsProvider>().To<GeniusLyrics>();
     }
 }

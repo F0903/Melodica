@@ -1,9 +1,6 @@
-﻿using System.Threading.Tasks;
+﻿namespace Melodica.Services.Logging;
 
-namespace Melodica.Services.Logging
+public interface IAsyncLogger
 {
-    public interface IAsyncLogger
-    {
-        public Task LogAsync(Discord.LogMessage msg);
-    }
+    public Task LogAsync(Discord.LogMessage msg);
 }

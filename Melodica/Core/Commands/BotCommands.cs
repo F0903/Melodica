@@ -1,19 +1,16 @@
-﻿using System;
-using System.Threading.Tasks;
-
+﻿
 using Discord.Commands;
 
-namespace Melodica.Core.Commands
+namespace Melodica.Core.Commands;
+
+[Group("Bot"), RequireOwner]
+public class BotCommands : ModuleBase<SocketCommandContext>
 {
-    [Group("Bot"), RequireOwner]
-    public class BotCommands : ModuleBase<SocketCommandContext>
+    [Command("Shutdown")]
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Performance", "CA1822:Mark members as static", Justification = "Cannot be static due to Discord library.")]
+    public Task Shutdown()
     {
-        [Command("Shutdown")]
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Performance", "CA1822:Mark members as static", Justification = "Cannot be static due to Discord library.")]
-        public Task Shutdown()
-        {
-            Environment.Exit(0);
-            return Task.CompletedTask;
-        }
+        Environment.Exit(0);
+        return Task.CompletedTask;
     }
 }

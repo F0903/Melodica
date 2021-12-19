@@ -1,9 +1,11 @@
 ﻿using Ninject.Modules;
 
-namespace Melodica.Services.Wiki
+namespace Melodica.Services.Wiki;
+
+public class WikiModule : NinjectModule
 {
-    public class WikiModule : NinjectModule
+    public override void Load()
     {
-        public override void Load() => Kernel.Bind<IWikiProvider>().To<WikipediaWiki>();
+        Kernel.Bind<IWikiProvider>().To<WikipediaWiki>();
     }
 }

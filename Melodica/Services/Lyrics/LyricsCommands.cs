@@ -1,59 +1,56 @@
-﻿using System;
-using System.ComponentModel;
-using System.Threading.Tasks;
+﻿using System.ComponentModel;
 
 using Discord;
 using Discord.Commands;
 
 using Melodica.Services.Playback;
 
-namespace Melodica.Services.Lyrics
+namespace Melodica.Services.Lyrics;
+
+public class LyricsCommands : ModuleBase<SocketCommandContext>
 {
-    public class LyricsCommands : ModuleBase<SocketCommandContext>
+    public LyricsCommands(ILyricsProvider lyrics)
     {
-        public LyricsCommands(ILyricsProvider lyrics)
+        this.lyrics = lyrics;
+    }
+
+    private readonly ILyricsProvider lyrics;
+
+    [Command("Lyrics"), Description("Gets lyrics for a search term.")]
+    public async Task GetLyrics([Remainder] string? songName = null)
+    {
+        Jukebox? juke;
+        try { juke = JukeboxManager.GetJukebox(Context.Guild); }
+        catch (Exception) { juke = null; }
+
+        if (songName is null && !(juke is not null && juke.Playing))
         {
-            this.lyrics = lyrics;
+            await ReplyAsync("You either need to specify a search term or have a song playing.");
+            return;
         }
 
-        private readonly ILyricsProvider lyrics;
-
-        [Command("Lyrics"), Description("Gets lyrics for a search term.")]
-        public async Task GetLyrics([Remainder] string? songName = null)
+        if (songName is null)
         {
-            Jukebox? juke;
-            try { juke = JukeboxManager.GetJukebox(Context.Guild); }
-            catch (Exception) { juke = null; }
+            Media.PlayableMedia? song = juke!.GetSong();
+            if (song is null)
+                throw new NullReferenceException("Song was null. (dbg-err)");
 
-            if (songName is null && !(juke is not null && juke.Playing))
+            Media.MediaInfo? songInfo = song.Info;
+            songName = $"{songInfo.Artist} {songInfo.Title}";
+        }
+
+        LyricsInfo lyrs = await lyrics.GetLyricsAsync(songName);
+        ReadOnlyMemory<char> text = lyrs.Lyrics.AsMemory();
+        const int pageSize = 2048;
+        for (int i = 0; i < text.Length; i += pageSize)
+        {
+            string pageText = text.Span.Slice(i, Math.Min(pageSize, text.Length - i)).ToString();
+            await ReplyAsync(null, false, new EmbedBuilder()
             {
-                await ReplyAsync("You either need to specify a search term or have a song playing.");
-                return;
-            }
-
-            if (songName is null)
-            {
-                var song = juke!.GetSong();
-                if (song is null)
-                    throw new NullReferenceException("Song was null. (dbg-err)");
-
-                var songInfo = song.Info;
-                songName = $"{songInfo.Artist} {songInfo.Title}";
-            }
-
-            var lyrs = await lyrics.GetLyricsAsync(songName);
-            ReadOnlyMemory<char> text = lyrs.Lyrics.AsMemory();
-            const int pageSize = 2048;
-            for (int i = 0; i < text.Length; i += pageSize)
-            {
-                string pageText = text.Span.Slice(i, Math.Min(pageSize, text.Length - i)).ToString();
-                await ReplyAsync(null, false, new EmbedBuilder()
-                {
-                    Title = i == 0 ? lyrs.Title : "",
-                    ThumbnailUrl = i == 0 ? lyrs.Image : "",
-                    Description = pageText
-                }.Build());
-            }
+                Title = i == 0 ? lyrs.Title : "",
+                ThumbnailUrl = i == 0 ? lyrs.Image : "",
+                Description = pageText
+            }.Build());
         }
     }
 }

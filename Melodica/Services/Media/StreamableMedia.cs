@@ -1,20 +1,17 @@
-﻿using System.Threading.Tasks;
+﻿namespace Melodica.Services.Media;
 
-namespace Melodica.Services.Media
+public class StreamableMedia : PlayableMedia
 {
-    public class StreamableMedia : PlayableMedia
+    public StreamableMedia(MediaInfo info, string url, string format)
+        : base(info, null, _ => Task.FromResult(new DataPair(null, new(format))), null)
     {
-        public StreamableMedia(MediaInfo info, string url, string format)
-            : base(info, null, _ => Task.FromResult(new DataPair(null, new(format))), null)
-        {
-            dataInfo = new(format, url);
-        }
+        dataInfo = new(format, url);
+    }
 
-        private readonly DataInfo dataInfo;
+    private readonly DataInfo dataInfo;
 
-        public override Task<DataInfo> GetDataAsync()
-        {
-            return Task.FromResult(dataInfo);
-        }
+    public override Task<DataInfo> GetDataAsync()
+    {
+        return Task.FromResult(dataInfo);
     }
 }

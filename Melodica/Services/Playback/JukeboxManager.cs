@@ -1,20 +1,21 @@
-﻿using System;
-using System.Collections.Concurrent;
+﻿using System.Collections.Concurrent;
 
 using Discord;
 
-namespace Melodica.Services.Playback
+namespace Melodica.Services.Playback;
+
+public static class JukeboxManager
 {
-    public static class JukeboxManager
+    static readonly ConcurrentDictionary<IGuild, Jukebox> jukeboxes = new();
+
+    public static Jukebox GetJukebox(IGuild guild)
     {
-        static readonly ConcurrentDictionary<IGuild, Jukebox> jukeboxes = new();
+        return jukeboxes[guild];
+    }
 
-        public static Jukebox GetJukebox(IGuild guild) => jukeboxes[guild];
-
-        public static Jukebox GetOrCreateJukebox(IGuild guild, Func<Jukebox> newFactory)
-        {
-            var juke = jukeboxes.GetOrAdd(guild, newFactory());
-            return juke;
-        }
+    public static Jukebox GetOrCreateJukebox(IGuild guild, Func<Jukebox> newFactory)
+    {
+        Jukebox? juke = jukeboxes.GetOrAdd(guild, newFactory());
+        return juke;
     }
 }

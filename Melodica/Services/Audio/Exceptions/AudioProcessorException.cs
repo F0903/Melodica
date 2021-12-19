@@ -1,11 +1,8 @@
-﻿using System;
+﻿namespace Melodica.Services.Audio.Exceptions;
 
-namespace Melodica.Services.Audio.Exceptions
+public class AudioProcessorException : Exception
 {
-    public class AudioProcessorException : Exception
+    public AudioProcessorException(string? msg = null, Exception? ex = null) : base(msg, ex)
     {
-        public AudioProcessorException(string? msg = null, Exception? ex = null) : base(msg, ex)
-        {
-        }
     }
 }
