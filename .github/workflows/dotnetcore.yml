@@ -27,6 +27,9 @@ jobs:
         with:
           dotnet-version: ${{ env.DOTNET_VER }}
       
+      - name: Setup .NET Workloads
+        run: dotnet workload install macos
+      
       - name: Setup Custom NuGet Sources
         run: dotnet nuget add source https://www.myget.org/F/discord-net/api/v3/index.json
 
