@@ -7,7 +7,7 @@
     <NoWarn>NU1605</NoWarn>
 		<Nullable>enable</Nullable>
 		<OutputType>exe</OutputType>
-		<TargetFramework>net6.0</TargetFramework>
+		<TargetFramework>net6.0-windows10.0.22000.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <RunAOTCompilation>true</RunAOTCompilation>
     <PublishTrimmed>false</PublishTrimmed>
@@ -18,11 +18,17 @@
 
 	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
 		<DefineConstants>DEBUG;TRACE</DefineConstants>
+		<WarningLevel>5</WarningLevel>
+		<TreatWarningsAsErrors>True</TreatWarningsAsErrors>
+		<CheckForOverflowUnderflow>True</CheckForOverflowUnderflow>
 	</PropertyGroup>
 
 	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
 		<DebugType>none</DebugType>
 		<DebugSymbols>false</DebugSymbols>
+		<WarningLevel>5</WarningLevel>
+		<TreatWarningsAsErrors>True</TreatWarningsAsErrors>
+		<CheckForOverflowUnderflow>True</CheckForOverflowUnderflow>
 	</PropertyGroup>
 
 	<ItemGroup>
@@ -32,7 +38,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<PackageReference Include="Discord.Net" Version="3.0.0" />
+		<PackageReference Include="Discord.Net" Version="3.2.0" />
 		<PackageReference Include="Microsoft.EntityFrameworkCore" Version="6.0.1" />
 		<PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="6.0.1">
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
