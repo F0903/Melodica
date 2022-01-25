@@ -7,7 +7,7 @@
     <NoWarn>NU1605</NoWarn>
 		<Nullable>enable</Nullable>
 		<OutputType>exe</OutputType>
-		<TargetFramework>net6.0-windows10.0.22000.0</TargetFramework>
+		<TargetFramework>net6.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <RunAOTCompilation>true</RunAOTCompilation>
     <PublishTrimmed>false</PublishTrimmed>
