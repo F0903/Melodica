@@ -17,15 +17,14 @@ public class SocketBot<H> where H : IAsyncCommandHandler
             LogLevel = BotSettings.LogLevel
         });
 
-        IoC.Kernel.RegisterInstance(client);
 
         this.logger = logger;
-        this.commandHandler = IoC.Kernel.Get<H>();
+        this.commandHandler = new SocketHybridCommandHandler(logger, client);
+
+        IoC.Kernel.RegisterInstance(client);
 
         client.Log += this.logger.LogAsync;
         client.MessageReceived += commandHandler.OnMessageReceived;
-
-        
     }
 
     private readonly IAsyncLogger logger; 

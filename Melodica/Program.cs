@@ -7,7 +7,7 @@ using Melodica.Services.Logging;
 
 var bot = new SocketBot<IAsyncCommandHandler>(Kernel.Get<IAsyncLogger>());
 
-await bot.ConnectAsync($"{BotSettings.DefaultPrefix}play | {BotSettings.DefaultPrefix}help", Discord.ActivityType.Listening, true);
+await bot.ConnectAsync($"{BotSettings.TextCommandPrefix}play | {BotSettings.TextCommandPrefix}help", Discord.ActivityType.Listening, true);
 
 AppDomain.CurrentDomain.ProcessExit += (sender, args) => bot.StopAsync().Wait();
 AppDomain.CurrentDomain.UnhandledException += (sender, args) => File.WriteAllText("./error.txt", (args.ExceptionObject as Exception)?.ToString() ?? "Exception was null.");
