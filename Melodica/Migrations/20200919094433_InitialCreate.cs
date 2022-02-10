@@ -10,13 +10,13 @@ public partial class InitialCreate : Migration
 name: "GuildSettings",
 columns: table => new
 {
-GuildID = table.Column<ulong>(nullable: false)
+    GuildID = table.Column<ulong>(nullable: false)
 .Annotation("Sqlite:Autoincrement", true),
-Prefix = table.Column<string>(nullable: false)
+    Prefix = table.Column<string>(nullable: false)
 },
 constraints: table =>
 {
-table.PrimaryKey("PK_GuildSettings", x => x.GuildID);
+    table.PrimaryKey("PK_GuildSettings", x => x.GuildID);
 });
     }
 

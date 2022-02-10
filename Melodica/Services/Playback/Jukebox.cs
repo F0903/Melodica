@@ -154,8 +154,8 @@ public class Jukebox
         {
             try
             {
-                AloneTimerState timerState = new AloneTimerState() { Stop = StopAsync, Channel = channel };
-                using Timer? aloneTimer = new Timer(static async state =>
+                AloneTimerState timerState = new() { Stop = StopAsync, Channel = channel };
+                using Timer? aloneTimer = new(static async state =>
                 {
                     AloneTimerState ts = (AloneTimerState)(state ?? throw new NullReferenceException("AloneTimer state parameter cannot be null."));
                     if (await CheckIfAloneAsync(ts.Channel))
@@ -174,7 +174,7 @@ public class Jukebox
             }
         }
 
-        Thread? writeThread = new Thread(StartWrite)
+        Thread? writeThread = new(StartWrite)
         {
             IsBackground = false,
             Priority = ThreadPriority.Highest
@@ -239,7 +239,7 @@ public class Jukebox
     async Task PlayNextAsync(IAudioChannel channel, AudioOutStream output, CancellationToken token, TimeSpan? startingPoint = null)
     {
         PlaybackStatusHandler status = new(callbackChannel);
-        using FFmpegAudioProcessor? audio = new FFmpegAudioProcessor();
+        using FFmpegAudioProcessor? audio = new();
         PlayableMedia? media = await queue.DequeueAsync();
         if (media is null)
             throw new CriticalException("Song from queue was null.");

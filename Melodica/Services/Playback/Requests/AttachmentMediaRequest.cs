@@ -34,7 +34,7 @@ public class AttachmentMediaRequest : IMediaRequest
 
     public async Task<MediaCollection> GetMediaAsync()
     {
-        TempMedia? media = new TempMedia(await GetInfoAsync(), async (_) =>
+        TempMedia? media = new(await GetInfoAsync(), async (_) =>
         {
             string? remote = attachment.Url;
             Stream? data = await http.GetStreamAsync(remote);

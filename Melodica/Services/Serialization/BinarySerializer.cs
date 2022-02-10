@@ -12,7 +12,7 @@ public class BinarySerializer : IAsyncSerializer
 
     public Task SerializeToFileAsync(string path, object toSerialize)
     {
-        using FileStream? file = new FileStream(path, FileMode.OpenOrCreate, FileAccess.Write, FileShare.Write);
+        using FileStream? file = new(path, FileMode.OpenOrCreate, FileAccess.Write, FileShare.Write);
 
 
         bin.Serialize(file, toSerialize);

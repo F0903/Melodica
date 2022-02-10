@@ -5,7 +5,7 @@ using Melodica.Core.CommandHandlers;
 using Melodica.IoC;
 using Melodica.Services.Logging;
 
-SocketBot currentBot = new SocketBot(Kernel.Get<IAsyncLogger>(), Kernel.Get<SocketCommandHandler>());
+SocketBot currentBot = new(Kernel.Get<IAsyncLogger>(), Kernel.Get<SocketCommandHandler>());
 
 await currentBot.ConnectAsync($"{BotSettings.DefaultPrefix}play | {BotSettings.DefaultPrefix}help", Discord.ActivityType.Listening, true);
 
