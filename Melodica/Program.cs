@@ -5,11 +5,11 @@ using Melodica.Core.CommandHandlers;
 using Melodica.IoC;
 using Melodica.Services.Logging;
 
-SocketBot currentBot = new(Kernel.Get<IAsyncLogger>(), Kernel.Get<SocketCommandHandler>());
+var bot = new SocketBot<IAsyncCommandHandler>(Kernel.Get<IAsyncLogger>());
 
-await currentBot.ConnectAsync($"{BotSettings.DefaultPrefix}play | {BotSettings.DefaultPrefix}help", Discord.ActivityType.Listening, true);
+await bot.ConnectAsync($"{BotSettings.DefaultPrefix}play | {BotSettings.DefaultPrefix}help", Discord.ActivityType.Listening, true);
 
-AppDomain.CurrentDomain.ProcessExit += (sender, args) => currentBot.StopAsync().Wait();
+AppDomain.CurrentDomain.ProcessExit += (sender, args) => bot.StopAsync().Wait();
 AppDomain.CurrentDomain.UnhandledException += (sender, args) => File.WriteAllText("./error.txt", (args.ExceptionObject as Exception)?.ToString() ?? "Exception was null.");
 
 Process.GetCurrentProcess().PriorityClass = BotSettings.ProcessPriority;

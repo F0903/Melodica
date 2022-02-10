@@ -10,7 +10,7 @@ public class LoggingModule : NinjectModule
 #if DEBUG
         Bind<IAsyncLogger>().To<ColoredLogger>();
 #else
-            Bind<IAsyncLogger>().To<ReleaseLogger>();
+        Bind<IAsyncLogger>().To<ReleaseLogger>();
 #endif
     }
 }

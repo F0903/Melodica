@@ -7,35 +7,30 @@ using Melodica.Services.Logging;
 
 namespace Melodica.Core;
 
-public class SocketBot : IBot
+public class SocketBot<H> where H : IAsyncCommandHandler
 {
-    public SocketBot(IAsyncLogger logger, SocketCommandHandler commandHandler)
+    public SocketBot(IAsyncLogger logger)
     {
-        client = new DiscordSocketClient(new DiscordSocketConfig()
+        client = new(new()
         {
             MessageCacheSize = 1,
             LogLevel = BotSettings.LogLevel
         });
 
-        this.logger = logger;
-        this.commandHandler = commandHandler;
-
-        Bootstrap().Wait();
-    }
-
-    private readonly DiscordSocketClient client;
-
-    private readonly IAsyncLogger logger;
-    private readonly SocketCommandHandler commandHandler;
-
-    private async Task Bootstrap()
-    {
         IoC.Kernel.RegisterInstance(client);
 
-        await commandHandler.HandleCommandsAsync(client);
+        this.logger = logger;
+        this.commandHandler = IoC.Kernel.Get<H>();
 
-        client.Log += logger.LogAsync;
+        client.Log += this.logger.LogAsync;
+        client.MessageReceived += commandHandler.OnMessageReceived;
+
+        
     }
+
+    private readonly IAsyncLogger logger; 
+    private readonly IAsyncCommandHandler commandHandler;
+    private readonly DiscordSocketClient client;
 
     public async Task SetActivityAsync(string name, ActivityType type)
     {
