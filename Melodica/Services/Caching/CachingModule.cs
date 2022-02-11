@@ -1,12 +1,13 @@
 ﻿
-using Ninject.Modules;
+using Melodica.Dependencies;
+
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Melodica.Services.Caching;
 
-public class CachingModule : NinjectModule
+public class CachingModule : DependencyModule
 {
-    public override void Load()
-    {
-        Kernel.Bind<IMediaCache>().To<MediaFileCache>();
-    }
+    public override IServiceCollection Load() =>
+        new ServiceCollection()
+        .AddSingleton<IMediaCache, MediaFileCache>();
 }

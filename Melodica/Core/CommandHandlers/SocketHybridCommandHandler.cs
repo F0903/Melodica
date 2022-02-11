@@ -6,6 +6,7 @@ using Discord.Interactions;
 using Discord.WebSocket;
 
 using Melodica.Services.Logging;
+using Melodica.Dependencies;
 
 namespace Melodica.Core.CommandHandlers;
 
@@ -13,14 +14,13 @@ public class SocketHybridCommandHandler : IAsyncCommandHandler
 {
     public SocketHybridCommandHandler(IAsyncLogger logger, DiscordSocketClient client)
     {
-        this.ioc = IoC.Kernel.GetRawKernel();
         this.logger = logger;
         this.client = client;
 
         (commands, interactions) = InitializeCommands().Result;
     }
 
-    private readonly IServiceProvider ioc;
+    private readonly IServiceProvider ioc = Dependency.GetServiceProvider();
     private readonly IAsyncLogger logger;
     private readonly DiscordSocketClient client;
     private readonly CommandService commands;
@@ -32,27 +32,16 @@ public class SocketHybridCommandHandler : IAsyncCommandHandler
 
     private Task<CommandService> InitializeTextCommands(Assembly asm)
     {
-        var commandService = new CommandService(new()
-        {
-            LogLevel = BotSettings.LogLevel,
-            DefaultRunMode = Discord.Commands.RunMode.Async,
-            CaseSensitiveCommands = false
-        });
+        var commandService = Dependency.Get<CommandService>();
         commandService.AddModulesAsync(asm, ioc);
         commandService.CommandExecuted += OnTextCommandExecuted;
-        IoC.Kernel.RegisterInstance(commandService);
         
         return Task.FromResult(commandService);
     }
 
     private async Task<InteractionService> InitializeSlashCommands(Assembly asm)
     {
-        var interactionService = new InteractionService(client, new()
-        {
-            LogLevel = BotSettings.LogLevel,
-            //DefaultRunMode = Discord.Interactions.RunMode.Async,
-            //UseCompiledLambda = true
-        });
+        var interactionService = Dependency.Get<InteractionService>();
         await interactionService.AddModulesAsync(asm, ioc);
         interactionService.SlashCommandExecuted += OnSlashCommandExecuted;
 
@@ -158,6 +147,6 @@ public class SocketHybridCommandHandler : IAsyncCommandHandler
         if (!context.Message.HasStringPrefix(BotSettings.TextCommandPrefix, ref argPos))
             return;
 
-        await commands.ExecuteAsync(context, argPos, IoC.Kernel.GetRawKernel());
+        await commands.ExecuteAsync(context, argPos, ioc);
     }
 }

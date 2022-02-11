@@ -2,13 +2,15 @@
 using Discord;
 using Discord.WebSocket;
 
+using Melodica.Dependencies;
+
 namespace Melodica.Utility;
 
 public static class Utils
 {
     public static Task<IUser> GetAppOwnerAsync()
     {
-        return Task.FromResult(IoC.Kernel.Get<DiscordSocketClient>().GetApplicationInfoAsync().Result.Owner);
+        return Task.FromResult(Dependency.Get<DiscordSocketClient>().GetApplicationInfoAsync().Result.Owner);
     }
 
     public static Task<string> GetURLArgumentAsync(Span<char> url, string argName)

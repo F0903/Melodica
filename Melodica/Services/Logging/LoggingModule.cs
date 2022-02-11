@@ -1,16 +1,19 @@
 ﻿
-using Ninject.Modules;
+using Melodica.Dependencies;
+
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Melodica.Services.Logging;
 
-public class LoggingModule : NinjectModule
+public class LoggingModule : DependencyModule
 {
-    public override void Load()
+    public override IServiceCollection Load()
     {
+        return new ServiceCollection()
 #if DEBUG
-        Bind<IAsyncLogger>().To<ColoredLogger>();
+            .AddSingleton<IAsyncLogger, ColoredLogger>();
 #else
-        Bind<IAsyncLogger>().To<ReleaseLogger>();
+            .AddSingleton<IAsyncLogger, ReleaseLogger>();
 #endif
     }
 }

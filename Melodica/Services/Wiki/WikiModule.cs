@@ -1,11 +1,12 @@
-﻿using Ninject.Modules;
+﻿using Melodica.Dependencies;
+
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Melodica.Services.Wiki;
 
-public class WikiModule : NinjectModule
+public class WikiModule : DependencyModule
 {
-    public override void Load()
-    {
-        Kernel.Bind<IWikiProvider>().To<WikipediaWiki>();
-    }
+    public override IServiceCollection Load() =>
+        new ServiceCollection()
+        .AddTransient<IWikiProvider, WikipediaWiki>();
 }

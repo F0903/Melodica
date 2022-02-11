@@ -1,11 +1,12 @@
-﻿using Ninject.Modules;
+﻿using Melodica.Dependencies;
+
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Melodica.Core.CommandHandlers;
 
-public class CommandHandlerModule : NinjectModule
+public class CommandHandlerModule : DependencyModule
 {
-    public override void Load()
-    {
-        Bind<IAsyncCommandHandler>().To<SocketHybridCommandHandler>();
-    }
+    public override IServiceCollection Load() =>
+        new ServiceCollection()
+        .AddSingleton<IAsyncCommandHandler, SocketHybridCommandHandler>();
 }
