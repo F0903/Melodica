@@ -238,7 +238,6 @@ public class Jukebox
 
     async Task PlayNextAsync(IAudioChannel channel, AudioOutStream output, CancellationToken token, TimeSpan? startingPoint = null)
     {
-        PlaybackStatusHandler status = new(callbackChannel);
         using FFmpegAudioProcessor? audio = new();
         PlayableMedia? media = await queue.DequeueAsync();
         if (media is null)
@@ -246,26 +245,19 @@ public class Jukebox
 
         currentSong = media;
 
-        if (!Loop)
-            await status.Send(media.Info, media.CollectionInfo, MediaState.Downloading);
-
         DataInfo dataInfo;
         try
         {
             dataInfo = await media.GetDataAsync();
         }
-        catch (Exception ex)
+        catch
         {
-            await status.RaiseError($"Could not get media.\nError: ``{ex.Message}``");
             if (!queue.IsEmpty) await PlayNextAsync(channel, output, token, null);
             else await DisconnectAsync();
             return;
         }
 
         await audio.StartProcess(dataInfo, startingPoint);
-
-        if (!Loop)
-            await status.SetPlaying();
 
         //TESTING TO SEE IF THIS GETS CALLED ON RANDOM DISCONNECTS
         audioClient!.Disconnected += async (ex) =>
@@ -283,15 +275,10 @@ public class Jukebox
             temp.DiscardTempMedia();
         }
 
-        if (!Loop || faulted)
-            await status.SetFinished();
-
         if (faulted)
         {
             throw new CriticalException("SendDataAsync encountered a fatal error. (dbg-msg)");
         }
-
-
 
         if ((!Loop && queue.IsEmpty) || cancellation!.IsCancellationRequested)
         {
@@ -307,8 +294,6 @@ public class Jukebox
         if (downloading)
             return;
 
-        PlaybackStatusHandler status = new(callbackChannel);
-
         MediaInfo reqInfo;
         MediaCollection collection;
         try
@@ -322,14 +307,12 @@ public class Jukebox
         {
             downloading = false;
             string? msg = ex is MediaUnavailableException ? "Media is unavailable." : "Unknown error occurred during download of media.";
-            await status.RaiseError(msg);
             return;
         }
 
         await queue.EnqueueAsync(collection);
         if (Playing)
         {
-            await status.Send(reqInfo, collection.CollectionInfo, MediaState.Queued);
             return;
         }
 
@@ -337,18 +320,12 @@ public class Jukebox
         playLock.Reset();
         try
         {
-            if (reqInfo.MediaType == MediaType.Playlist)
-                await status.Send(reqInfo, collection.CollectionInfo, MediaState.Playing);
-
             cancellation = new();
             CancellationToken token = cancellation.Token;
             await ConnectAsync(channel);
             int bitrate = GetChannelBitrate(channel);
             using AudioOutStream? output = audioClient!.CreatePCMStream(AudioApplication.Music, bitrate, 200, 0);
             await PlayNextAsync(channel, output, token, startingPoint);
-
-            if (reqInfo.MediaType == MediaType.Playlist)
-                await status.SetFinished();
         }
         finally
         {

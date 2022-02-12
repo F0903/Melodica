@@ -3,7 +3,7 @@ using Discord.WebSocket;
 
 namespace Melodica.Core.Commands;
 
-public class TestSlashCommands : InteractionModuleBase<SocketInteractionContext>
+public class TestSlashCommands : InteractionModuleBase
 {
     [SlashCommand("ping", "Pong!")]
     public async Task Ping()

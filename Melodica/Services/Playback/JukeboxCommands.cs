@@ -1,5 +1,4 @@
-﻿
-using Discord;
+﻿using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
 
@@ -213,7 +212,7 @@ public class JukeboxCommands : ModuleBase<SocketCommandContext>
             return;
         }
 
-        GuildPermissionsChecker.AssertVoicePermissions(Context.Guild, Context.Client.CurrentUser, userVoice);
+        GuildPermissionsChecker.CheckVoicePermission(Context.Guild, Context.Client.CurrentUser, userVoice);
 
         if (mediaQuery == null && Context.Message.Attachments.Count == 0)
         {
@@ -247,7 +246,7 @@ public class JukeboxCommands : ModuleBase<SocketCommandContext>
             return;
         }
 
-        GuildPermissionsChecker.AssertVoicePermissions(Context.Guild, Context.Client.CurrentUser, userVoice);
+        GuildPermissionsChecker.CheckVoicePermission(Context.Guild, Context.Client.CurrentUser, userVoice);
 
         if (mediaQuery == null && Context.Message.Attachments.Count == 0)
         {

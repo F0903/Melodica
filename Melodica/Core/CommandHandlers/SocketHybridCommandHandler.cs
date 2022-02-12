@@ -113,8 +113,8 @@ public class SocketHybridCommandHandler : IAsyncCommandHandler
     {
         var cmdContext = new CmdContext(context.Channel, context.Guild);
         var cmdInfo = new CmdInfo(info.Module.Name, info.Name);
-        var cmdResult = new CmdResult(result.Error.ToString() ?? "Unspecified Error", result.IsSuccess);
-
+        var cmdResult = new CmdResult(result.ErrorReason, result.IsSuccess);
+        
         return LogCommandExecution(cmdContext, cmdInfo, cmdResult);
     }
 
