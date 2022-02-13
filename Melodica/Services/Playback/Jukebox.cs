@@ -167,6 +167,8 @@ public class Jukebox
 
             if (BreakConditions())
             {
+                if (token.IsCancellationRequested)
+                    return;
                 SendSilence(output);
                 break;
             }
@@ -246,10 +248,12 @@ public class Jukebox
         playLock.Wait(5000);
     }
 
-    public ValueTask SkipAsync()
+    public void Skip()
     {
+        if (queue.IsEmpty)
+            return;
         skipRequested = true;
-        return ValueTask.CompletedTask;
+        return;
     }
 
     public ValueTask ClearAsync()
@@ -374,7 +378,7 @@ public class Jukebox
         await SetLoop(false);
         await SetShuffle(false);
         await SetNextAsync(request);
-        await SkipAsync();
+        Skip();
     }
 
     public async Task SetNextAsync(IMediaRequest request)

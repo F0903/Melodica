@@ -182,10 +182,12 @@ public class JukeboxInteractionCommands : InteractionModuleBase<SocketInteractio
             var embed = EmbedUtils.CreateMediaEmbed(info, null);
             await RespondAsync("The following media will be queued:", embed: embed, ephemeral: true);
         }
+        else
+        {
+            await DeferAsync(); // Command can take a long time.
+        }
 
-        await DeferAsync(); // Command can take a long time.
-
-        try 
+        try
         {
             var result = await jukebox.PlayAsync(request, voice, player);
             var msg = result switch
@@ -196,9 +198,9 @@ public class JukeboxInteractionCommands : InteractionModuleBase<SocketInteractio
             if (msg is null) return;
             await FollowupAsync(msg, ephemeral: true);
         }
-        catch (EmptyChannelException) 
-        { 
-            await ModifyOriginalResponseAsync(x => x.Content = "All users have left the channel. Disconnecting..."); 
+        catch (EmptyChannelException)
+        {
+            await ModifyOriginalResponseAsync(x => x.Content = "All users have left the channel. Disconnecting...");
         }
     }
 
@@ -258,7 +260,7 @@ public class JukeboxInteractionCommands : InteractionModuleBase<SocketInteractio
     [ComponentInteraction("player_skip")]
     public async Task Skip()
     {
-        await Jukebox.SkipAsync();
+        Jukebox.Skip();
         await DeferAsync();
     }
 }
