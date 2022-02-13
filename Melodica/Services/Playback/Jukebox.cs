@@ -36,24 +36,15 @@ public class Jukebox
 
     public delegate ValueTask MediaCallback(MediaInfo info, MediaInfo? playlistInfo, MediaState state);
 
-    private bool paused;
-    public bool Paused
-    {
-        get => paused;
-        set
-        {
-            if (!Playing) return;
-            paused = value;
-        }
-    }
+    public bool Paused { get; private set; }
 
     public bool Playing => !playLock.IsSet;
 
-    public bool Loop { get => queue.Loop; set => queue.Loop = value; }
+    public bool Loop => queue.Loop;
 
-    public bool Shuffle { get => queue.Shuffle; set => queue.Shuffle = value; }
+    public bool Shuffle => queue.Shuffle;
 
-    public bool Repeat { get => queue.Repeat; set => queue.Repeat = value; }
+    public bool Repeat => queue.Repeat;
 
     public TimeSpan Elapsed => new(durationTimer.Elapsed.Hours, durationTimer.Elapsed.Minutes, durationTimer.Elapsed.Seconds);
 
@@ -69,7 +60,37 @@ public class Jukebox
     private bool skipRequested = false;
     private bool downloading = false;
 
+    private Player? currentPlayer;
     private PlayableMedia? currentSong;
+
+    public async Task SetPaused(bool value)
+    {
+        if (!Playing) return;
+        Paused = value;
+        if (currentPlayer is not null)
+            await currentPlayer.SetButtonState(PlayerButton.PlayPause, value);
+    }
+
+    public async Task SetLoop(bool value)
+    {
+        queue.Loop = value;
+        if (currentPlayer is not null)
+            await currentPlayer.SetButtonState(PlayerButton.Loop, value);
+    }
+
+    public async Task SetShuffle(bool value)
+    {
+        queue.Shuffle = value;
+        if (currentPlayer is not null)
+            await currentPlayer.SetButtonState(PlayerButton.Shuffle, value);
+    }
+
+    public async Task SetRepeat(bool value)
+    {
+        queue.Loop = value;
+        if (currentPlayer is not null)
+            await currentPlayer.SetButtonState(PlayerButton.Repeat, value);
+    }
 
     public MediaQueue GetQueue()
     {
@@ -210,7 +231,7 @@ public class Jukebox
         if (cancellation is null || (cancellation is not null && cancellation.IsCancellationRequested))
             return;
 
-        Loop = false;
+        await SetLoop(false);
         await ClearAsync();
         cancellation!.Cancel();
         playLock.Wait(5000);
@@ -257,6 +278,7 @@ public class Jukebox
             return;
         }
 
+        await currentPlayer!.SetSongEmbed(media.Info, media.CollectionInfo);
         await audio.StartProcess(dataInfo, startingPoint);
 
         //TESTING TO SEE IF THIS GETS CALLED ON RANDOM DISCONNECTS
@@ -289,7 +311,7 @@ public class Jukebox
         await PlayNextAsync(channel, output, token, null);
     }
 
-    public async Task PlayAsync(IMediaRequest request, IAudioChannel channel, TimeSpan? startingPoint = null)
+    public async Task PlayAsync(IMediaRequest request, IAudioChannel channel, Player player, TimeSpan? startingPoint = null)
     {
         if (downloading)
             return;
@@ -303,10 +325,9 @@ public class Jukebox
             collection = await request.GetMediaAsync();
             downloading = false;
         }
-        catch (Exception ex)
+        catch
         {
             downloading = false;
-            string? msg = ex is MediaUnavailableException ? "Media is unavailable." : "Unknown error occurred during download of media.";
             return;
         }
 
@@ -322,9 +343,12 @@ public class Jukebox
         {
             cancellation = new();
             CancellationToken token = cancellation.Token;
+
             await ConnectAsync(channel);
             int bitrate = GetChannelBitrate(channel);
-            using AudioOutStream? output = audioClient!.CreatePCMStream(AudioApplication.Music, bitrate, 200, 0);
+            using AudioOutStream output = audioClient!.CreatePCMStream(AudioApplication.Music, bitrate, 200, 0);
+
+            currentPlayer = player;
             await PlayNextAsync(channel, output, token, startingPoint);
         }
         finally
@@ -335,15 +359,15 @@ public class Jukebox
 
     public async Task SwitchAsync(IMediaRequest request)
     {
-        Loop = false;
-        Shuffle = false;
+        await SetLoop(false);
+        await SetShuffle(false);
         await SetNextAsync(request);
         await SkipAsync();
     }
 
     public async Task SetNextAsync(IMediaRequest request)
     {
-        MediaCollection? media = await request.GetMediaAsync();
+        MediaCollection media = await request.GetMediaAsync();
         await queue.PutFirstAsync(media);
     }
 }

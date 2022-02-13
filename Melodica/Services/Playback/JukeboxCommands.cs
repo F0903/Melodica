@@ -230,7 +230,8 @@ public class JukeboxCommands : ModuleBase<SocketCommandContext>
             }
             else
             {
-                await jukebox.PlayAsync(await GetRequestAsync(mediaQuery!), userVoice);
+                //var msgManager = PlaybackMessageManager.FromCommandContext(Context);
+                //await jukebox.PlayAsync(await GetRequestAsync(mediaQuery!), userVoice, msgManager);
             }
         }
         catch (EmptyChannelException) { await ReplyAsync("All users have left the channel. Disconnecting..."); }
@@ -254,8 +255,9 @@ public class JukeboxCommands : ModuleBase<SocketCommandContext>
             return;
         }
 
-        try { await Jukebox.PlayAsync(await GetRequestAsync(mediaQuery!), userVoice); }
-        catch (EmptyChannelException) { await ReplyAsync("All users have left the channel. Disconnecting..."); }
+        //var msgManager = PlaybackMessageManager.FromCommandContext(Context);
+        //try { await Jukebox.PlayAsync(await GetRequestAsync(mediaQuery!), userVoice, msgManager); }
+        //catch (EmptyChannelException) { await ReplyAsync("All users have left the channel. Disconnecting..."); }
     }
 
     [Command("Stop"), Summary("Stops playback.")]

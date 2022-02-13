@@ -33,6 +33,7 @@ public static class EmbedUtils
         };
     }
 
+    //TODO: Figure out if we should remove MediaState?
     public static Embed CreateMediaEmbed(MediaInfo info, MediaInfo? collectionInfo, MediaState state)
     {
         const char InfChar = '\u221E';

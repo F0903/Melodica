@@ -21,7 +21,7 @@ public class JukeboxInteractionCommands : InteractionModuleBase<SocketInteractio
     public async Task ClearCache()
     {
         (int deletedFiles, int filesInUse, long ms) = await MediaFileCache.ClearAllCachesAsync();
-        await RespondAsync($"Deleted {deletedFiles} files. ({filesInUse} files in use) [{ms}ms]");
+        await RespondAsync($"Deleted {deletedFiles} files. ({filesInUse} files in use) [{ms}ms]", ephemeral: true);
     }
 
     [SlashCommand("duration", "Shows the remaining duration of the current song.")]
@@ -29,7 +29,7 @@ public class JukeboxInteractionCommands : InteractionModuleBase<SocketInteractio
     {
         if (!Jukebox.Playing)
         {
-            await RespondAsync("No song is playing :(");
+            await RespondAsync("No song is playing :(", ephemeral: true);
             return;
         }
 
@@ -37,18 +37,18 @@ public class JukeboxInteractionCommands : InteractionModuleBase<SocketInteractio
         PlayableMedia? song = Jukebox.GetSong();
         if (song is null)
         {
-            await RespondAsync("Could not get song from jukebox. Contact developer.");
+            await RespondAsync("Could not get song from jukebox. Contact developer.", ephemeral: true);
             return;
         }
         TimeSpan songDur = song.Info.Duration;
-        await RespondAsync((songDur != TimeSpan.Zero ? $"__{songDur}__\n" : "") + $"{dur}");
+        await RespondAsync((songDur != TimeSpan.Zero ? $"__{songDur}__\n" : "") + $"{dur}", ephemeral: true);
     }
 
     [SlashCommand("clear", "Clears queue.")]
     public async Task Clear()
     {
         await Jukebox.ClearAsync();
-        await RespondAsync("Cleared queue.");
+        await RespondAsync("Cleared queue.", ephemeral: true);
     }
 
     [SlashCommand("remove", "Removes song from queue by index, or removes the last element if no parameter is given.")]
@@ -61,12 +61,15 @@ public class JukeboxInteractionCommands : InteractionModuleBase<SocketInteractio
         {
             Title = "**Removed**",
             Description = removedInfo.Title
-        }.Build());
+        }.Build(),
+        ephemeral: true
+        );
     }
 
     [SlashCommand("queue", "Shows the current queue.")]
     public async Task Queue()
     {
+        await DeferAsync(true);
         var queue = Jukebox.GetQueue();
         var eb = new EmbedBuilder();
         if (queue.IsEmpty)
@@ -96,7 +99,7 @@ public class JukeboxInteractionCommands : InteractionModuleBase<SocketInteractio
             }
         }
 
-        await Context.Channel.SendMessageAsync(null, false, eb.Build());
+        await ModifyOriginalResponseAsync(x => x.Embed = eb.Build());
     }
 
     [SlashCommand("next", "Sets the next song to play.")]
@@ -107,9 +110,10 @@ public class JukeboxInteractionCommands : InteractionModuleBase<SocketInteractio
         // Get info to see if the request is actually valid.
         MediaInfo? info = await request.GetInfoAsync();
 
-        Jukebox.Shuffle = false;
-        await Jukebox.SetNextAsync(request);
-        await RespondAsync(embed: EmbedUtils.CreateMediaEmbed(info, null, MediaState.Queued));
+        var jukebox = Jukebox;
+        await jukebox.SetShuffle(false);
+        await jukebox.SetNextAsync(request);
+        await RespondAsync(embed: EmbedUtils.CreateMediaEmbed(info, null, MediaState.Queued), ephemeral: true);
     }
 
     Task<(IVoiceChannel?, IMediaRequest)> GetPlaybackContext(string query)
@@ -119,82 +123,29 @@ public class JukeboxInteractionCommands : InteractionModuleBase<SocketInteractio
         return Task.FromResult(((IVoiceChannel?)voice, (IMediaRequest)request));
     }
 
-    async Task SetButtonState(string buttonId, bool state)
-    {
-        var playerInt = (SocketMessageComponent)Context.Interaction;
-        var msg = playerInt.Message;
-        var msgComps = msg.Components;
-        await msg.ModifyAsync(x =>
-        {
-            var compBuilder = new ComponentBuilder();
-            foreach (var row in msgComps)
-            {
-                var rowBuilder = new ActionRowBuilder();
-                foreach (var comp in row.Components)
-                {
-                    var toAdd = comp;
-                    if (comp.CustomId == buttonId)
-                    {
-                        toAdd = (comp as ButtonComponent)!
-                            .ToBuilder()
-                            .WithStyle(state ? ButtonStyle.Primary : ButtonStyle.Secondary)
-                            .Build();
-                    }
-                    rowBuilder.AddComponent(toAdd);
-                }
-                compBuilder.AddRow(rowBuilder);
-            }
-            x.Components = compBuilder.Build();
-        });
-    }
-
-    async Task DisableAllButtons()
-    {
-        var playerInt = (SocketMessageComponent)Context.Interaction;
-        var msg = playerInt.Message;
-        var msgComps = msg.Components;
-        await msg.ModifyAsync(x =>
-        {
-            var compBuilder = new ComponentBuilder();
-            foreach (var row in msgComps)
-            {
-                var rowBuilder = new ActionRowBuilder();
-                foreach (var comp in row.Components)
-                {
-                    var toAdd = (comp as ButtonComponent)!
-                        .ToBuilder()
-                        .WithStyle(ButtonStyle.Secondary)
-                        .WithDisabled(true)
-                        .Build();
-                    rowBuilder.AddComponent(toAdd);
-                }
-                compBuilder.AddRow(rowBuilder);
-            }
-            x.Components = compBuilder.Build();
-        });
-    }
-
     [SlashCommand("switch", "Switches the current song to the one specified.")]
     public async Task Switch(string query)
     {
         var (voice, request) = await GetPlaybackContext(query);
         if (voice is null)
         {
-            await RespondAsync("You need to be in a voice channel!");
+            await RespondAsync("You need to be in a voice channel!", ephemeral: true);
             return;
         }
 
         if (!GuildPermissionsChecker.CheckVoicePermission(Context.Guild, Context.Client.CurrentUser, voice))
         {
-            await RespondAsync("I don't have permission to connect and speak in this channel :(");
+            await RespondAsync("I don't have permission to connect and speak in this channel :(", ephemeral: true);
             return;
         }
 
         if (query is null)
         {
-            await RespondAsync("You need to specify a url or search query.");
+            await RespondAsync("You need to specify a url or search query.", ephemeral: true);
             return;
         }
+
+        await DeferAsync();
 
         try
         {
@@ -206,10 +157,10 @@ public class JukeboxInteractionCommands : InteractionModuleBase<SocketInteractio
             }
             else
             {
-                await jukebox.PlayAsync(request, voice);
+                await Play(query);
             }
         }
-        catch (EmptyChannelException) { await RespondAsync("All users have left the channel. Disconnecting..."); }
+        catch (EmptyChannelException) { await ModifyOriginalResponseAsync(x => x.Content = "All users have left the channel. Disconnecting..."); }
     }
 
     [SlashCommand("play", "Starts playing a song.")]
@@ -236,27 +187,8 @@ public class JukeboxInteractionCommands : InteractionModuleBase<SocketInteractio
             return;
         }
 
-        var player =
-            new ComponentBuilder()
-            .WithButton(customId: "player_togglepause", emote: Emoji.Parse(":arrow_forward:"))
-            .WithButton(customId: "player_stop", emote: Emoji.Parse(":stop_button:"), style: ButtonStyle.Secondary)
-            .WithButton(customId: "player_skip", emote: Emoji.Parse(":track_next:"), style: ButtonStyle.Secondary)
-            .WithButton(customId: "player_shuffle", emote: Emoji.Parse(":twisted_rightwards_arrows:"), style: ButtonStyle.Secondary)
-            .WithButton(customId: "player_repeat", emote: Emoji.Parse(":repeat:"), style: ButtonStyle.Secondary)
-            .WithButton(customId: "player_loop", emote: Emoji.Parse(":repeat_one:"), style: ButtonStyle.Secondary)
-            .Build();
-
-        var mediaInfo = await request.GetInfoAsync();
-        var col = await request.GetMediaAsync();
-        var colInfo = col.CollectionInfo;
-
-        await ModifyOriginalResponseAsync(x =>
-        {
-            x.Embed = EmbedUtils.CreateMediaEmbed(mediaInfo, colInfo, MediaState.Queued);
-            x.Components = player;
-        });
-
-        try { await Jukebox.PlayAsync(request, voice); }
+        var player = new Player(Context);
+        try { await Jukebox.PlayAsync(request, voice, player); }
         catch (EmptyChannelException) { await ModifyOriginalResponseAsync(x => x.Content = "All users have left the channel. Disconnecting..."); }
     }
 
@@ -264,7 +196,7 @@ public class JukeboxInteractionCommands : InteractionModuleBase<SocketInteractio
     public async Task Abort()
     {
         await Jukebox.StopAsync();
-        await RespondAsync("Stopped...");
+        await RespondAsync("Stopped...", ephemeral: true);
     }
 
     [ComponentInteraction("player_stop")]
@@ -272,44 +204,45 @@ public class JukeboxInteractionCommands : InteractionModuleBase<SocketInteractio
     {
         if (!Jukebox.Playing)
         {
-            await RespondAsync("No song is playing.");
+            await RespondAsync("No song is playing.", ephemeral: true);
             return;
         }
 
+        var player = new Player(Context);
         await Jukebox.StopAsync();
-        await DisableAllButtons();
+        await player.DisableAllButtons();
         await DeferAsync();
     }
 
     [ComponentInteraction("player_shuffle")]
     public async Task Shuffle()
     {
-        bool state = Jukebox.Shuffle = !Jukebox.Shuffle;
-        await SetButtonState("player_shuffle", state);
+        var jukebox = Jukebox;
+        await jukebox.SetShuffle(!jukebox.Shuffle);
         await DeferAsync();
     }
 
     [ComponentInteraction("player_repeat")]
     public async Task Repeat()
     {
-        bool state = Jukebox.Repeat = !Jukebox.Repeat;
-        await SetButtonState("player_repeat", state);
+        var jukebox = Jukebox;
+        await jukebox.SetRepeat(!Jukebox.Repeat);
         await DeferAsync();
     }
 
     [ComponentInteraction("player_loop")]
     public async Task Loop()
     {
-        bool state = Jukebox.Loop = !Jukebox.Loop;
-        await SetButtonState("player_loop", state);
+        var jukebox = Jukebox;
+        await jukebox.SetLoop(!Jukebox.Loop);
         await DeferAsync();
     }
 
     [ComponentInteraction("player_togglepause")]
     public async Task TogglePause()
     {
-        bool state = Jukebox.Paused = !Jukebox.Paused;
-        await SetButtonState("player_togglepause", !state);
+        var jukebox = Jukebox;
+        await jukebox.SetPaused(!Jukebox.Paused); 
         await DeferAsync();
     }
 
