@@ -126,6 +126,41 @@ public class JukeboxInteractionCommands : InteractionModuleBase<SocketInteractio
     [SlashCommand("switch", "Switches the current song to the one specified.")]
     public async Task Switch(string query)
     {
+        var jukebox = Jukebox;
+        if (!jukebox.Playing)
+        {
+            await RespondAsync("Switch only works when a song is playing!", ephemeral: true);
+            return;
+        }
+
+        if (query is null)
+        {
+            await RespondAsync("You need to specify a url or search query.", ephemeral: true);
+            return;
+        }
+
+        await DeferAsync();
+
+        var (_, request) = await GetPlaybackContext(query);
+        try
+        {
+            //TODO: Switch doesn't seem to work correctly when playing a playlist
+            await jukebox.SwitchAsync(request);
+            await DeleteOriginalResponseAsync();
+        }
+        catch (EmptyChannelException) { await ModifyOriginalResponseAsync(x => x.Content = "All users have left the channel. Disconnecting..."); }
+    }
+
+    [SlashCommand("play", "Starts playing a song.")]
+    public async Task Play(string query)
+    {
+        var jukebox = Jukebox;
+        if (jukebox.Playing)
+        {
+            await RespondAsync("A song is already playing!", ephemeral: true);
+            return;
+        }
+
         var (voice, request) = await GetPlaybackContext(query);
         if (voice is null)
         {
@@ -141,54 +176,14 @@ public class JukeboxInteractionCommands : InteractionModuleBase<SocketInteractio
 
         if (query is null)
         {
-            await RespondAsync("You need to specify a url or search query.", ephemeral: true);
+            await RespondAsync("You need to specify a url, search query or upload a file.", ephemeral: true);
             return;
         }
 
-        await DeferAsync();
-
-        try
-        {
-            //TODO: Switch doesn't seem to work correctly when playing a playlist
-            var jukebox = Jukebox;
-            if (jukebox.Playing)
-            {
-                await jukebox.SwitchAsync(request, Context);
-            }
-            else
-            {
-                await Play(query);
-            }
-        }
-        catch (EmptyChannelException) { await ModifyOriginalResponseAsync(x => x.Content = "All users have left the channel. Disconnecting..."); }
-    }
-
-    [SlashCommand("play", "Starts playing a song.")]
-    public async Task Play(string query)
-    {
         await DeferAsync(); // Command can take a long time.
 
-        var (voice, request) = await GetPlaybackContext(query);
-        if (voice is null)
-        {
-            await ModifyOriginalResponseAsync(x => x.Content = "You need to be in a voice channel!");
-            return;
-        }
-
-        if (!GuildPermissionsChecker.CheckVoicePermission(Context.Guild, Context.Client.CurrentUser, voice))
-        {
-            await ModifyOriginalResponseAsync(x => x.Content = "I don't have permission to connect and speak in this channel :(");
-            return;
-        }
-
-        if (query is null)
-        {
-            await ModifyOriginalResponseAsync(x => x.Content = "You need to specify a url, search query or upload a file.");
-            return;
-        }
-
         var player = new Player(Context);
-        try { await Jukebox.PlayAsync(request, voice, player); }
+        try { await jukebox.PlayAsync(request, voice, player); }
         catch (EmptyChannelException) { await ModifyOriginalResponseAsync(x => x.Content = "All users have left the channel. Disconnecting..."); }
     }
 

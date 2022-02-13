@@ -371,10 +371,10 @@ public class Jukebox
         }
     }
 
-    public async Task SwitchAsync(IMediaRequest request, IInteractionContext context)
+    public async Task SwitchAsync(IMediaRequest request)
     {
-        await SetLoop(false, context);
-        await SetShuffle(false, context);
+        await SetLoop(false);
+        await SetShuffle(false);
         await SetNextAsync(request);
         await SkipAsync();
     }

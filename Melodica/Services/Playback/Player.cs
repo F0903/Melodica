@@ -48,8 +48,13 @@ public class Player
 
     async Task ChangeButtonAsync(Func<IMessageComponent, bool> selector, Func<IMessageComponent, IMessageComponent> modifier)
     {
-        var interaction = (SocketMessageComponent)context.Interaction;
-        var msg = interaction.Message;
+        var interaction = context.Interaction;
+        IUserMessage msg = interaction switch
+        {
+            SocketMessageComponent cmp => cmp.Message,
+            SocketSlashCommand cmd => await cmd.GetOriginalResponseAsync(),
+            _ => throw new Exception("Unknown interaction type. Contact developer.")
+        };
         var msgComps = msg.Components;
         await msg.ModifyAsync(x =>
         {
@@ -57,7 +62,7 @@ public class Player
             foreach (var row in msgComps)
             {
                 var rowBuilder = new ActionRowBuilder();
-                foreach (var comp in row.Components)
+                foreach (var comp in ((ActionRowComponent)row).Components)
                 {
                     var toAdd = comp;
                     if (selector(comp))
@@ -76,7 +81,7 @@ public class Player
     {
         await ChangeButtonAsync(x => x.CustomId == button, x =>
         {
-            return (x as ButtonComponent)!
+            return ((ButtonComponent)x)
                 .ToBuilder()
                 .WithStyle(ButtonStyle.Secondary)
                 .WithDisabled(true)
@@ -88,7 +93,7 @@ public class Player
     {
         await ChangeButtonAsync(x => x.CustomId == button, x =>
         {
-            return (x as ButtonComponent)!
+            return ((ButtonComponent)x)
                 .ToBuilder()
                 .WithStyle(pressed ? ButtonStyle.Primary : ButtonStyle.Secondary)
                 .Build();
@@ -99,7 +104,7 @@ public class Player
     {
         await ChangeButtonAsync(_ => true, x =>
         {
-            return (x as ButtonComponent)!
+            return ((ButtonComponent)x)
                 .ToBuilder()
                 .WithStyle(ButtonStyle.Secondary)
                 .WithDisabled(true)
