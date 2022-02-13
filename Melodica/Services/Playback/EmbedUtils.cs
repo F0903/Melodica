@@ -9,7 +9,7 @@ public static class EmbedUtils
 {
     public static Embed SetEmbedToState(this IEmbed e, MediaState state)
     {
-        EmbedBuilder? builder = new EmbedBuilder
+        EmbedBuilder? builder = new()
         {
             Color = MediaStateToColor(state),
             Title = e.Title,

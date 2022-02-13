@@ -111,7 +111,7 @@ public class JukeboxInteractionCommands : InteractionModuleBase<SocketInteractio
         MediaInfo? info = await request.GetInfoAsync();
 
         var jukebox = Jukebox;
-        await jukebox.SetShuffle(false);
+        await jukebox.SetShuffle(false, Context);
         await jukebox.SetNextAsync(request);
         await RespondAsync(embed: EmbedUtils.CreateMediaEmbed(info, null, MediaState.Queued), ephemeral: true);
     }
@@ -153,7 +153,7 @@ public class JukeboxInteractionCommands : InteractionModuleBase<SocketInteractio
             var jukebox = Jukebox;
             if (jukebox.Playing)
             {
-                await jukebox.SwitchAsync(request);
+                await jukebox.SwitchAsync(request, Context);
             }
             else
             {
@@ -195,7 +195,7 @@ public class JukeboxInteractionCommands : InteractionModuleBase<SocketInteractio
     [SlashCommand("abort", "Stop the bot if the player doesn't work normally.")]
     public async Task Abort()
     {
-        await Jukebox.StopAsync();
+        await Jukebox.StopAsync(Context);
         await RespondAsync("Stopped...", ephemeral: true);
     }
 
@@ -208,9 +208,8 @@ public class JukeboxInteractionCommands : InteractionModuleBase<SocketInteractio
             return;
         }
 
-        var player = new Player(Context);
-        await Jukebox.StopAsync();
-        await player.DisableAllButtons();
+        var jukebox = Jukebox;
+        await jukebox.StopAsync(Context);
         await DeferAsync();
     }
 
@@ -218,7 +217,7 @@ public class JukeboxInteractionCommands : InteractionModuleBase<SocketInteractio
     public async Task Shuffle()
     {
         var jukebox = Jukebox;
-        await jukebox.SetShuffle(!jukebox.Shuffle);
+        await jukebox.SetShuffle(!jukebox.Shuffle, Context);
         await DeferAsync();
     }
 
@@ -226,7 +225,7 @@ public class JukeboxInteractionCommands : InteractionModuleBase<SocketInteractio
     public async Task Repeat()
     {
         var jukebox = Jukebox;
-        await jukebox.SetRepeat(!Jukebox.Repeat);
+        await jukebox.SetRepeat(!jukebox.Repeat, Context);
         await DeferAsync();
     }
 
@@ -234,7 +233,7 @@ public class JukeboxInteractionCommands : InteractionModuleBase<SocketInteractio
     public async Task Loop()
     {
         var jukebox = Jukebox;
-        await jukebox.SetLoop(!Jukebox.Loop);
+        await jukebox.SetLoop(!jukebox.Loop, Context);
         await DeferAsync();
     }
 
@@ -242,7 +241,7 @@ public class JukeboxInteractionCommands : InteractionModuleBase<SocketInteractio
     public async Task TogglePause()
     {
         var jukebox = Jukebox;
-        await jukebox.SetPaused(!Jukebox.Paused); 
+        await jukebox.SetPaused(!jukebox.Paused, Context);
         await DeferAsync();
     }
 

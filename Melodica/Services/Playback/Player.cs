@@ -28,12 +28,12 @@ public class PlayerButton
 
 public class Player
 {
-    public Player(SocketInteractionContext context)
+    public Player(IInteractionContext context)
     {
         this.context = context;
     }
 
-    readonly SocketInteractionContext context;
+    IInteractionContext context;
 
     readonly MessageComponent player =
             new ComponentBuilder()
@@ -45,10 +45,11 @@ public class Player
             .WithButton(customId: PlayerButton.Loop, emote: Emoji.Parse(":repeat_one:"), style: ButtonStyle.Secondary)
             .Build();
 
-    async Task ChangeButton(Func<IMessageComponent, bool> selector, Func<IMessageComponent, IMessageComponent> modifier)
+
+    async Task ChangeButtonAsync(Func<IMessageComponent, bool> selector, Func<IMessageComponent, IMessageComponent> modifier)
     {
-        var playerInt = (SocketMessageComponent)context.Interaction;
-        var msg = playerInt.Message;
+        var interaction = (SocketMessageComponent)context.Interaction;
+        var msg = interaction.Message;
         var msgComps = msg.Components;
         await msg.ModifyAsync(x =>
         {
@@ -71,9 +72,9 @@ public class Player
         });
     }
 
-    public async Task DisableButton(PlayerButton button)
+    public async Task DisableButtonAsync(PlayerButton button)
     {
-        await ChangeButton(x => x.CustomId == button, x =>
+        await ChangeButtonAsync(x => x.CustomId == button, x =>
         {
             return (x as ButtonComponent)!
                 .ToBuilder()
@@ -83,9 +84,9 @@ public class Player
         });
     }
 
-    public async Task SetButtonState(PlayerButton button, bool pressed)
+    public async Task SetButtonStateAsync(PlayerButton button, bool pressed)
     {
-        await ChangeButton(x => x.CustomId == button, x =>
+        await ChangeButtonAsync(x => x.CustomId == button, x =>
         {
             return (x as ButtonComponent)!
                 .ToBuilder()
@@ -94,9 +95,9 @@ public class Player
         });
     }
 
-    public async Task DisableAllButtons()
+    public async Task DisableAllButtonsAsync()
     {
-        await ChangeButton(_ => true, x =>
+        await ChangeButtonAsync(_ => true, x =>
         {
             return (x as ButtonComponent)!
                 .ToBuilder()
@@ -106,7 +107,7 @@ public class Player
         });
     }
 
-    public async Task Spawn(MediaInfo mediaInfo, MediaInfo? colInfo)
+    public async Task SpawnAsync(MediaInfo mediaInfo, MediaInfo? colInfo)
     {
         var interaction = context.Interaction;
         await interaction.ModifyOriginalResponseAsync(x =>
@@ -116,7 +117,7 @@ public class Player
         });
     }
 
-    public async Task SetSongEmbed(MediaInfo info, MediaInfo? collectionInfo)
+    public async Task SetSongEmbedAsync(MediaInfo info, MediaInfo? collectionInfo)
     {
         var interaction = context.Interaction;
         var embed = EmbedUtils.CreateMediaEmbed(info, collectionInfo, MediaState.Queued);
@@ -124,5 +125,10 @@ public class Player
         {
             x.Embed = embed;
         });
+    }
+
+    public void UpdateContextAsync(IInteractionContext context)
+    {
+        this.context = context;
     }
 }

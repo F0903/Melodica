@@ -63,33 +63,45 @@ public class Jukebox
     private Player? currentPlayer;
     private PlayableMedia? currentSong;
 
-    public async Task SetPaused(bool value)
+    public async Task SetPaused(bool value, IInteractionContext? context = null)
     {
         if (!Playing) return;
         Paused = value;
         if (currentPlayer is not null)
-            await currentPlayer.SetButtonState(PlayerButton.PlayPause, value);
+        {
+            if (context is not null) currentPlayer.UpdateContextAsync(context);
+            await currentPlayer.SetButtonStateAsync(PlayerButton.PlayPause, !value);
+        }
     }
 
-    public async Task SetLoop(bool value)
+    public async Task SetLoop(bool value, IInteractionContext? context = null)
     {
         queue.Loop = value;
         if (currentPlayer is not null)
-            await currentPlayer.SetButtonState(PlayerButton.Loop, value);
+        {
+            if (context is not null) currentPlayer.UpdateContextAsync(context);
+            await currentPlayer.SetButtonStateAsync(PlayerButton.Loop, value);
+        }
     }
 
-    public async Task SetShuffle(bool value)
+    public async Task SetShuffle(bool value, IInteractionContext? context = null)
     {
         queue.Shuffle = value;
         if (currentPlayer is not null)
-            await currentPlayer.SetButtonState(PlayerButton.Shuffle, value);
+        {
+            if (context is not null) currentPlayer.UpdateContextAsync(context);
+            await currentPlayer.SetButtonStateAsync(PlayerButton.Shuffle, value);
+        }
     }
 
-    public async Task SetRepeat(bool value)
+    public async Task SetRepeat(bool value, IInteractionContext? context = null)
     {
-        queue.Loop = value;
+        queue.Repeat = value;
         if (currentPlayer is not null)
-            await currentPlayer.SetButtonState(PlayerButton.Repeat, value);
+        {
+            if (context is not null) currentPlayer.UpdateContextAsync(context);
+            await currentPlayer.SetButtonStateAsync(PlayerButton.Repeat, value);
+        }
     }
 
     public MediaQueue GetQueue()
@@ -175,7 +187,7 @@ public class Jukebox
         {
             try
             {
-                AloneTimerState timerState = new() { Stop = StopAsync, Channel = channel };
+                AloneTimerState timerState = new() { Stop = () => StopAsync(), Channel = channel };
                 using Timer? aloneTimer = new(static async state =>
                 {
                     AloneTimerState ts = (AloneTimerState)(state ?? throw new NullReferenceException("AloneTimer state parameter cannot be null."));
@@ -226,12 +238,12 @@ public class Jukebox
         }
     }
 
-    public async ValueTask StopAsync()
+    public async ValueTask StopAsync(IInteractionContext? context = null)
     {
         if (cancellation is null || (cancellation is not null && cancellation.IsCancellationRequested))
             return;
 
-        await SetLoop(false);
+        await SetLoop(false, context);
         await ClearAsync();
         cancellation!.Cancel();
         playLock.Wait(5000);
@@ -278,7 +290,7 @@ public class Jukebox
             return;
         }
 
-        await currentPlayer!.SetSongEmbed(media.Info, media.CollectionInfo);
+        await currentPlayer!.SetSongEmbedAsync(media.Info, media.CollectionInfo);
         await audio.StartProcess(dataInfo, startingPoint);
 
         //TESTING TO SEE IF THIS GETS CALLED ON RANDOM DISCONNECTS
@@ -349,18 +361,20 @@ public class Jukebox
             using AudioOutStream output = audioClient!.CreatePCMStream(AudioApplication.Music, bitrate, 200, 0);
 
             currentPlayer = player;
+            await currentPlayer.SpawnAsync(reqInfo, collection.CollectionInfo);
             await PlayNextAsync(channel, output, token, startingPoint);
         }
         finally
         {
             playLock.Set();
+            await player.DisableAllButtonsAsync();
         }
     }
 
-    public async Task SwitchAsync(IMediaRequest request)
+    public async Task SwitchAsync(IMediaRequest request, IInteractionContext context)
     {
-        await SetLoop(false);
-        await SetShuffle(false);
+        await SetLoop(false, context);
+        await SetShuffle(false, context);
         await SetNextAsync(request);
         await SkipAsync();
     }
