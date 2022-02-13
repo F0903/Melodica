@@ -117,7 +117,7 @@ public class Player
         var interaction = context.Interaction;
         await interaction.ModifyOriginalResponseAsync(x =>
         {
-            x.Embed = EmbedUtils.CreateMediaEmbed(mediaInfo, colInfo, MediaState.Queued);
+            x.Embed = EmbedUtils.CreateMediaEmbed(mediaInfo, colInfo);
             x.Components = player;
         });
     }
@@ -125,7 +125,7 @@ public class Player
     public async Task SetSongEmbedAsync(MediaInfo info, MediaInfo? collectionInfo)
     {
         var interaction = context.Interaction;
-        var embed = EmbedUtils.CreateMediaEmbed(info, collectionInfo, MediaState.Queued);
+        var embed = EmbedUtils.CreateMediaEmbed(info, collectionInfo);
         await interaction.ModifyOriginalResponseAsync(x =>
         {
             x.Embed = embed;

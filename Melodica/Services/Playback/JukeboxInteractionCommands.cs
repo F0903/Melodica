@@ -113,7 +113,7 @@ public class JukeboxInteractionCommands : InteractionModuleBase<SocketInteractio
         var jukebox = Jukebox;
         await jukebox.SetShuffle(false, Context);
         await jukebox.SetNextAsync(request);
-        await RespondAsync(embed: EmbedUtils.CreateMediaEmbed(info, null, MediaState.Queued), ephemeral: true);
+        await RespondAsync(embed: EmbedUtils.CreateMediaEmbed(info, null), ephemeral: true);
     }
 
     Task<(IVoiceChannel?, IMediaRequest)> GetPlaybackContext(string query)
@@ -154,13 +154,6 @@ public class JukeboxInteractionCommands : InteractionModuleBase<SocketInteractio
     [SlashCommand("play", "Starts playing a song.")]
     public async Task Play(string query)
     {
-        var jukebox = Jukebox;
-        if (jukebox.Playing)
-        {
-            await RespondAsync("A song is already playing!", ephemeral: true);
-            return;
-        }
-
         var (voice, request) = await GetPlaybackContext(query);
         if (voice is null)
         {
@@ -180,11 +173,33 @@ public class JukeboxInteractionCommands : InteractionModuleBase<SocketInteractio
             return;
         }
 
+        var player = new Player(Context);
+        var jukebox = Jukebox;
+
+        if (jukebox.Playing)
+        {
+            var info = await request.GetInfoAsync();
+            var embed = EmbedUtils.CreateMediaEmbed(info, null);
+            await RespondAsync("The following media will be queued:", embed: embed, ephemeral: true);
+        }
+
         await DeferAsync(); // Command can take a long time.
 
-        var player = new Player(Context);
-        try { await jukebox.PlayAsync(request, voice, player); }
-        catch (EmptyChannelException) { await ModifyOriginalResponseAsync(x => x.Content = "All users have left the channel. Disconnecting..."); }
+        try 
+        {
+            var result = await jukebox.PlayAsync(request, voice, player);
+            var msg = result switch
+            {
+                Jukebox.PlayResult.Error => "The media was not available!",
+                _ => null,
+            };
+            if (msg is null) return;
+            await FollowupAsync(msg, ephemeral: true);
+        }
+        catch (EmptyChannelException) 
+        { 
+            await ModifyOriginalResponseAsync(x => x.Content = "All users have left the channel. Disconnecting..."); 
+        }
     }
 
     [SlashCommand("abort", "Stop the bot if the player doesn't work normally.")]

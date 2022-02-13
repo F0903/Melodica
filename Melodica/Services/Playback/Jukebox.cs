@@ -12,15 +12,6 @@ using Melodica.Utility.Extensions;
 
 namespace Melodica.Services.Playback;
 
-public enum MediaState
-{
-    Error,
-    Queued,
-    Downloading,
-    Playing,
-    Finished
-};
-
 readonly struct AloneTimerState
 {
     public readonly Func<ValueTask> Stop { get; init; }
@@ -34,7 +25,13 @@ public class Jukebox
         this.callbackChannel = callbackChannel;
     }
 
-    public delegate ValueTask MediaCallback(MediaInfo info, MediaInfo? playlistInfo, MediaState state);
+    public enum PlayResult
+    {
+        Occupied,
+        Queued,
+        Done,
+        Error,
+    }
 
     public bool Paused { get; private set; }
 
@@ -323,10 +320,10 @@ public class Jukebox
         await PlayNextAsync(channel, output, token, null);
     }
 
-    public async Task PlayAsync(IMediaRequest request, IAudioChannel channel, Player player, TimeSpan? startingPoint = null)
+    public async Task<PlayResult> PlayAsync(IMediaRequest request, IAudioChannel channel, Player player, TimeSpan? startingPoint = null)
     {
         if (downloading)
-            return;
+            return PlayResult.Occupied;
 
         MediaInfo reqInfo;
         MediaCollection collection;
@@ -340,13 +337,13 @@ public class Jukebox
         catch
         {
             downloading = false;
-            return;
+            return PlayResult.Error;
         }
 
         await queue.EnqueueAsync(collection);
         if (Playing)
         {
-            return;
+            return PlayResult.Queued;
         }
 
         playLock.Wait();
@@ -369,6 +366,7 @@ public class Jukebox
             playLock.Set();
             await player.DisableAllButtonsAsync();
         }
+        return PlayResult.Done;
     }
 
     public async Task SwitchAsync(IMediaRequest request)

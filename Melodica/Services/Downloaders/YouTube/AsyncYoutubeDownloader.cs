@@ -23,7 +23,7 @@ public class AsyncYoutubeDownloader : IAsyncDownloader
     async Task<TimeSpan> GetTotalDurationAsync(Playlist pl)
     {
         IAsyncEnumerable<PlaylistVideo>? videos = yt.Playlists.GetVideosAsync(pl.Id);
-        TimeSpan ts = new TimeSpan();
+        TimeSpan ts = new();
         await foreach (PlaylistVideo? video in videos)
         {
             if (video.Duration is null)
@@ -136,7 +136,7 @@ ex is YoutubeExplode.Exceptions.VideoRequiresPurchaseException;
     async Task<MediaCollection> DownloadLivestream(MediaInfo info)
     {
         string? streamUrl = await yt.Videos.Streams.GetHttpLiveStreamUrlAsync(info.Id ?? throw new NullReferenceException("Id was null."));
-        StreamableMedia? media = new StreamableMedia(info, streamUrl, "hls");
+        StreamableMedia? media = new(info, streamUrl, "hls");
         return new MediaCollection(media);
     }
 
@@ -145,7 +145,7 @@ ex is YoutubeExplode.Exceptions.VideoRequiresPurchaseException;
         if (info.Id is null)
             throw new NullReferenceException("Id was null.");
 
-        List<LazyMedia>? videos = new List<LazyMedia>(10);
+        List<LazyMedia>? videos = new(10);
         await foreach (PlaylistVideo? video in yt.Playlists.GetVideosAsync(info.Id))
         {
             if (video is null)
@@ -172,7 +172,7 @@ ex is YoutubeExplode.Exceptions.VideoRequiresPurchaseException;
             }
 
             MediaInfo? vidInfo = VideoToMetadata(video);
-            PlayableMedia? media = new PlayableMedia(vidInfo, info, DataGetter, cache);
+            PlayableMedia? media = new(vidInfo, info, DataGetter, cache);
             videos.Add(media);
         }
         return new MediaCollection(videos, info);
@@ -202,7 +202,7 @@ ex is YoutubeExplode.Exceptions.VideoRequiresPurchaseException;
             return new(stream, format);
         }
 
-        PlayableMedia? media = new PlayableMedia(info, null, DataGetter, cache);
+        PlayableMedia? media = new(info, null, DataGetter, cache);
         return new MediaCollection(media);
     }
 }
