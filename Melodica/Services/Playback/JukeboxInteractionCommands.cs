@@ -173,9 +173,7 @@ public class JukeboxInteractionCommands : InteractionModuleBase<SocketInteractio
             return;
         }
 
-        var player = new Player(Context);
         var jukebox = Jukebox;
-
         if (jukebox.Playing)
         {
             var info = await request.GetInfoAsync();
@@ -189,14 +187,13 @@ public class JukeboxInteractionCommands : InteractionModuleBase<SocketInteractio
 
         try
         {
+            var player = new Player(Context);
             var result = await jukebox.PlayAsync(request, voice, player);
             var msg = result switch
             {
                 Jukebox.PlayResult.Error => "The media was not available!",
                 _ => null,
             };
-            if (msg is null) return;
-            await FollowupAsync(msg, ephemeral: true);
         }
         catch (EmptyChannelException)
         {
@@ -204,7 +201,7 @@ public class JukeboxInteractionCommands : InteractionModuleBase<SocketInteractio
         }
     }
 
-    [SlashCommand("abort", "Stop the bot if the player doesn't work normally.")]
+    [SlashCommand("abort", "Force the player to stop if the buttons aren't working.")]
     public async Task Abort()
     {
         await Jukebox.StopAsync(Context);

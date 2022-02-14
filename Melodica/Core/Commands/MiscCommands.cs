@@ -43,8 +43,7 @@ public class MiscCommands : ModuleBase<SocketCommandContext>
             return;
         }
 
-        List<EmbedFieldBuilder>? fields = new List<EmbedFieldBuilder>(cachedCommandInfo.Count);
-
+        List<EmbedFieldBuilder>? fields = new(cachedCommandInfo.Count);
         int startIndx = page * maxElemsPerPage;
         int endIndx = (cachedCommandInfo.Count - startIndx) <= maxElemsPerPage ? cachedCommandInfo.Count : startIndx + maxElemsPerPage;
         for (int i = startIndx; i < endIndx; i++)
