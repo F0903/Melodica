@@ -60,43 +60,39 @@ public class Jukebox
     private Player? currentPlayer;
     private PlayableMedia? currentSong;
 
-    public async Task SetPaused(bool value, IInteractionContext? context = null)
+    public async Task SetPaused(bool value)
     {
         if (!Playing) return;
         Paused = value;
         if (currentPlayer is not null)
         {
-            if (context is not null) currentPlayer.UpdateContextAsync(context);
             await currentPlayer.SetButtonStateAsync(PlayerButton.PlayPause, !value);
         }
     }
 
-    public async Task SetLoop(bool value, IInteractionContext? context = null)
+    public async Task SetLoop(bool value)
     {
         queue.Loop = value;
         if (currentPlayer is not null)
         {
-            if (context is not null) currentPlayer.UpdateContextAsync(context);
             await currentPlayer.SetButtonStateAsync(PlayerButton.Loop, value);
         }
     }
 
-    public async Task SetShuffle(bool value, IInteractionContext? context = null)
+    public async Task SetShuffle(bool value)
     {
         queue.Shuffle = value;
         if (currentPlayer is not null)
         {
-            if (context is not null) currentPlayer.UpdateContextAsync(context);
             await currentPlayer.SetButtonStateAsync(PlayerButton.Shuffle, value);
         }
     }
 
-    public async Task SetRepeat(bool value, IInteractionContext? context = null)
+    public async Task SetRepeat(bool value)
     {
         queue.Repeat = value;
         if (currentPlayer is not null)
         {
-            if (context is not null) currentPlayer.UpdateContextAsync(context);
             await currentPlayer.SetButtonStateAsync(PlayerButton.Repeat, value);
         }
     }
@@ -117,15 +113,6 @@ public class Jukebox
         if (!users.IsOverSize(1))
             return true;
         else return false;
-    }
-
-    static int GetChannelBitrate(IAudioChannel channel)
-    {
-        return channel switch
-        {
-            SocketVoiceChannel sv => sv.Bitrate,
-            _ => throw new CriticalException("Unable to get channel bitrate.")
-        };
     }
 
     static void SendSilence(AudioOutStream output, int frames = 100)
@@ -237,12 +224,12 @@ public class Jukebox
         }
     }
 
-    public async ValueTask StopAsync(IInteractionContext? context = null)
+    public async ValueTask StopAsync()
     {
         if (cancellation is null || (cancellation is not null && cancellation.IsCancellationRequested))
             return;
 
-        await SetLoop(false, context);
+        await SetLoop(false);
         await ClearAsync();
         cancellation!.Cancel();
         playLock.Wait(5000);
@@ -358,11 +345,10 @@ public class Jukebox
             CancellationToken token = cancellation.Token;
 
             await ConnectAsync(channel);
-            int bitrate = GetChannelBitrate(channel);
-            using AudioOutStream output = audioClient!.CreatePCMStream(AudioApplication.Music, bitrate, 200, 0);
-
+            int bitrate = (channel as IVoiceChannel)?.Bitrate ?? 96000;
+            await player.SpawnAsync(reqInfo, collection.CollectionInfo);
             currentPlayer = player;
-            await currentPlayer.SpawnAsync(reqInfo, collection.CollectionInfo);
+            using AudioOutStream output = audioClient!.CreatePCMStream(AudioApplication.Music, bitrate, 200, 0);
             await PlayNextAsync(channel, output, token, startingPoint);
         }
         finally
@@ -375,8 +361,6 @@ public class Jukebox
 
     public async Task SwitchAsync(IMediaRequest request)
     {
-        await SetLoop(false);
-        await SetShuffle(false);
         await SetNextAsync(request);
         Skip();
     }

@@ -111,7 +111,7 @@ public class JukeboxInteractionCommands : InteractionModuleBase<SocketInteractio
         MediaInfo? info = await request.GetInfoAsync();
 
         var jukebox = Jukebox;
-        await jukebox.SetShuffle(false, Context);
+        await jukebox.SetShuffle(false);
         await jukebox.SetNextAsync(request);
         await RespondAsync(embed: EmbedUtils.CreateMediaEmbed(info, null), ephemeral: true);
     }
@@ -187,9 +187,7 @@ public class JukeboxInteractionCommands : InteractionModuleBase<SocketInteractio
 
         try
         {
-            //TODO: Probably have to remove things like updating the buttons since it wont work after 15 minutes of not interacting with it.
-            //Could do with something like a callback that sets state back after the action that required it to be inverted finishes?
-            var player = new Player(Context);
+            var player = new Player(Context.Interaction);
             var result = await jukebox.PlayAsync(request, voice, player);
             var msg = result switch
             {
@@ -206,7 +204,7 @@ public class JukeboxInteractionCommands : InteractionModuleBase<SocketInteractio
     [SlashCommand("abort", "Force the player to stop if the buttons aren't working.")]
     public async Task Abort()
     {
-        await Jukebox.StopAsync(Context);
+        await Jukebox.StopAsync();
         await RespondAsync("Stopped...", ephemeral: true);
     }
 
@@ -220,7 +218,7 @@ public class JukeboxInteractionCommands : InteractionModuleBase<SocketInteractio
         }
 
         var jukebox = Jukebox;
-        await jukebox.StopAsync(Context);
+        await jukebox.StopAsync();
         await DeferAsync();
     }
 
@@ -228,7 +226,7 @@ public class JukeboxInteractionCommands : InteractionModuleBase<SocketInteractio
     public async Task Shuffle()
     {
         var jukebox = Jukebox;
-        await jukebox.SetShuffle(!jukebox.Shuffle, Context);
+        await jukebox.SetShuffle(!jukebox.Shuffle);
         await DeferAsync();
     }
 
@@ -236,7 +234,7 @@ public class JukeboxInteractionCommands : InteractionModuleBase<SocketInteractio
     public async Task Repeat()
     {
         var jukebox = Jukebox;
-        await jukebox.SetRepeat(!jukebox.Repeat, Context);
+        await jukebox.SetRepeat(!jukebox.Repeat);
         await DeferAsync();
     }
 
@@ -244,7 +242,7 @@ public class JukeboxInteractionCommands : InteractionModuleBase<SocketInteractio
     public async Task Loop()
     {
         var jukebox = Jukebox;
-        await jukebox.SetLoop(!jukebox.Loop, Context);
+        await jukebox.SetLoop(!jukebox.Loop);
         await DeferAsync();
     }
 
@@ -252,7 +250,7 @@ public class JukeboxInteractionCommands : InteractionModuleBase<SocketInteractio
     public async Task TogglePause()
     {
         var jukebox = Jukebox;
-        await jukebox.SetPaused(!jukebox.Paused, Context);
+        await jukebox.SetPaused(!jukebox.Paused);
         await DeferAsync();
     }
 

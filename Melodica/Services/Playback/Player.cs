@@ -28,12 +28,13 @@ public class PlayerButton
 
 public class Player
 {
-    public Player(IInteractionContext context)
+    public Player(IDiscordInteraction interaction)
     {
-        this.context = context;
+        this.interaction = interaction;
     }
 
-    IInteractionContext context;
+    readonly IDiscordInteraction interaction;
+    IUserMessage? playerMsg;
 
     readonly MessageComponent player =
             new ComponentBuilder()
@@ -48,15 +49,9 @@ public class Player
 
     async Task ChangeButtonAsync(Func<IMessageComponent, bool> selector, Func<IMessageComponent, IMessageComponent> modifier)
     {
-        var interaction = context.Interaction;
-        IUserMessage msg = interaction switch
-        {
-            SocketMessageComponent cmp => cmp.Message,
-            SocketSlashCommand cmd => await cmd.GetOriginalResponseAsync(),
-            _ => throw new Exception("Unknown interaction type. Contact developer.")
-        };
-        var msgComps = msg.Components;
-        await msg.ModifyAsync(x =>
+        if (playerMsg is null) return;
+        var msgComps = playerMsg.Components;
+        await playerMsg.ModifyAsync(x =>
         {
             var compBuilder = new ComponentBuilder();
             foreach (var row in msgComps)
@@ -114,8 +109,7 @@ public class Player
 
     public async Task SpawnAsync(MediaInfo mediaInfo, MediaInfo? colInfo)
     {
-        var interaction = context.Interaction;
-        await interaction.ModifyOriginalResponseAsync(x =>
+        playerMsg = await interaction.ModifyOriginalResponseAsync(x =>
         {
             x.Embed = EmbedUtils.CreateMediaEmbed(mediaInfo, colInfo);
             x.Components = player;
@@ -124,16 +118,11 @@ public class Player
 
     public async Task SetSongEmbedAsync(MediaInfo info, MediaInfo? collectionInfo)
     {
-        var interaction = context.Interaction;
+        if (playerMsg is null) return;
         var embed = EmbedUtils.CreateMediaEmbed(info, collectionInfo);
-        await interaction.ModifyOriginalResponseAsync(x =>
+        await playerMsg.ModifyAsync(x =>
         {
             x.Embed = embed;
         });
-    }
-
-    public void UpdateContextAsync(IInteractionContext context)
-    {
-        this.context = context;
     }
 }
