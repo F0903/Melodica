@@ -158,6 +158,7 @@ public class Jukebox
         Span<byte> buffer = stackalloc byte[1024];
         Stream? input = audio.GetOutput();
         durationTimer.Start();
+        //TEST
         while ((count = input!.Read(buffer)) != 0)
         {
             if (Paused)
