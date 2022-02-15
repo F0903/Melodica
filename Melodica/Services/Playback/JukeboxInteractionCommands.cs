@@ -187,6 +187,8 @@ public class JukeboxInteractionCommands : InteractionModuleBase<SocketInteractio
 
         try
         {
+            //TODO: Probably have to remove things like updating the buttons since it wont work after 15 minutes of not interacting with it.
+            //Could do with something like a callback that sets state back after the action that required it to be inverted finishes?
             var player = new Player(Context);
             var result = await jukebox.PlayAsync(request, voice, player);
             var msg = result switch
