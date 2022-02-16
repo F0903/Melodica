@@ -362,6 +362,7 @@ public class Jukebox
     public async Task SwitchAsync(IMediaRequest request)
     {
         await SetNextAsync(request);
+        await SetLoop(false);
         Skip();
     }
 
