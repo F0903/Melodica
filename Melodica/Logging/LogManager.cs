@@ -22,6 +22,6 @@ internal static class LogManager
     static void ReconfigureLogLevel()
     {
         var logLevel = logLevelSwitch.MinimumLevel = BotConfig.Settings.LogLevel;
-        Log.Information("{Message} {LogLevel}", "Reconfigued Log MinimumLevel to ", logLevel);
+        Log.Information("Reconfigured Log MinimumLevel to {LogLevel}", logLevel);
     }
 }

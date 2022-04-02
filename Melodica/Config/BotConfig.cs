@@ -56,4 +56,18 @@ public static class ConfigUtilityExtensions
             _ => throw new Exception("Unknown enum encountered in LogLevelToLogSeverity."),
         };
     }
+
+    public static LogEventLevel ToLogEventLevel(this LogSeverity logLevel)
+    {
+        return logLevel switch
+        {
+            LogSeverity.Critical => LogEventLevel.Fatal,
+            LogSeverity.Error => LogEventLevel.Error,
+            LogSeverity.Warning => LogEventLevel.Warning,
+            LogSeverity.Info => LogEventLevel.Information,
+            LogSeverity.Verbose => LogEventLevel.Verbose,
+            LogSeverity.Debug => LogEventLevel.Debug,
+            _ => throw new Exception("Unknown enum encountered in LogLevelToLogSeverity."),
+        };
+    }
 }

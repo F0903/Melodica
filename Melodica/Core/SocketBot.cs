@@ -24,7 +24,7 @@ public class SocketBot<H> where H : IAsyncCommandHandler
         client.MessageReceived += commandHandler.OnMessageReceived;
         client.Log += static (msg) =>
         {
-            Serilog.Log.Debug("{Message}", msg);
+            Serilog.Log.Write(msg.Severity.ToLogEventLevel(), "{Source}    {Message}", msg.Source, msg.Message);
             return Task.CompletedTask;
         };
     }

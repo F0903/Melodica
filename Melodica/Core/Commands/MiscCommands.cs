@@ -82,4 +82,12 @@ public class MiscCommands : ModuleBase<SocketCommandContext>
     {
         return ReplyAsync("Pong!");
     }
+
+#if DEBUG
+    [Command("Except"), RequireOwner]
+    public Task ExceptAsync()
+    {
+        throw new Exception("Test exception.");
+    }
+#endif
 }

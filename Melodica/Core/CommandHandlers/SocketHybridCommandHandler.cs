@@ -52,13 +52,13 @@ public class SocketHybridCommandHandler : IAsyncCommandHandler
             Log.ForContext("CmdModule", info.Value.Module)
                 .ForContext("CmdName", info.Value.Name)
                 .ForContext("Guild", context.Guild)
-                .Error("{Message}", "Command threw an exception");
+                .Error("Command did not execute successfully\n---> {Error}", result.ErrorReason);
         }
 
         Log.ForContext("CmdModule", info.Value.Module)
                 .ForContext("CmdName", info.Value.Name)
                 .ForContext("Guild", context.Guild)
-                .Information("{Message}", "Command executed successfully");
+                .Information("Command executed successfully");
     }
 
     public async Task OnMessageReceived(IMessage message)
