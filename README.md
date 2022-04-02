@@ -5,4 +5,4 @@
 
 A music bot with full support for YouTube and Spotify.
 
-Extra features include lyrics, wikipedia and guild seperate settings. 
+Extra features currently include a lyrics and wikipedia service.
