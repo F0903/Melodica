@@ -2,5 +2,6 @@
   "defaultPrefix": "m.",
   "cacheSizeMB": 500,
   "processPriority": "High",
-  "logLevel": "Debug"
+  "logLevel": "Debug",
+  "slashCommandDebugGuild": 153896159834800129
 }

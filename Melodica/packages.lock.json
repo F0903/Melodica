@@ -72,16 +72,6 @@
           "Microsoft.Extensions.FileProviders.Physical": "5.0.0"
         }
       },
-      "Ninject": {
-        "type": "Direct",
-        "requested": "[3.3.4, )",
-        "resolved": "3.3.4",
-        "contentHash": "CmbWW97FfJuh4LEOVZM/spqXl4KAulRUjqeMwRd5J9rDMQArmIYaDMU3pyzXXHT062tbF0OPIMwI7tSOtprPfg==",
-        "dependencies": {
-          "System.Reflection.Emit.ILGeneration": "4.3.0",
-          "System.Reflection.Emit.Lightweight": "4.3.0"
-        }
-      },
       "Serilog": {
         "type": "Direct",
         "requested": "[2.10.0, )",

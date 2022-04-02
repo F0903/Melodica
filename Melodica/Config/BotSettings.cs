@@ -42,6 +42,10 @@ public class BotSettings
         if ((result = config["logLevel"]) is null)
             throw new NullReferenceException("logLevel is not defined in user secrets!");
         LogLevel = Enum.Parse<LogEventLevel>(result);
+
+        if ((result = config["slashCommandDebugGuild"]) is null)
+            throw new NullReferenceException("slashCommandDebugGuild is not defined in user secrets!");
+        SlashCommandDebugGuild = ulong.Parse(result);
     }
 
     public void Reload()
@@ -56,4 +60,6 @@ public class BotSettings
     public ProcessPriorityClass ProcessPriority { get; private set; }
 
     public LogEventLevel LogLevel { get; private set; }
+
+    public ulong SlashCommandDebugGuild { get; private set; }
 }

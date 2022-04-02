@@ -5,8 +5,8 @@ using Discord.Commands;
 using Discord.Interactions;
 using Discord.WebSocket;
 
-using Melodica.Services.Logging;
 using Melodica.Dependencies;
+using Melodica.Config;
 
 using Serilog;
 
@@ -22,7 +22,6 @@ public class SocketHybridCommandHandler : IAsyncCommandHandler
     }
 
     private readonly IServiceProvider ioc = Dependency.GetServiceProvider();
-    private readonly IAsyncLogger logger;
     private readonly DiscordSocketClient client;
     private readonly CommandService commands;
     private readonly InteractionService interactions;
@@ -63,7 +62,7 @@ public class SocketHybridCommandHandler : IAsyncCommandHandler
     private static async Task RegisterSlashCommands(InteractionService i)
     {
 #if DEBUG
-        await i.RegisterCommandsToGuildAsync(BotSettings.SlashCommandDebugGuild);
+        await i.RegisterCommandsToGuildAsync(BotConfig.Settings.SlashCommandDebugGuild);
 #else
         await i.RegisterCommandsGloballyAsync();
 #endif
@@ -80,14 +79,22 @@ public class SocketHybridCommandHandler : IAsyncCommandHandler
         return (textCmds.Result, slashCmds.Result);
     }
 
-    private async Task LogCommandExecution(CmdContext context, CmdInfo info, CmdResult result)
+    private static Task LogCommandExecution(CmdContext context, CmdInfo info, CmdResult result)
     {
-        var msgSeverity = result.IsSuccess ? LogSeverity.Verbose : LogSeverity.Error;
-        var msgSource = $"{info.Module} - {info.Name} - {context.Guild}";
-        var msgContent = result.IsSuccess ? "Successfully executed command." : result.Error;
-        var msg = new LogMessage(msgSeverity, msgSource, msgContent);
+        if (!result.IsSuccess)
+        {
+            Log.ForContext("CmdModule", info.Module)
+            .ForContext("CmdName", info.Name)
+            .ForContext("Guild", context.Guild)
+            .Error("Command threw and exception\n--->{Error}", result.Error);
+            return Task.CompletedTask;
+        }
 
-        await logger.LogAsync(msg);
+        Log.ForContext("CmdModule", info.Module)
+            .ForContext("CmdName", info.Name)
+            .ForContext("Guild", context.Guild)
+            .Information("Successfully executed command");
+        return Task.CompletedTask;
     }
 
     private async Task OnTextCommandExecuted(Optional<CommandInfo> info, ICommandContext context, Discord.Commands.IResult result)
@@ -145,7 +152,7 @@ public class SocketHybridCommandHandler : IAsyncCommandHandler
 
         int argPos = 0;
 
-        if (!context.Message.HasStringPrefix(BotSettings.TextCommandPrefix, ref argPos))
+        if (!context.Message.HasStringPrefix(BotConfig.Settings.DefaultPrefix, ref argPos))
             return;
 
         await commands.ExecuteAsync(context, argPos, ioc);

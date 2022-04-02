@@ -99,7 +99,7 @@ public class MediaFileCache : IMediaCache
         int filesInUse = 0;
 
         IEnumerable<FileInfo>? files = Directory.EnumerateFiles(cacheLocation).Convert(x => new FileInfo(x));
-        Stopwatch? sw = new Stopwatch();
+        var sw = new Stopwatch();
         sw.Start();
         Parallel.ForEach<FileInfo>(files, (file, loop) =>
         {
@@ -132,7 +132,7 @@ public class MediaFileCache : IMediaCache
         int deletedFiles = 0;
         int filesInUse = 0;
 
-        Stopwatch? sw = new Stopwatch();
+        var sw = new Stopwatch();
         sw.Start();
 
         IOrderedEnumerable<KeyValuePair<string, CachePair>>? ordered = cache.OrderByDescending(x => x.Value.AccessCount);

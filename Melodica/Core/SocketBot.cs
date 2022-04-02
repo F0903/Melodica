@@ -4,8 +4,9 @@ using Discord.WebSocket;
 
 using Melodica.Config;
 using Melodica.Core.CommandHandlers;
-using Melodica.Services.Logging;
 using Melodica.Dependencies;
+
+using Serilog;
 
 namespace Melodica.Core;
 
@@ -13,9 +14,8 @@ public class SocketBot
 {
     public SocketBot()
     {
-        this.client = Dependency.Get<DiscordSocketClient>();
-        this.logger = logger;
-        this.commandHandler = new SocketHybridCommandHandler(logger, client);
+        this.client = Dependency.Get<DiscordSocketClient>(); 
+        this.commandHandler = new SocketHybridCommandHandler(client);
 
         client.MessageReceived += commandHandler.OnMessageReceived;
         client.Log += static (msg) =>
@@ -25,8 +25,7 @@ public class SocketBot
         };
     }
 
-    private readonly DiscordSocketClient client;
-    private readonly IAsyncLogger logger; 
+    private readonly DiscordSocketClient client; 
     private readonly IAsyncCommandHandler commandHandler;
 
     public async Task SetActivityAsync(string name, ActivityType type)
