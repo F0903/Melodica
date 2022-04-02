@@ -2,33 +2,28 @@
 using Discord;
 using Discord.WebSocket;
 
-using Melodica.Core.CommandHandlers;
-using Melodica.Services.Logging;
+using Melodica.Config;
+using Melodica.Core.CommandHandlers; 
 
 namespace Melodica.Core;
 
 public class SocketBot<H> where H : IAsyncCommandHandler
 {
-    public SocketBot(IAsyncLogger logger)
+    public SocketBot()
     {
         client = new(new()
         {
             MessageCacheSize = 1,
-            LogLevel = BotSettings.LogLevel
+            LogLevel = BotConfig.Settings.LogLevel.ToLogSeverity()
         });
 
         IoC.Kernel.RegisterInstance(client);
-
-        this.logger = logger;
+ 
         this.commandHandler = IoC.Kernel.Get<H>();
-
-        client.Log += this.logger.LogAsync;
+ 
         client.MessageReceived += commandHandler.OnMessageReceived;
-
-        
     }
 
-    private readonly IAsyncLogger logger; 
     private readonly IAsyncCommandHandler commandHandler;
     private readonly DiscordSocketClient client;
 
@@ -45,7 +40,7 @@ public class SocketBot<H> where H : IAsyncCommandHandler
 
     public async Task ConnectAsync(bool startOnConnect = false)
     {
-        await client.LoginAsync(TokenType.Bot, BotSecrets.DiscordToken);
+        await client.LoginAsync(TokenType.Bot, BotConfig.Secrets.DiscordToken);
         if (startOnConnect)
             await client.StartAsync();
     }

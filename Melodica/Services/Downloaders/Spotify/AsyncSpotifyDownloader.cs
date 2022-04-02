@@ -1,6 +1,6 @@
 ﻿using System.Text.RegularExpressions;
 
-using Melodica.Core;
+using Melodica.Config;
 using Melodica.Services.Downloaders.Exceptions;
 using Melodica.Services.Media;
 using Melodica.Utility.Extensions;
@@ -16,7 +16,7 @@ public class AsyncSpotifyDownloader : IAsyncDownloader
             SpotifyClientConfig
             .CreateDefault()
             .WithAuthenticator(
-                new ClientCredentialsAuthenticator(BotSecrets.SpotifyClientID, BotSecrets.SpotifyClientSecret)));
+                new ClientCredentialsAuthenticator(BotConfig.Secrets.SpotifyClientID, BotConfig.Secrets.SpotifyClientSecret)));
 
     // Tie this to the default downloader (can't download directly from Spotify)
     static readonly IAsyncDownloader downloader = IAsyncDownloader.Default;

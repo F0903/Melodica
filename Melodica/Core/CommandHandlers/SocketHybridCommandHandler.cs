@@ -4,21 +4,22 @@ using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
 
-using Melodica.Services.Logging;
+using Melodica.Config;
 using Melodica.Services.Settings;
+
+using Serilog;
 
 namespace Melodica.Core.CommandHandlers;
 
 public class SocketHybridCommandHandler : IAsyncCommandHandler
 {
-    public SocketHybridCommandHandler(IAsyncLogger logger, DiscordSocketClient client)
+    public SocketHybridCommandHandler(DiscordSocketClient client)
     {
-        this.logger = logger;
         this.client = client;
 
         cmdService = new(new()
         {
-            LogLevel = BotSettings.LogLevel,
+            LogLevel = BotConfig.Settings.LogLevel.ToLogSeverity(),
             DefaultRunMode = RunMode.Async,
             CaseSensitiveCommands = false
         });
@@ -27,7 +28,6 @@ public class SocketHybridCommandHandler : IAsyncCommandHandler
         IoC.Kernel.RegisterInstance(cmdService);
     }
 
-    private readonly IAsyncLogger logger;
     private readonly DiscordSocketClient client;
     private readonly CommandService cmdService;
 
@@ -47,7 +47,12 @@ public class SocketHybridCommandHandler : IAsyncCommandHandler
             await context.Channel.SendMessageAsync(null, false, embed);
         }
 
-        await logger.LogAsync(new LogMessage(result.IsSuccess ? LogSeverity.Verbose : LogSeverity.Error, $"{info.Value.Module} - {info.Value.Name} - {context.Guild}", result.IsSuccess ? "Successfully executed command." : result.ErrorReason));
+        if (!result.IsSuccess)
+        {
+            Log.Error("{@CmdModule} - {@CmdName} - {@Guild}", info.Value.Module, info.Value.Name, context.Guild); //$"{info.Value.Module} - {info.Value.Name} - {context.Guild}"
+        }
+
+        Log.Information("{@CmdModule} - {@CmdName} - {@Guild}", info.Value.Module, info.Value.Name, context.Guild);
     }
 
     public async Task OnMessageReceived(IMessage message)

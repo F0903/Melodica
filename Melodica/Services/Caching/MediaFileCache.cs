@@ -1,6 +1,6 @@
 ﻿using System.Diagnostics;
 
-using Melodica.Core;
+using Melodica.Config;
 using Melodica.Services.Downloaders.Exceptions;
 using Melodica.Services.Media;
 using Melodica.Services.Serialization;
@@ -125,7 +125,7 @@ public class MediaFileCache : IMediaCache
 
     private Task<(int deletedFiles, int filesInUse, long msDuration)> PruneCacheAsync(bool force)
     {
-        int maxSize = BotSettings.CacheSizeMB;
+        int maxSize = BotConfig.Settings.CacheSizeMB;
         if (!force && cache.Count < maxSize)
             return Task.FromResult((0, 0, 0L));
 
@@ -163,7 +163,7 @@ public class MediaFileCache : IMediaCache
 
     public async Task<(int deletedFiles, int filesInUse, long msDuration)> PruneCacheAsync(bool forceClear = false, bool nuke = false)
     {
-        if (!forceClear && await GetCacheSizeAsync() < BotSettings.CacheSizeMB * 1024 * 1024)
+        if (!forceClear && await GetCacheSizeAsync() < BotConfig.Settings.CacheSizeMB * 1024 * 1024)
             return (0, 0, 0);
 
         (int deletedFiles, int filesInUse, long msDuration) = nuke ? await NukeCacheAsync() : await PruneCacheAsync(forceClear);

@@ -7,12 +7,13 @@ using AngleSharp.Dom;
 
 using Melodica.Core.Exceptions;
 using Melodica.Utility.Extensions;
+using Melodica.Config;
 
 namespace Melodica.Services.Lyrics;
 
 public class GeniusLyrics : ILyricsProvider
 {
-    static readonly HttpClient http = new() { DefaultRequestHeaders = { { "Authorization", $"Bearer {Core.BotSecrets.GeniusAccessToken}" } } };
+    static readonly HttpClient http = new() { DefaultRequestHeaders = { { "Authorization", $"Bearer {BotConfig.Secrets.GeniusToken}" } } };
 
     private static async Task<string> ParseLyricsAsync(string url)
     {
