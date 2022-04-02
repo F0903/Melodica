@@ -3,7 +3,7 @@ using Discord;
 using Discord.WebSocket;
 
 using Melodica.Config;
-using Melodica.Core.CommandHandlers; 
+using Melodica.Core.CommandHandlers;
 
 namespace Melodica.Core;
 
@@ -18,10 +18,15 @@ public class SocketBot<H> where H : IAsyncCommandHandler
         });
 
         IoC.Kernel.RegisterInstance(client);
- 
+
         this.commandHandler = IoC.Kernel.Get<H>();
- 
+
         client.MessageReceived += commandHandler.OnMessageReceived;
+        client.Log += static (msg) =>
+        {
+            Serilog.Log.Debug("{Message}", msg);
+            return Task.CompletedTask;
+        };
     }
 
     private readonly IAsyncCommandHandler commandHandler;

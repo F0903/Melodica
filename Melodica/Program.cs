@@ -6,11 +6,7 @@ using Melodica.Config;
 
 using Serilog;
 
-Log.Logger = new LoggerConfiguration()
-    .MinimumLevel.Debug()
-    .WriteTo.Console(restrictedToMinimumLevel: BotConfig.Settings.LogLevel)
-    .CreateLogger();
-
+Melodica.Logging.LogManager.Init();
 var bot = new SocketBot<IAsyncCommandHandler>();
 
 await bot.ConnectAsync($"{BotConfig.Settings.DefaultPrefix}play | {BotConfig.Settings.DefaultPrefix}help", Discord.ActivityType.Listening, true);

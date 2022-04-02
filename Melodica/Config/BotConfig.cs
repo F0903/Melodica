@@ -1,5 +1,4 @@
-﻿using System.Diagnostics;
-using System.Reflection;
+﻿using System.Reflection;
 
 using Discord;
 
@@ -19,13 +18,11 @@ public static class BotConfig
             .AddJsonFile("settings.json", false, true);
         Configuration = config.Build();
 
+        ChangeToken.OnChange(() => Configuration.GetReloadToken(), OnChange);
         var reloadTkn = Configuration.GetReloadToken();
 
         Secrets = new BotSecrets(Configuration);
-        Secrets.ConfigureReload(reloadTkn);
-
         Settings = new BotSettings(Configuration);
-        Settings.ConfigureReload(reloadTkn);
     }
 
     public static BotSecrets Secrets { get; }
@@ -33,6 +30,15 @@ public static class BotConfig
     public static BotSettings Settings { get; }
 
     public static IConfigurationRoot Configuration { get; }
+
+    public static event Action? OnConfigChanged;
+
+    static void OnChange()
+    {
+        Secrets.Reload();
+        Settings.Reload();
+        OnConfigChanged?.Invoke();
+    }
 }
 
 public static class ConfigUtilityExtensions

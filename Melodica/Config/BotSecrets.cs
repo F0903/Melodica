@@ -29,12 +29,7 @@ public class BotSecrets
             throw new NullReferenceException("geniusToken is not defined in user secrets!");
     }
 
-    public void ConfigureReload(IChangeToken token)
-    {
-        token.RegisterChangeCallback(Reload, null);
-    }
-
-    void Reload(object? state)
+    public void Reload()
     {
         ReadAndSetValues();
     }

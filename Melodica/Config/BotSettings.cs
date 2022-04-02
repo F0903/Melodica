@@ -44,12 +44,7 @@ public class BotSettings
         LogLevel = Enum.Parse<LogEventLevel>(result);
     }
 
-    public void ConfigureReload(IChangeToken token)
-    {
-        token.RegisterChangeCallback(Reload, null);
-    }
-
-    void Reload(object? state)
+    public void Reload()
     {
         ReadAndSetValues();
     }

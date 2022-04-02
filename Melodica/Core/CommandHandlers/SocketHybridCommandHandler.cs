@@ -49,10 +49,16 @@ public class SocketHybridCommandHandler : IAsyncCommandHandler
 
         if (!result.IsSuccess)
         {
-            Log.Error("{@CmdModule} - {@CmdName} - {@Guild}", info.Value.Module, info.Value.Name, context.Guild); //$"{info.Value.Module} - {info.Value.Name} - {context.Guild}"
+            Log.ForContext("CmdModule", info.Value.Module)
+                .ForContext("CmdName", info.Value.Name)
+                .ForContext("Guild", context.Guild)
+                .Error("{Message}", "Command threw an exception");
         }
 
-        Log.Information("{@CmdModule} - {@CmdName} - {@Guild}", info.Value.Module, info.Value.Name, context.Guild);
+        Log.ForContext("CmdModule", info.Value.Module)
+                .ForContext("CmdName", info.Value.Name)
+                .ForContext("Guild", context.Guild)
+                .Information("{Message}", "Command executed successfully");
     }
 
     public async Task OnMessageReceived(IMessage message)

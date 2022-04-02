@@ -159,26 +159,26 @@ public class JukeboxCommands : ModuleBase<SocketCommandContext>
             eb.WithTitle("**Queue**")
               .WithDescription("No songs are queued.")
               .WithFooter("It's quite empty down here...");
+            await Context.Channel.SendMessageAsync(null, false, eb.Build());
+            return;
         }
-        else
-        {
-            (TimeSpan queueDuration, string? imageUrl) = await queue.GetQueueInfo();
-            eb.WithTitle("**Queue**")
-              .WithThumbnailUrl(imageUrl)
-              .WithFooter($"{(queueDuration == TimeSpan.Zero ? '\u221E'.ToString() : queueDuration.ToString())}{(Jukebox.Shuffle ? " | Shuffle" : "")}");
 
-            int maxElems = 20;
-            for (int i = 1; i <= maxElems; i++)
-            {
-                if (i > queue.Length)
-                    break;
-                PlayableMedia? song = queue[i - 1];
-                MediaInfo? songInfo = song.Info;
-                eb.AddField(
-                    i == 1 ? "Next:" : i == maxElems ? "And more" : i.ToString(),
-                    i == 1 ? $"**{songInfo.Artist} - {songInfo.Title}**" : i == maxElems ? $"Plus {queue.Length - (i - 1)} other songs!" : $"{songInfo.Artist} - {songInfo.Title}",
-                    false);
-            }
+        (TimeSpan queueDuration, string? imageUrl) = await queue.GetQueueInfo();
+        eb.WithTitle("**Queue**")
+          .WithThumbnailUrl(imageUrl)
+          .WithFooter($"{(queueDuration == TimeSpan.Zero ? '\u221E'.ToString() : queueDuration.ToString())}{(Jukebox.Shuffle ? " | Shuffle" : "")}");
+
+        int maxElems = 20;
+        for (int i = 1; i <= maxElems; i++)
+        {
+            if (i > queue.Length)
+                break;
+            PlayableMedia? song = queue[i - 1];
+            MediaInfo? songInfo = song.Info;
+            eb.AddField(
+                i == 1 ? "Next:" : i == maxElems ? "And more" : i.ToString(),
+                i == 1 ? $"**{songInfo.Artist} - {songInfo.Title}**" : i == maxElems ? $"Plus {queue.Length - (i - 1)} other songs!" : $"{songInfo.Artist} - {songInfo.Title}",
+                false);
         }
 
         await Context.Channel.SendMessageAsync(null, false, eb.Build());
