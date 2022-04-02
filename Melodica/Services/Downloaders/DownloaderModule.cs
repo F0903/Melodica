@@ -1,11 +1,13 @@
-﻿using Ninject.Modules;
+﻿using Melodica.Dependencies;
+
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Melodica.Services.Downloaders;
 
-public class DownloaderModule : NinjectModule
+public class DownloaderModule : DependencyModule
 {
-    public override void Load()
+    public override IServiceCollection Load()
     {
-
+        return new ServiceCollection();
     }
 }

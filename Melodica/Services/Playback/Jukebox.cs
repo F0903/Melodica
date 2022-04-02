@@ -12,15 +12,6 @@ using Melodica.Utility.Extensions;
 
 namespace Melodica.Services.Playback;
 
-public enum MediaState
-{
-    Error,
-    Queued,
-    Downloading,
-    Playing,
-    Finished
-};
-
 readonly struct AloneTimerState
 {
     public readonly Func<ValueTask> Stop { get; init; }
@@ -34,26 +25,23 @@ public class Jukebox
         this.callbackChannel = callbackChannel;
     }
 
-    public delegate ValueTask MediaCallback(MediaInfo info, MediaInfo? playlistInfo, MediaState state);
-
-    private bool paused;
-    public bool Paused
+    public enum PlayResult
     {
-        get => paused;
-        set
-        {
-            if (!Playing) return;
-            paused = value;
-        }
+        Occupied,
+        Queued,
+        Done,
+        Error,
     }
+
+    public bool Paused { get; private set; }
 
     public bool Playing => !playLock.IsSet;
 
-    public bool Loop { get => queue.Loop; set => queue.Loop = value; }
+    public bool Loop => queue.Loop;
 
-    public bool Shuffle { get => queue.Shuffle; set => queue.Shuffle = value; }
+    public bool Shuffle => queue.Shuffle;
 
-    public bool Repeat { get => queue.Repeat; set => queue.Repeat = value; }
+    public bool Repeat => queue.Repeat;
 
     public TimeSpan Elapsed => new(durationTimer.Elapsed.Hours, durationTimer.Elapsed.Minutes, durationTimer.Elapsed.Seconds);
 
@@ -69,7 +57,45 @@ public class Jukebox
     private bool skipRequested = false;
     private bool downloading = false;
 
+    private Player? currentPlayer;
     private PlayableMedia? currentSong;
+
+    public async Task SetPaused(bool value)
+    {
+        if (!Playing) return;
+        Paused = value;
+        if (currentPlayer is not null)
+        {
+            await currentPlayer.SetButtonStateAsync(PlayerButton.PlayPause, !value);
+        }
+    }
+
+    public async Task SetLoop(bool value)
+    {
+        queue.Loop = value;
+        if (currentPlayer is not null)
+        {
+            await currentPlayer.SetButtonStateAsync(PlayerButton.Loop, value);
+        }
+    }
+
+    public async Task SetShuffle(bool value)
+    {
+        queue.Shuffle = value;
+        if (currentPlayer is not null)
+        {
+            await currentPlayer.SetButtonStateAsync(PlayerButton.Shuffle, value);
+        }
+    }
+
+    public async Task SetRepeat(bool value)
+    {
+        queue.Repeat = value;
+        if (currentPlayer is not null)
+        {
+            await currentPlayer.SetButtonStateAsync(PlayerButton.Repeat, value);
+        }
+    }
 
     public MediaQueue GetQueue()
     {
@@ -87,15 +113,6 @@ public class Jukebox
         if (!users.IsOverSize(1))
             return true;
         else return false;
-    }
-
-    static int GetChannelBitrate(IAudioChannel channel)
-    {
-        return channel switch
-        {
-            SocketVoiceChannel sv => sv.Bitrate,
-            _ => throw new CriticalException("Unable to get channel bitrate.")
-        };
     }
 
     static void SendSilence(AudioOutStream output, int frames = 100)
@@ -137,6 +154,8 @@ public class Jukebox
 
             if (BreakConditions())
             {
+                if (token.IsCancellationRequested)
+                    return;
                 SendSilence(output);
                 break;
             }
@@ -154,7 +173,7 @@ public class Jukebox
         {
             try
             {
-                AloneTimerState timerState = new() { Stop = StopAsync, Channel = channel };
+                AloneTimerState timerState = new() { Stop = () => StopAsync(), Channel = channel };
                 using Timer? aloneTimer = new(static async state =>
                 {
                     AloneTimerState ts = (AloneTimerState)(state ?? throw new NullReferenceException("AloneTimer state parameter cannot be null."));
@@ -210,16 +229,18 @@ public class Jukebox
         if (cancellation is null || (cancellation is not null && cancellation.IsCancellationRequested))
             return;
 
-        Loop = false;
+        await SetLoop(false);
         await ClearAsync();
         cancellation!.Cancel();
         playLock.Wait(5000);
     }
 
-    public ValueTask SkipAsync()
+    public void Skip()
     {
+        if (queue.IsEmpty)
+            return;
         skipRequested = true;
-        return ValueTask.CompletedTask;
+        return;
     }
 
     public ValueTask ClearAsync()
@@ -238,7 +259,6 @@ public class Jukebox
 
     async Task PlayNextAsync(IAudioChannel channel, AudioOutStream output, CancellationToken token, TimeSpan? startingPoint = null)
     {
-        PlaybackStatusHandler status = new(callbackChannel);
         using FFmpegAudioProcessor? audio = new();
         PlayableMedia? media = await queue.DequeueAsync();
         if (media is null)
@@ -246,26 +266,20 @@ public class Jukebox
 
         currentSong = media;
 
-        if (!Loop)
-            await status.Send(media.Info, media.CollectionInfo, MediaState.Downloading);
-
         DataInfo dataInfo;
         try
         {
             dataInfo = await media.GetDataAsync();
         }
-        catch (Exception ex)
+        catch
         {
-            await status.RaiseError($"Could not get media.\nError: ``{ex.Message}``");
             if (!queue.IsEmpty) await PlayNextAsync(channel, output, token, null);
             else await DisconnectAsync();
             return;
         }
 
+        await currentPlayer!.SetSongEmbedAsync(media.Info, media.CollectionInfo);
         await audio.StartProcess(dataInfo, startingPoint);
-
-        if (!Loop)
-            await status.SetPlaying();
 
         //TESTING TO SEE IF THIS GETS CALLED ON RANDOM DISCONNECTS
         audioClient!.Disconnected += async (ex) =>
@@ -283,15 +297,10 @@ public class Jukebox
             temp.DiscardTempMedia();
         }
 
-        if (!Loop || faulted)
-            await status.SetFinished();
-
         if (faulted)
         {
             throw new CriticalException("SendDataAsync encountered a fatal error. (dbg-msg)");
         }
-
-
 
         if ((!Loop && queue.IsEmpty) || cancellation!.IsCancellationRequested)
         {
@@ -302,12 +311,10 @@ public class Jukebox
         await PlayNextAsync(channel, output, token, null);
     }
 
-    public async Task PlayAsync(IMediaRequest request, IAudioChannel channel, TimeSpan? startingPoint = null)
+    public async Task<PlayResult> PlayAsync(IMediaRequest request, IAudioChannel channel, Player player, TimeSpan? startingPoint = null)
     {
         if (downloading)
-            return;
-
-        PlaybackStatusHandler status = new(callbackChannel);
+            return PlayResult.Occupied;
 
         MediaInfo reqInfo;
         MediaCollection collection;
@@ -318,55 +325,50 @@ public class Jukebox
             collection = await request.GetMediaAsync();
             downloading = false;
         }
-        catch (Exception ex)
+        catch
         {
             downloading = false;
-            string? msg = ex is MediaUnavailableException ? "Media is unavailable." : "Unknown error occurred during download of media.";
-            await status.RaiseError(msg);
-            return;
+            return PlayResult.Error;
         }
 
         await queue.EnqueueAsync(collection);
         if (Playing)
         {
-            await status.Send(reqInfo, collection.CollectionInfo, MediaState.Queued);
-            return;
+            return PlayResult.Queued;
         }
 
         playLock.Wait();
         playLock.Reset();
         try
         {
-            if (reqInfo.MediaType == MediaType.Playlist)
-                await status.Send(reqInfo, collection.CollectionInfo, MediaState.Playing);
-
             cancellation = new();
             CancellationToken token = cancellation.Token;
-            await ConnectAsync(channel);
-            int bitrate = GetChannelBitrate(channel);
-            using AudioOutStream? output = audioClient!.CreatePCMStream(AudioApplication.Music, bitrate, 200, 0);
-            await PlayNextAsync(channel, output, token, startingPoint);
 
-            if (reqInfo.MediaType == MediaType.Playlist)
-                await status.SetFinished();
+            await ConnectAsync(channel);
+            int bitrate = (channel as IVoiceChannel)?.Bitrate ?? 96000;
+            await player.SpawnAsync(reqInfo, collection.CollectionInfo);
+            currentPlayer = player;
+            using AudioOutStream output = audioClient!.CreatePCMStream(AudioApplication.Music, bitrate, 200, 0);
+            await PlayNextAsync(channel, output, token, startingPoint);
         }
         finally
         {
             playLock.Set();
+            await player.DisableAllButtonsAsync();
         }
+        return PlayResult.Done;
     }
 
     public async Task SwitchAsync(IMediaRequest request)
     {
-        Loop = false;
-        Shuffle = false;
         await SetNextAsync(request);
-        await SkipAsync();
+        await SetLoop(false);
+        Skip();
     }
 
     public async Task SetNextAsync(IMediaRequest request)
     {
-        MediaCollection? media = await request.GetMediaAsync();
+        MediaCollection media = await request.GetMediaAsync();
         await queue.PutFirstAsync(media);
     }
 }

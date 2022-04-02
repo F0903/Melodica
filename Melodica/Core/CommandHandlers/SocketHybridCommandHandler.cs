@@ -2,10 +2,11 @@
 
 using Discord;
 using Discord.Commands;
+using Discord.Interactions;
 using Discord.WebSocket;
 
-using Melodica.Config;
-using Melodica.Services.Settings;
+using Melodica.Services.Logging;
+using Melodica.Dependencies;
 
 using Serilog;
 
@@ -17,48 +18,116 @@ public class SocketHybridCommandHandler : IAsyncCommandHandler
     {
         this.client = client;
 
-        cmdService = new(new()
-        {
-            LogLevel = BotConfig.Settings.LogLevel.ToLogSeverity(),
-            DefaultRunMode = RunMode.Async,
-            CaseSensitiveCommands = false
-        });
-        cmdService.AddModulesAsync(Assembly.GetEntryAssembly(), IoC.Kernel.GetRawKernel());
-        cmdService.CommandExecuted += OnCommandExecuted;
-        IoC.Kernel.RegisterInstance(cmdService);
+        (commands, interactions) = InitializeCommands().Result;
     }
 
+    private readonly IServiceProvider ioc = Dependency.GetServiceProvider();
+    private readonly IAsyncLogger logger;
     private readonly DiscordSocketClient client;
-    private readonly CommandService cmdService;
+    private readonly CommandService commands;
+    private readonly InteractionService interactions;
 
-    private async Task OnCommandExecuted(Optional<CommandInfo> info, ICommandContext context, IResult result)
+    readonly record struct CmdContext(IMessageChannel Channel, IGuild Guild);
+    readonly record struct CmdInfo(string Module, string Name);
+    readonly record struct CmdResult(string Error, bool IsSuccess);
+
+    private Task<CommandService> InitializeTextCommands(Assembly asm)
     {
-        if (!info.IsSpecified)
-            return;
+        var commandService = Dependency.Get<CommandService>();
+        commandService.AddModulesAsync(asm, ioc);
+        commandService.CommandExecuted += OnTextCommandExecuted;
+        
+        return Task.FromResult(commandService);
+    }
 
-        if (result.Error.HasValue)
+    private async Task<InteractionService> InitializeSlashCommands(Assembly asm)
+    {
+        var interactionService = Dependency.Get<InteractionService>();
+        await interactionService.AddModulesAsync(asm, ioc);
+        interactionService.SlashCommandExecuted += OnSlashCommandExecuted;
+
+        if (client.LoginState == LoginState.LoggedIn)
+        {
+            await RegisterSlashCommands(interactionService);
+        }
+        else
+        {
+            client.Ready += () => RegisterSlashCommands(interactionService);
+        }
+        
+        client.InteractionCreated += OnInteractionReceived;
+
+        return interactionService;
+    }
+
+    private static async Task RegisterSlashCommands(InteractionService i)
+    {
+#if DEBUG
+        await i.RegisterCommandsToGuildAsync(BotSettings.SlashCommandDebugGuild);
+#else
+        await i.RegisterCommandsGloballyAsync();
+#endif
+    }
+
+    private async Task<(CommandService, InteractionService)> InitializeCommands()
+    {
+        var asm = Assembly.GetExecutingAssembly();
+
+        var textCmds = InitializeTextCommands(asm);
+        var slashCmds = InitializeSlashCommands(asm);
+
+        await Task.WhenAll(textCmds, slashCmds);
+        return (textCmds.Result, slashCmds.Result);
+    }
+
+    private async Task LogCommandExecution(CmdContext context, CmdInfo info, CmdResult result)
+    {
+        var msgSeverity = result.IsSuccess ? LogSeverity.Verbose : LogSeverity.Error;
+        var msgSource = $"{info.Module} - {info.Name} - {context.Guild}";
+        var msgContent = result.IsSuccess ? "Successfully executed command." : result.Error;
+        var msg = new LogMessage(msgSeverity, msgSource, msgContent);
+
+        await logger.LogAsync(msg);
+    }
+
+    private async Task OnTextCommandExecuted(Optional<CommandInfo> info, ICommandContext context, Discord.Commands.IResult result)
+    {
+        var cmdContext = new CmdContext(context.Channel, context.Guild);
+        var cmdInfo = new CmdInfo(info.IsSpecified ? info.Value.Module.Name : "Unspecified Module", 
+                                  info.IsSpecified ? info.Value.Name : "Unspecified Command");
+        var cmdResult = new CmdResult(result.Error.ToString() ?? "Unspecified Error", result.IsSuccess);
+
+        if (result.Error is not null)
         {
             Embed? embed = new EmbedBuilder().WithTitle("**Error!**")
-                                          .WithDescription(result.ErrorReason)
+                                          .WithDescription(cmdResult.Error)
                                           .WithCurrentTimestamp()
                                           .WithColor(Color.Red)
                                           .Build();
-
-            await context.Channel.SendMessageAsync(null, false, embed);
+            await cmdContext.Channel.SendMessageAsync(null, false, embed);
         }
 
+        await LogCommandExecution(cmdContext, cmdInfo, cmdResult);
+    }
+
+    private Task OnSlashCommandExecuted(SlashCommandInfo info, IInteractionContext context, Discord.Interactions.IResult result)
+    {
+        var cmdContext = new CmdContext(context.Channel, context.Guild);
+        var cmdInfo = new CmdInfo(info.Module.Name, info.Name);
+        var cmdResult = new CmdResult(result.ErrorReason, result.IsSuccess);
+        
+        return LogCommandExecution(cmdContext, cmdInfo, cmdResult);
+    }
+
+    private async Task OnInteractionReceived(SocketInteraction command)
+    {
+        var ctx = new SocketInteractionContext(client, command);
+        var result = await interactions.ExecuteCommandAsync(ctx, ioc);
         if (!result.IsSuccess)
         {
-            Log.ForContext("CmdModule", info.Value.Module)
-                .ForContext("CmdName", info.Value.Name)
-                .ForContext("Guild", context.Guild)
-                .Error("Command did not execute successfully\n---> {Error}", result.ErrorReason);
+            await command.RespondAsync($"Interaction could not be executed! ```[{result.ErrorReason}]: {(result.Error.HasValue ? result.Error.Value.ToString() : "Unspecified")}```");
+            return;
         }
-
-        Log.ForContext("CmdModule", info.Value.Module)
-                .ForContext("CmdName", info.Value.Name)
-                .ForContext("Guild", context.Guild)
-                .Information("Command executed successfully");
     }
 
     public async Task OnMessageReceived(IMessage message)
@@ -76,11 +145,9 @@ public class SocketHybridCommandHandler : IAsyncCommandHandler
 
         int argPos = 0;
 
-        GuildSettingsInfo? guildSettings = await GuildSettings.GetSettingsAsync(context.Guild.Id);
-        string? prefix = guildSettings.Prefix;
-        if (!context.Message.HasStringPrefix(prefix, ref argPos))
+        if (!context.Message.HasStringPrefix(BotSettings.TextCommandPrefix, ref argPos))
             return;
 
-        await cmdService!.ExecuteAsync(context, argPos, IoC.Kernel.GetRawKernel());
+        await commands.ExecuteAsync(context, argPos, ioc);
     }
 }

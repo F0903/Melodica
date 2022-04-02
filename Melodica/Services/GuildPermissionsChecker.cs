@@ -15,19 +15,19 @@ public static class GuildPermissionsChecker
     /// <param name="guild"></param>
     /// <param name="bot"></param>
     /// <param name="voice"></param>
-    public static void AssertVoicePermissions(SocketGuild guild, ISelfUser bot, IVoiceChannel voice)
+    public static bool CheckVoicePermission(SocketGuild guild, ISelfUser bot, IVoiceChannel voice)
     {
         botGuildRoles ??= guild.GetUser(bot.Id).Roles;
         foreach (SocketRole? role in botGuildRoles) // Check through all roles.
         {
             if (role.Permissions.Administrator)
-                return;
+                return true;
             OverwritePermissions? guildRolePerms = voice.GetPermissionOverwrite(role);
             if (guildRolePerms == null)
                 continue;
             List<ChannelPermission>? allowedGuildPerms = guildRolePerms!.Value.ToAllowList();
             if (allowedGuildPerms.Contains(ChannelPermission.Connect) && allowedGuildPerms.Contains(ChannelPermission.Speak))
-                return;
+                return true;
         }
 
         // Check for user role.
@@ -36,8 +36,8 @@ public static class GuildPermissionsChecker
         {
             List<ChannelPermission>? allowedBotPerms = botPerms!.Value.ToAllowList();
             if (allowedBotPerms.Contains(ChannelPermission.Connect) && allowedBotPerms.Contains(ChannelPermission.Speak))
-                return;
+                return true;
         }
-        throw new Exception("I don't have explicit permission to connect and speak in this channel :(");
+        return false;
     }
 }

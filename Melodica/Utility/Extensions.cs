@@ -4,6 +4,8 @@ using System.Text.RegularExpressions;
 using Discord;
 using Discord.WebSocket;
 
+using Melodica.Dependencies;
+
 namespace Melodica.Utility.Extensions;
 
 public static class Extensions
@@ -35,7 +37,7 @@ public static class Extensions
 
     public static string SeperateStrings(this string[] strings, string seperator = ", ")
     {
-        StringBuilder? sb = new StringBuilder(strings.Length * 5);
+        StringBuilder? sb = new(strings.Length * 5);
         for (int i = 0; i < strings.Length; i++)
         {
             sb.Append(strings[i]);
@@ -75,7 +77,7 @@ public static class Extensions
 
     public static TimeSpan Sum<T>(this IEnumerable<T> input, Func<T, TimeSpan> selector)
     {
-        TimeSpan sum = new TimeSpan();
+        TimeSpan sum = new();
         foreach (T? item in input)
             sum += selector(item);
         return sum;
@@ -83,7 +85,7 @@ public static class Extensions
 
     public static async Task<TimeSpan> SumAsync<T>(this IEnumerable<T> input, Func<T, Task<TimeSpan>> selector)
     {
-        TimeSpan sum = new TimeSpan();
+        TimeSpan sum = new();
         foreach (T? item in input)
             sum += await selector(item);
         return sum;
@@ -107,7 +109,7 @@ public static class Extensions
 
     public static bool IsOwnerOfApp(this IUser user)
     {
-        return user.Id == IoC.Kernel.Get<DiscordSocketClient>().GetApplicationInfoAsync().Result.Owner.Id;
+        return user.Id == Dependency.Get<DiscordSocketClient>().GetApplicationInfoAsync().Result.Owner.Id;
     }
 
     public static string ReplaceIllegalCharacters(this string str, char replacer = '_')
