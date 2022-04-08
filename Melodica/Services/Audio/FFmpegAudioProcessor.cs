@@ -25,11 +25,11 @@ public class FFmpegAudioProcessor : AudioProcessor
             throw new CriticalException("Song path is empty... Clearing cache... (something went wrong here)");
         }
 
-        string? format = dataInfo.Format != null ? $"-f {dataInfo.Format}" : string.Empty;
-        string? path = dataInfo.MediaPath != null ? $"\"{dataInfo.MediaPath}\"" : "pipe:0";
+        string format = dataInfo.Format != null ? $"-f {dataInfo.Format}" : string.Empty;
+        string path = dataInfo.MediaPath != null ? $"\"{dataInfo.MediaPath}\"" : "pipe:0";
         startingPoint ??= TimeSpan.Zero;
 
-        Process? proc = new Process()
+        Process proc = new Process()
         {
             StartInfo = new ProcessStartInfo()
             {
