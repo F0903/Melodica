@@ -71,7 +71,7 @@ public class AsyncYoutubeDownloader : IAsyncDownloader
 
     async Task<MediaInfo> PlaylistToMetadataAsync(Playlist pl)
     {
-        string? author = pl.Author?.Title ?? "Unknown Artist";
+        string? author = pl.Author?.ChannelTitle ?? "Unknown Artist";
         (string artist, string newTitle) = pl.Title.AsSpan().SeperateArtistName(author);
         return new MediaInfo(pl.Id)
         {

@@ -4,26 +4,26 @@
     "net6.0": {
       "Discord.Net": {
         "type": "Direct",
-        "requested": "[3.5.0, )",
-        "resolved": "3.5.0",
-        "contentHash": "IUtexpvogudb1rllKBWkIEpBVQoToMjtVo81KPkt+gNMe7KtRDcZJgcn6+72viMtyw0e95OJPXFV5VEA/n2OQQ==",
+        "requested": "[3.6.1, )",
+        "resolved": "3.6.1",
+        "contentHash": "TfcL/HG57fVt//WVJ2XyF2PlytY9IYkkwwkPLIhvu5FW4wf9rm7+N8RPh4qtELLfsa5ES0FK2RbgYjABRR9AjA==",
         "dependencies": {
-          "Discord.Net.Commands": "3.5.0",
-          "Discord.Net.Core": "3.5.0",
-          "Discord.Net.Interactions": "3.5.0",
-          "Discord.Net.Rest": "3.5.0",
-          "Discord.Net.WebSocket": "3.5.0",
-          "Discord.Net.Webhook": "3.5.0"
+          "Discord.Net.Commands": "3.6.1",
+          "Discord.Net.Core": "3.6.1",
+          "Discord.Net.Interactions": "3.6.1",
+          "Discord.Net.Rest": "3.6.1",
+          "Discord.Net.WebSocket": "3.6.1",
+          "Discord.Net.Webhook": "3.6.1"
         }
       },
       "Microsoft.EntityFrameworkCore": {
         "type": "Direct",
-        "requested": "[6.0.3, )",
-        "resolved": "6.0.3",
-        "contentHash": "f7ZlNOI1wPg/r0zRgvmcLAM3kwuCVGe5cZc8rYoKPDGZs5dgRFe5a43H9FnCXsyFAF6FILB08Nr9RkuNMwd3TQ==",
+        "requested": "[6.0.5, )",
+        "resolved": "6.0.5",
+        "contentHash": "hP5J3EvpVdZmCn1D3ovedphvZrIn3OXZaBZfEnCkSCqqbqAu6xzwbNqwRkik0y4R6zOOf4eLh1riwjy4eAUlZA==",
         "dependencies": {
-          "Microsoft.EntityFrameworkCore.Abstractions": "6.0.3",
-          "Microsoft.EntityFrameworkCore.Analyzers": "6.0.3",
+          "Microsoft.EntityFrameworkCore.Abstractions": "6.0.5",
+          "Microsoft.EntityFrameworkCore.Analyzers": "6.0.5",
           "Microsoft.Extensions.Caching.Memory": "6.0.1",
           "Microsoft.Extensions.DependencyInjection": "6.0.0",
           "Microsoft.Extensions.Logging": "6.0.0",
@@ -33,31 +33,31 @@
       },
       "Microsoft.EntityFrameworkCore.Design": {
         "type": "Direct",
-        "requested": "[6.0.3, )",
-        "resolved": "6.0.3",
-        "contentHash": "Gc3XhQ4vLK4rlGpZi8zaa4bl0t894QxqMXHSbDSsx8d7ghRaLbGIH1tQawpo2hriU/q918eepbCyoISD89Xx1w==",
+        "requested": "[6.0.5, )",
+        "resolved": "6.0.5",
+        "contentHash": "zNjMWJ6MJ/Qm7S6wFBqVgn7DEpilbDMy0xgA7c4Y1yY9/LoaC2pWwWO4ePaYoPCZpLx/eTViWEr5ZXta/vK//Q==",
         "dependencies": {
           "Humanizer.Core": "2.8.26",
-          "Microsoft.EntityFrameworkCore.Relational": "6.0.3"
+          "Microsoft.EntityFrameworkCore.Relational": "6.0.5"
         }
       },
       "Microsoft.EntityFrameworkCore.Sqlite": {
         "type": "Direct",
-        "requested": "[6.0.3, )",
-        "resolved": "6.0.3",
-        "contentHash": "Zz0t+iBdC64fQeBOHr+5IpR/SNhfmxOjM0aI8VA5Xk8wBS/o98YWVXp8kT1iGWS3+K2jDGuusl192LZthLUStQ==",
+        "requested": "[6.0.5, )",
+        "resolved": "6.0.5",
+        "contentHash": "CPeREpNSs/KXygneP1sP5guyMAwf3GzFreclHUWRS0uGRoCuwLal4I0npjx2ayVUlc+nJc3dXoRPktrJ5qpXgA==",
         "dependencies": {
-          "Microsoft.EntityFrameworkCore.Sqlite.Core": "6.0.3",
+          "Microsoft.EntityFrameworkCore.Sqlite.Core": "6.0.5",
           "SQLitePCLRaw.bundle_e_sqlite3": "2.0.6"
         }
       },
       "Microsoft.EntityFrameworkCore.Tools": {
         "type": "Direct",
-        "requested": "[6.0.3, )",
-        "resolved": "6.0.3",
-        "contentHash": "s5s19Woo8kFqI9GQrqM6ZT4qS1xLlWuccqfg3ELf8shp93f8btuK6T3iFV//wP1pkRjFB4qbPrQwMO88RKfHXw==",
+        "requested": "[6.0.5, )",
+        "resolved": "6.0.5",
+        "contentHash": "aeCzVNLmDl9IfB19WAjrlKcG61Cl4/ZV/9ubifmifKEps+kvMkKIcams5j+8q6dtx9/UL2x3tbOz2BS3eU0sXQ==",
         "dependencies": {
-          "Microsoft.EntityFrameworkCore.Design": "6.0.3"
+          "Microsoft.EntityFrameworkCore.Design": "6.0.5"
         }
       },
       "Microsoft.Extensions.Configuration.UserSecrets": {
@@ -74,9 +74,9 @@
       },
       "Serilog": {
         "type": "Direct",
-        "requested": "[2.10.0, )",
-        "resolved": "2.10.0",
-        "contentHash": "+QX0hmf37a0/OZLxM3wL7V6/ADvC1XihXN4Kq/p6d8lCPfgkRdiuhbWlMaFjR9Av0dy5F0+MBeDmDdRZN/YwQA=="
+        "requested": "[2.11.0, )",
+        "resolved": "2.11.0",
+        "contentHash": "ysv+hBzTul6Dp+Hvm10FlhJO3yMQcFKSAleus+LpiIzvNstpeV4Z7gGuIZ1OPNfIMulSHOjmLuGAEDKzpnV8ZQ=="
       },
       "Serilog.Sinks.Console": {
         "type": "Direct",
@@ -119,9 +119,9 @@
       },
       "YoutubeExplode": {
         "type": "Direct",
-        "requested": "[6.1.0, )",
-        "resolved": "6.1.0",
-        "contentHash": "ZirloBlRv604Cg4ObTRR5mdPnYThe6E1rlkEGUX9O1e4QvoNr8MFhYO/QyCjetByZPICCTT+U/XBJ2Um39CrRQ==",
+        "requested": "[6.1.2, )",
+        "resolved": "6.1.2",
+        "contentHash": "H42d037yQBSYMbUuPNCHSbovF/GkMOCW97o1ReAlordqSqQrT0BpnL21pvxeUm+kbsCzGCvkBY5lJZ4mIywNuQ==",
         "dependencies": {
           "AngleSharp": "0.16.1"
         }
@@ -137,16 +137,16 @@
       },
       "Discord.Net.Commands": {
         "type": "Transitive",
-        "resolved": "3.5.0",
-        "contentHash": "ClTv8aiTlitvS48YatRiTLvgE2f2uKgmHNPVBIuvJBHZO2u4bZCzoN1fid+pZn2sbVOkt8uftlLGzz5DSZlFIA==",
+        "resolved": "3.6.1",
+        "contentHash": "kK7m571yzSzPd93o+n8Z+TfvX62BT1HtOEZIWXKwXWO8itP/sgqBNExjWK/6DOpkbD6+khc2f3rp+TA0rJD88g==",
         "dependencies": {
-          "Discord.Net.Core": "3.5.0"
+          "Discord.Net.Core": "3.6.1"
         }
       },
       "Discord.Net.Core": {
         "type": "Transitive",
-        "resolved": "3.5.0",
-        "contentHash": "rCzzaznMVQ+bLMxOpYwTyqm9V22kMy6BxlQisSxemHZDe2Jedz3Clp/a0dToACLz+Dlp3u+jYUfCBnTz7L6f4g==",
+        "resolved": "3.6.1",
+        "contentHash": "ibVjQiWzgqh0GyP/GXE2kv3TA/9ysmmNFG/WmRE7GepQQAXXGxVUO9IMJ8h14EvIXMQ0m0DktMe5DkUnilo3Ag==",
         "dependencies": {
           "Newtonsoft.Json": "13.0.1",
           "System.Collections.Immutable": "5.0.0",
@@ -156,12 +156,12 @@
       },
       "Discord.Net.Interactions": {
         "type": "Transitive",
-        "resolved": "3.5.0",
-        "contentHash": "wE9+V9DJ7r+1s4euOi4sGPIAt4sD7r+Tk5s9mrlbLCHVQTK4KllAvcrL25bPFI38FuFceREEzFoRlTrekSyB2Q==",
+        "resolved": "3.6.1",
+        "contentHash": "WGOxz6SMUu4WS5b/JdrhlwQletcplBIYqvjFBBDfnqE+uNJqcNGtAdyjLqIILfXGx8aSSSSYZSCeAUa7FZ8Yew==",
         "dependencies": {
-          "Discord.Net.Core": "3.5.0",
-          "Discord.Net.Rest": "3.5.0",
-          "Discord.Net.WebSocket": "3.5.0",
+          "Discord.Net.Core": "3.6.1",
+          "Discord.Net.Rest": "3.6.1",
+          "Discord.Net.WebSocket": "3.6.1",
           "Microsoft.Extensions.DependencyInjection.Abstractions": "5.0.0",
           "System.Collections.Immutable": "5.0.0",
           "System.Reactive": "5.0.0"
@@ -169,28 +169,28 @@
       },
       "Discord.Net.Rest": {
         "type": "Transitive",
-        "resolved": "3.5.0",
-        "contentHash": "BnTdLFuuQsKvCv08VQrD4X1Hw2Xp+MELIRQiDiKfG01IiQlRTN+1gc3LB1zXgn5xBvC0HXjHxwV22GrMD9uKHQ==",
+        "resolved": "3.6.1",
+        "contentHash": "T7RRThIS23roFEJwTL1l7aawjVyn7ZB5yH3tMge0d6TiCzzp4V4FAZ+ArTt19LHRFhPly90v8V3sWqmTMN+5Zg==",
         "dependencies": {
-          "Discord.Net.Core": "3.5.0"
+          "Discord.Net.Core": "3.6.1"
         }
       },
       "Discord.Net.Webhook": {
         "type": "Transitive",
-        "resolved": "3.5.0",
-        "contentHash": "vCIGZS+m88sQDuFmdbUqg+2RIXS/NJWx8ei3MX+ZEYiAvOkDgQfkIlEnU1NKpds6ivTt5GFlv6UzcWubb5VJ1w==",
+        "resolved": "3.6.1",
+        "contentHash": "xikKHIGAIMz0BzHkaTKb48DNpFjKW8mvJjLJSezJ1xQOu+laHNk/hav4qxVtyZz7HSI/vGTkmlq9hKVhWzpaUA==",
         "dependencies": {
-          "Discord.Net.Core": "3.5.0",
-          "Discord.Net.Rest": "3.5.0"
+          "Discord.Net.Core": "3.6.1",
+          "Discord.Net.Rest": "3.6.1"
         }
       },
       "Discord.Net.WebSocket": {
         "type": "Transitive",
-        "resolved": "3.5.0",
-        "contentHash": "LjBOvcP40vJ+dhOtBDi8haEeblPAKpAIqR04NBzTM1/0RVavJZH89ovfSQIk42ygkiOaDV4E2x0Mmh6DRoIYcw==",
+        "resolved": "3.6.1",
+        "contentHash": "hF22Xy7URlVEDQZ69INOgzPvFUsIDfd+r6U+1yF9HWdBn3d4THnvAAhkv1TraSx/T/MKS7g+jvk/HZ3mh5S3aw==",
         "dependencies": {
-          "Discord.Net.Core": "3.5.0",
-          "Discord.Net.Rest": "3.5.0"
+          "Discord.Net.Core": "3.6.1",
+          "Discord.Net.Rest": "3.6.1"
         }
       },
       "Humanizer.Core": {
@@ -200,38 +200,38 @@
       },
       "Microsoft.Data.Sqlite.Core": {
         "type": "Transitive",
-        "resolved": "6.0.3",
-        "contentHash": "3EIhLzG+WeJ2AtmGph8aSA5pH9weDOZ9Fox6oaDSiPvj6TIehzYkdW0ySMAfckTbv8V1vCMeEmtqhwEmyK9fYA==",
+        "resolved": "6.0.5",
+        "contentHash": "NDvPAsJZSptFxB5B5t3a/7UUihO2nPm8nsEG3s2EtnccIotMsQqSkDdak/T/tWQUivzdiy1Q/0jXk97zQgD75Q==",
         "dependencies": {
           "SQLitePCLRaw.core": "2.0.6"
         }
       },
       "Microsoft.EntityFrameworkCore.Abstractions": {
         "type": "Transitive",
-        "resolved": "6.0.3",
-        "contentHash": "7c6wJtTFj7FDe20IVPDKeCzxWIMu+XDpYi7aYuUo6knu4vDeB3N3F0pjAZgXJ96GwTZYBrjOEwnbpYmfapEz/w=="
+        "resolved": "6.0.5",
+        "contentHash": "Q3/fKW6XCTfnDk4fYP2BJZi84cD2SuCPkP3A3QqxvCQcXbX90bfSLzVIsoMXzigHGJgZUJ+Un7QodT5Nvk0+Eg=="
       },
       "Microsoft.EntityFrameworkCore.Analyzers": {
         "type": "Transitive",
-        "resolved": "6.0.3",
-        "contentHash": "Ld9HyVABYor3Tq43/sG2JERL94UnDHJPg5PwpkCW4CWsf/CbxHetdecv+bCXA/Hg4q+44sov0GVl4Ywjk4PnyA=="
+        "resolved": "6.0.5",
+        "contentHash": "QUeDIhs+O+MoDEc3k60mNyVDbwyDURCqZQlZoKShuZUcSfXSrDMbHKuFSxBIDNQBt092qSjfnwf7w0Ua/IB3Zw=="
       },
       "Microsoft.EntityFrameworkCore.Relational": {
         "type": "Transitive",
-        "resolved": "6.0.3",
-        "contentHash": "Dga4OH8QxmPT9APr7ZL5R0TvNADOcjDNNvJa8pU3QbPJ6OvRPTlzqAehfEBow0/NXBTKbIO48b4aIJI4VCO7fg==",
+        "resolved": "6.0.5",
+        "contentHash": "vhAQizlAgvPfurkh9XysNaFc/g3WPXtSka3Y1rXuQdnT//p16CDKt9lO9h+rYmooD+cA7TijSxwqck4GApDT/Q==",
         "dependencies": {
-          "Microsoft.EntityFrameworkCore": "6.0.3",
+          "Microsoft.EntityFrameworkCore": "6.0.5",
           "Microsoft.Extensions.Configuration.Abstractions": "6.0.0"
         }
       },
       "Microsoft.EntityFrameworkCore.Sqlite.Core": {
         "type": "Transitive",
-        "resolved": "6.0.3",
-        "contentHash": "9h4/Icp2jsrhxo6PPeEV0B5UwT24ZwvV1cbdGW7u2YCwl0e8ToBw+IaADtER8l6vwH9y210+oMHmTGOP/kHfyQ==",
+        "resolved": "6.0.5",
+        "contentHash": "4gI0QAy/PInuy3dambikC68mJIodkaxpdFwiqUgBp/pLAxy8hQInuMjSqz4GEX3/mm8emqbax5nNUfDkvnCdAA==",
         "dependencies": {
-          "Microsoft.Data.Sqlite.Core": "6.0.3",
-          "Microsoft.EntityFrameworkCore.Relational": "6.0.3",
+          "Microsoft.Data.Sqlite.Core": "6.0.5",
+          "Microsoft.EntityFrameworkCore.Relational": "6.0.5",
           "Microsoft.Extensions.DependencyModel": "6.0.0"
         }
       },
