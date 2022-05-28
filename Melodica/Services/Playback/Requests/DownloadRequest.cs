@@ -6,10 +6,7 @@ using Melodica.Services.Media;
 namespace Melodica.Services.Playback.Requests;
 
 public class DownloadRequest : IMediaRequest
-{
-    public DownloadRequest(ReadOnlyMemory<char> query) : this(query, new AsyncYoutubeDownloader())
-    { }
-
+{ 
     public DownloadRequest(ReadOnlyMemory<char> query, IAsyncDownloader dl)
     {
         downloader = dl;

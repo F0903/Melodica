@@ -36,7 +36,7 @@ public class PlayableMedia
 
     public static ValueTask<PlayableMedia> FromExisting(MediaInfo info)
     {
-        PlayableMedia? media = new PlayableMedia(info);
+        var media = new PlayableMedia(info);
         return ValueTask.FromResult(media);
     }
 
@@ -58,7 +58,7 @@ public class PlayableMedia
         // Write the media data to file.
         if (Info.DataInfo is null)
         {
-            DataPair? dataPair = await dataGetter(this);
+            var dataPair = await dataGetter(this);
             return Info.DataInfo = await cache.CacheAsync(this, dataPair);
         }
         return Info.DataInfo;

@@ -90,8 +90,8 @@ public class JukeboxInteractionCommands : InteractionModuleBase<SocketInteractio
             {
                 if (i > queue.Length)
                     break;
-                PlayableMedia? song = queue[i - 1];
-                MediaInfo? songInfo = song.Info;
+                var song = queue[i - 1];
+                var songInfo = song.Info;
                 eb.AddField(
                     i == 1 ? "Next:" : i == maxElems ? "And more" : i.ToString(),
                     i == 1 ? $"**{songInfo.Artist} - {songInfo.Title}**" : i == maxElems ? $"Plus {queue.Length - (i - 1)} other songs!" : $"{songInfo.Artist} - {songInfo.Title}",
@@ -105,10 +105,11 @@ public class JukeboxInteractionCommands : InteractionModuleBase<SocketInteractio
     [SlashCommand("next", "Sets the next song to play.")]
     public async Task Next(string query)
     {
-        var request = new DownloadRequest(query.AsMemory());
+        var downloader = Downloaders.DownloaderResolver.GetDownloaderFromQuery(query);
+        var request = new DownloadRequest(query.AsMemory(), downloader);
 
         // Get info to see if the request is actually valid.
-        MediaInfo? info = await request.GetInfoAsync();
+        var info = await request.GetInfoAsync();
 
         var jukebox = Jukebox;
         await jukebox.SetShuffle(false);
@@ -119,7 +120,8 @@ public class JukeboxInteractionCommands : InteractionModuleBase<SocketInteractio
     Task<(IVoiceChannel?, IMediaRequest)> GetPlaybackContext(string query)
     {
         var voice = (Context.User as SocketGuildUser)?.VoiceChannel;
-        var request = new DownloadRequest(query.AsMemory());
+        var downloader = Downloaders.DownloaderResolver.GetDownloaderFromQuery(query);
+        var request = new DownloadRequest(query.AsMemory(), downloader);
         return Task.FromResult(((IVoiceChannel?)voice, (IMediaRequest)request));
     }
 

@@ -11,12 +11,9 @@ namespace Melodica.Services.Downloaders.Spotify;
 
 public class AsyncSpotifyDownloader : IAsyncDownloader
 {
-    private readonly SpotifyClient spotify =
-        new(
-            SpotifyClientConfig
-            .CreateDefault()
-            .WithAuthenticator(
-                new ClientCredentialsAuthenticator(BotConfig.Secrets.SpotifyClientID, BotConfig.Secrets.SpotifyClientSecret)));
+    static readonly SpotifyClient spotify = new(SpotifyClientConfig
+        .CreateDefault()
+        .WithAuthenticator(new ClientCredentialsAuthenticator(BotConfig.Secrets.SpotifyClientID, BotConfig.Secrets.SpotifyClientSecret)));
 
     // Tie this to the default downloader (can't download directly from Spotify)
     static readonly IAsyncDownloader downloader = IAsyncDownloader.Default;
@@ -135,14 +132,14 @@ url.StartsWith("albums");
         };
     }
 
-    async Task<MediaInfo> GetAlbumInfoAsync(ReadOnlyMemory<char> url)
+    static async Task<MediaInfo> GetAlbumInfoAsync(ReadOnlyMemory<char> url)
     {
         string? id = await ParseURLToIdAsyncAsync(url.ToString());
         FullAlbum? album = await spotify.Albums.Get(id);
         return AlbumToMediaInfo(album);
     }
 
-    async Task<MediaInfo> GetPlaylistInfoAsync(ReadOnlyMemory<char> url)
+    static async Task<MediaInfo> GetPlaylistInfoAsync(ReadOnlyMemory<char> url)
     {
         string? id = await ParseURLToIdAsyncAsync(url.ToString());
         FullPlaylist? playlist = await spotify.Playlists.Get(id);
@@ -206,7 +203,7 @@ url.StartsWith("albums");
         return new MediaCollection(GetCollection(), playlistInfo);
     }
 
-    async Task<MediaCollection> DownloadPlaylistAsync(MediaInfo info)
+    static async Task<MediaCollection> DownloadPlaylistAsync(MediaInfo info)
     {
         try
         {

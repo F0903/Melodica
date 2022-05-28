@@ -17,10 +17,10 @@ namespace Melodica.Services.Downloaders.YouTube;
 public class AsyncYoutubeDownloader : IAsyncDownloader
 {
     private static readonly Regex urlRegex = new(@"((http)|(https)):\/\/(www\.)?((youtube\.com\/((watch\?v=)|(playlist\?list=)))|(youtu\.be\/)).+", RegexOptions.Compiled);
-    private readonly YoutubeClient yt = new();
-    private readonly MediaFileCache cache = new("YouTube");
+    private static readonly YoutubeClient yt = new();
+    private static readonly MediaFileCache cache = new("YouTube");
 
-    async Task<TimeSpan> GetTotalDurationAsync(Playlist pl)
+    static async Task<TimeSpan> GetTotalDurationAsync(Playlist pl)
     {
         IAsyncEnumerable<PlaylistVideo>? videos = yt.Playlists.GetVideosAsync(pl.Id);
         TimeSpan ts = new();
@@ -33,7 +33,7 @@ public class AsyncYoutubeDownloader : IAsyncDownloader
         return ts;
     }
 
-    async Task<string> GetPlaylistThumbnail(Playlist pl)
+    static async Task<string> GetPlaylistThumbnail(Playlist pl)
     {
         IAsyncEnumerable<PlaylistVideo>? videos = yt.Playlists.GetVideosAsync(pl.Id);
         PlaylistVideo? video = await videos.FirstAsync();
@@ -69,7 +69,7 @@ public class AsyncYoutubeDownloader : IAsyncDownloader
         };
     }
 
-    async Task<MediaInfo> PlaylistToMetadataAsync(Playlist pl)
+    static async Task<MediaInfo> PlaylistToMetadataAsync(Playlist pl)
     {
         string? author = pl.Author?.ChannelTitle ?? "Unknown Artist";
         (string artist, string newTitle) = pl.Title.AsSpan().SeperateArtistName(author);
@@ -87,8 +87,8 @@ public class AsyncYoutubeDownloader : IAsyncDownloader
     static bool IsUnavailable(Exception ex)
     {
         return ex is YoutubeExplode.Exceptions.VideoUnplayableException ||
-ex is YoutubeExplode.Exceptions.VideoUnavailableException ||
-ex is YoutubeExplode.Exceptions.VideoRequiresPurchaseException;
+               ex is YoutubeExplode.Exceptions.VideoUnavailableException ||
+               ex is YoutubeExplode.Exceptions.VideoRequiresPurchaseException;
     }
 
     static bool IsUrlPlaylist(ReadOnlySpan<char> url)
@@ -101,14 +101,14 @@ ex is YoutubeExplode.Exceptions.VideoRequiresPurchaseException;
         return urlRegex.IsMatch(url.ToString());
     }
 
-    async Task<MediaInfo> GetInfoFromPlaylistUrlAsync(ReadOnlyMemory<char> url)
+    static async Task<MediaInfo> GetInfoFromPlaylistUrlAsync(ReadOnlyMemory<char> url)
     {
         PlaylistId id = PlaylistId.Parse(url.ToString());
         Playlist? playlist = await yt.Playlists.GetAsync(id);
         return await PlaylistToMetadataAsync(playlist);
     }
 
-    async Task<MediaInfo> GetInfoFromUrlAsync(ReadOnlyMemory<char> url)
+    static async Task<MediaInfo> GetInfoFromUrlAsync(ReadOnlyMemory<char> url)
     {
         if (IsUrlPlaylist(url.Span))
         {
@@ -133,14 +133,14 @@ ex is YoutubeExplode.Exceptions.VideoRequiresPurchaseException;
         return VideoToMetadata(video);
     }
 
-    async Task<MediaCollection> DownloadLivestream(MediaInfo info)
+    static async Task<MediaCollection> DownloadLivestream(MediaInfo info)
     {
         string? streamUrl = await yt.Videos.Streams.GetHttpLiveStreamUrlAsync(info.Id ?? throw new NullReferenceException("Id was null."));
         StreamableMedia? media = new(info, streamUrl, "hls");
         return new MediaCollection(media);
     }
 
-    async Task<MediaCollection> DownloadPlaylist(MediaInfo info)
+    static async Task<MediaCollection> DownloadPlaylist(MediaInfo info)
     {
         if (info.Id is null)
             throw new NullReferenceException("Id was null.");
@@ -151,7 +151,7 @@ ex is YoutubeExplode.Exceptions.VideoRequiresPurchaseException;
             if (video is null)
                 continue;
 
-            async Task<DataPair> DataGetter(PlayableMedia self)
+            static async Task<DataPair> DataGetter(PlayableMedia self)
             {
                 StreamManifest? manifest = await yt.Videos.Streams.GetManifestAsync(self.Info.Id);
                 IStreamInfo? streamInfo = manifest.GetAudioOnlyStreams().GetWithHighestBitrate();
@@ -193,7 +193,7 @@ ex is YoutubeExplode.Exceptions.VideoRequiresPurchaseException;
         if (info.Id is null)
             throw new NullReferenceException("Id was null.");
 
-        async Task<DataPair> DataGetter(PlayableMedia self)
+        static async Task<DataPair> DataGetter(PlayableMedia self)
         {
             StreamManifest? manifest = await yt.Videos.Streams.GetManifestAsync(self.Info.Id ?? throw new NullReferenceException("Id was null"));
             IStreamInfo? streamInfo = manifest.GetAudioOnlyStreams().GetWithHighestBitrate() ?? throw new NullReferenceException("Could not get stream from YouTube.");

@@ -1,4 +1,6 @@
 ﻿
+using System.Text;
+
 using Discord;
 
 using Melodica.Services.Media;
@@ -11,15 +13,20 @@ public static class EmbedUtils
     {
         const char InfChar = '\u221E';
 
-        string? description = (info.MediaType == MediaType.Video && collectionInfo != null) ? $"__[{info.Title}]({info.Url})__\n{collectionInfo.Title}" : info.Title;
+        StringBuilder description = new($"[{info.Title}]({info.Url})"); 
+        if(collectionInfo != null)
+        {
+            description.Insert(0, "__"); 
+            description.Append($"__\n{collectionInfo.Title}");
+        }
 
         bool durationUnknown = info.MediaType == MediaType.Livestream || info.Duration == TimeSpan.Zero;
-        string? durationStr = $"{info.Duration}{(info.MediaType != MediaType.Playlist && collectionInfo is not null ? $" | {collectionInfo.Duration}" : "")}";
-        string? footer = durationUnknown ? InfChar.ToString() : durationStr;
+        string durationStr = $"{info.Duration}{(info.MediaType != MediaType.Playlist && collectionInfo is not null ? $" | {collectionInfo.Duration}" : "")}";
+        string footer = durationUnknown ? InfChar.ToString() : durationStr;
 
         Embed? embed = new EmbedBuilder()
                     .WithTitle(info.Artist)
-                    .WithDescription(description)
+                    .WithDescription(description.ToString())
                     .WithFooter(footer)
                     .WithThumbnailUrl(info.ImageUrl)
                     .Build();
