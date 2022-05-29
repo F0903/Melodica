@@ -13,23 +13,17 @@ using Serilog.Events;
 namespace Melodica.Config;
 
 public class BotSettings
-{
-    //REASON: Redundant warning.
-#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+{ 
     public BotSettings(IConfigurationRoot config)
     {
         this.config = config;
         ReadAndSetValues();
     }
-#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
 
     readonly IConfigurationRoot config;
 
     void ReadAndSetValues()
-    {
-        if ((DefaultPrefix = config["defaultPrefix"]) is null)
-            throw new NullReferenceException("defaultPrefix is not defined in user secrets!");
-
+    {  
         string result;
         if ((result = config["cacheSizeMB"]) is null)
             throw new NullReferenceException("cacheSizeMB is not defined in user secrets!");
@@ -51,9 +45,7 @@ public class BotSettings
     public void Reload()
     {
         ReadAndSetValues();
-    }
-
-    public string DefaultPrefix { get; private set; }
+    } 
 
     public int CacheSizeMB { get; private set; }
 

@@ -9,7 +9,7 @@ using Serilog;
 Melodica.Logging.LogManager.Init();
 var bot = new SocketBot();
 
-await bot.ConnectAsync($"{BotConfig.Settings.DefaultPrefix}play | {BotConfig.Settings.DefaultPrefix}help", Discord.ActivityType.Listening, true);
+await bot.ConnectAsync($"🎵", Discord.ActivityType.Listening, true);
 
 void OnStop(object? sender, EventArgs args)
 {

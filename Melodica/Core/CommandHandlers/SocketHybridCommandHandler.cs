@@ -148,11 +148,12 @@ public class SocketHybridCommandHandler : IAsyncCommandHandler
         if (msg.Author.IsBot)
             return;
 
-        SocketCommandContext? context = new(client, msg);
+        var context = new SocketCommandContext(client, msg);
 
         int argPos = 0;
 
-        if (!context.Message.HasStringPrefix(BotConfig.Settings.DefaultPrefix, ref argPos))
+        // Just have it hardcoded. Will be replaced by slash commands.
+        if (!context.Message.HasStringPrefix("m.", ref argPos))
             return;
 
         await commands.ExecuteAsync(context, argPos, ioc);
