@@ -109,7 +109,7 @@ public class Jukebox
 
     static async ValueTask<bool> CheckIfAloneAsync(IAudioChannel channel)
     {
-        var users = await channel.GetUsersAsync().FlattenAsync();
+        var users = await channel.GetUsersAsync().FirstAsync();
         if (!users.IsOverSize(1)) return true;
         else return false;
     }
