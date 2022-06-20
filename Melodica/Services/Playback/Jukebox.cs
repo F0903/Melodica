@@ -109,9 +109,8 @@ public class Jukebox
 
     static async ValueTask<bool> CheckIfAloneAsync(IAudioChannel channel)
     {
-        IReadOnlyCollection<IUser>? users = await channel.GetUsersAsync().FirstAsync();
-        if (!users.IsOverSize(1))
-            return true;
+        var users = await channel.GetUsersAsync().FlattenAsync();
+        if (!users.IsOverSize(1)) return true;
         else return false;
     }
 
@@ -173,7 +172,7 @@ public class Jukebox
         {
             try
             {
-                AloneTimerState timerState = new() { Stop = () => StopAsync(), Channel = channel };
+                AloneTimerState timerState = new() { Stop = StopAsync, Channel = channel };
                 using Timer? aloneTimer = new(static async state =>
                 {
                     AloneTimerState ts = (AloneTimerState)(state ?? throw new NullReferenceException("AloneTimer state parameter cannot be null."));
