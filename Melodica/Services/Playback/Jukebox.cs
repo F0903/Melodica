@@ -178,7 +178,7 @@ public class Jukebox
                     AloneTimerState ts = (AloneTimerState)(state ?? throw new NullReferenceException("AloneTimer state parameter cannot be null."));
                     if (await CheckIfAloneAsync(ts.Channel))
                         await ts.Stop();
-                }, timerState, 0, 20000);
+                }, timerState, 0, 90000);
 
                 WriteData(audio, output, token);
             }
