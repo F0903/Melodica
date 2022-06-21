@@ -1,5 +1,4 @@
-{
-  "defaultPrefix": "m.",
+{ 
   "cacheSizeMB": 500,
   "processPriority": "High",
   "logLevel": "Debug",

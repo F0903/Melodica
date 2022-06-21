@@ -3,18 +3,18 @@
 	<PropertyGroup>
 		<!-- Use lock file to work with GitHub Actions cache -->
 		<RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
-    
+
     <NoWarn>NU1605</NoWarn>
 		<Nullable>enable</Nullable>
 		<OutputType>exe</OutputType>
 		<TargetFramework>net6.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <RunAOTCompilation>true</RunAOTCompilation>
-    <PublishTrimmed>false</PublishTrimmed>
     <ServerGarbageCollection>true</ServerGarbageCollection>
 		<Platforms>x64</Platforms>
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
     <UserSecretsId>2d5cd8ab-c9e8-49d8-aba9-de43cdf59238</UserSecretsId>
+    <PlatformTarget>AnyCPU</PlatformTarget>
 	</PropertyGroup>
 
 	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -31,12 +31,6 @@
 		<TreatWarningsAsErrors>True</TreatWarningsAsErrors>
 		<CheckForOverflowUnderflow>True</CheckForOverflowUnderflow>
 	</PropertyGroup>
-
-	<ItemGroup>
-	  <Compile Remove="Services\Downloaders\Soundcloud\**" />
-	  <EmbeddedResource Remove="Services\Downloaders\Soundcloud\**" />
-	  <None Remove="Services\Downloaders\Soundcloud\**" />
-	</ItemGroup>
 
 	<ItemGroup>
 		<PackageReference Include="Discord.Net" Version="3.7.2" />

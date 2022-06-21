@@ -29,11 +29,11 @@ public class FFmpegAudioProcessor : AudioProcessor
         string path = dataInfo.MediaPath != null ? $"\"{dataInfo.MediaPath}\"" : "pipe:0";
         startingPoint ??= TimeSpan.Zero;
 
-        Process proc = new Process()
+        Process proc = new()
         {
             StartInfo = new ProcessStartInfo()
             {
-                FileName = "ffmpeg.exe",
+                FileName = "ffmpeg",
                 Arguments = $"-y -hide_banner -loglevel error -fflags nobuffer -fflags discardcorrupt -flags low_delay -avioflags direct -strict experimental -vn {format} -ss {startingPoint} -i {path} -f s16le -ac 2 -ar 48000 pipe:1",
                 UseShellExecute = false,
                 RedirectStandardError = false,

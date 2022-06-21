@@ -18,7 +18,7 @@ public static class BotConfig
             .AddJsonFile("settings.json", false, true);
         Configuration = config.Build();
 
-        ChangeToken.OnChange(() => Configuration.GetReloadToken(), OnChange);
+        ChangeToken.OnChange(Configuration.GetReloadToken, OnChange);
         var reloadTkn = Configuration.GetReloadToken();
 
         Secrets = new BotSecrets(Configuration);
