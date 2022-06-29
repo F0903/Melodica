@@ -97,6 +97,16 @@ public class Jukebox
         }
     }
 
+    Task ResetState()
+    {
+        return Task.WhenAll(
+            SetPaused(false),
+            SetLoop(false),
+            SetRepeat(false),
+            SetShuffle(false)
+            );
+    }
+
     public MediaQueue GetQueue()
     {
         return queue;
@@ -227,8 +237,7 @@ public class Jukebox
     {
         if (cancellation is null || (cancellation is not null && cancellation.IsCancellationRequested))
             return;
-
-        await SetLoop(false);
+         
         await ClearAsync();
         cancellation!.Cancel();
         playLock.Wait(5000);
@@ -354,6 +363,7 @@ public class Jukebox
         {
             playLock.Set();
             await player.DisableAllButtonsAsync();
+            await ResetState();
         }
         return PlayResult.Done;
     }
