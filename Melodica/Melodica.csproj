@@ -10,6 +10,7 @@
 		<TargetFramework>net6.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <RunAOTCompilation>true</RunAOTCompilation>
+    <PublishTrimmed>false</PublishTrimmed>
     <ServerGarbageCollection>true</ServerGarbageCollection>
 		<Platforms>x64</Platforms>
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
@@ -34,23 +35,13 @@
 
 	<ItemGroup>
 		<PackageReference Include="Discord.Net" Version="3.7.2" />
-		<PackageReference Include="Microsoft.EntityFrameworkCore" Version="6.0.6" />
-		<PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="6.0.6">
-			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-			<PrivateAssets>all</PrivateAssets>
-		</PackageReference>
-		<PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="6.0.6" />
-		<PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="6.0.6">
-			<PrivateAssets>all</PrivateAssets>
-			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-		</PackageReference>
 		<PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" Version="6.0.1" />
 		<PackageReference Include="Serilog" Version="2.11.0" />
 		<PackageReference Include="Serilog.Sinks.Console" Version="4.0.1" />
 		<PackageReference Include="SoundCloud.Api" Version="3.0.0" />
 		<PackageReference Include="SpotifyAPI.Web" Version="6.2.2" />
 		<PackageReference Include="System.Runtime" Version="4.3.1" />
-		<PackageReference Include="YoutubeExplode" Version="6.1.2" />
+		<PackageReference Include="YoutubeExplode" Version="6.2.0" />
 	</ItemGroup>
 
   <ItemGroup>
