@@ -176,7 +176,7 @@ public class Jukebox
 
     private Task<bool> SendDataAsync(AudioProcessor audio, AudioOutStream output, IAudioChannel channel, CancellationToken token)
     {
-        bool abort = false;
+        bool aborted = false;
 
         void StartWrite()
         {
@@ -185,16 +185,17 @@ public class Jukebox
                 AloneTimerState timerState = new() { Stop = StopAsync, Channel = channel };
                 using Timer? aloneTimer = new(static async state =>
                 {
+                    //TODO: Fix
                     AloneTimerState ts = (AloneTimerState)(state ?? throw new NullReferenceException("AloneTimer state parameter cannot be null."));
                     if (await CheckIfAloneAsync(ts.Channel))
                         await ts.Stop();
-                }, timerState, 0, 90000);
+                }, timerState, 0, 60000);
 
                 WriteData(audio, output, token);
             }
             catch (Exception)
             {
-                abort = true;
+                aborted = true;
             }
             finally
             {
@@ -214,7 +215,7 @@ public class Jukebox
         if (skipRequested)
             skipRequested = false;
 
-        return Task.FromResult(abort); // Returns true if an error occured.
+        return Task.FromResult(aborted); // Returns true if an error occured.
     }
 
     async ValueTask DisconnectAsync()
@@ -287,16 +288,11 @@ public class Jukebox
         }
 
         await currentPlayer!.SetSongEmbedAsync(media.Info, media.CollectionInfo);
-        await audio.StartProcess(dataInfo, startingPoint);
-
-        //TESTING TO SEE IF THIS GETS CALLED ON RANDOM DISCONNECTS
-        audioClient!.Disconnected += async (ex) =>
-        {
-            await DisconnectAsync();
-        };
+        await audio.StartProcess(dataInfo, startingPoint); 
 
         bool faulted = await SendDataAsync(audio, output, channel, token);
 
+        // If media is temporary (3rd party download) then delete the file.
         if ((!Loop || faulted) && media is TempMedia temp)
         {
             // Dispose first so ffmpeg releases file handles.
