@@ -150,8 +150,9 @@ public class Jukebox
             durationTimer.Start();
         }
 
-        int count = 0;
-        Span<byte> buffer = stackalloc byte[1024];
+        int count;
+        const int BUFSIZE = 20 * 1024;
+        Span<byte> buffer = new byte[BUFSIZE];
         Stream? input = audio.GetOutput();
         durationTimer.Start();
         while ((count = input!.Read(buffer)) != 0)
