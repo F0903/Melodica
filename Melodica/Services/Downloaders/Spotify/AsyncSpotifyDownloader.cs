@@ -16,20 +16,20 @@ public class AsyncSpotifyDownloader : IAsyncDownloader
         .WithAuthenticator(new ClientCredentialsAuthenticator(BotConfig.Secrets.SpotifyClientID, BotConfig.Secrets.SpotifyClientSecret)));
 
     // Tie this to the default downloader (can't download directly from Spotify)
-    static readonly IAsyncDownloader downloader = IAsyncDownloader.Default;
+    static readonly IAsyncDownloader downloader = DownloaderResolver.DefaultDownloader;
 
     static readonly Regex urlRegex = new(@"((http)|(https)):\/\/((api)|(open))\.spotify\.com(\/v\d+)?\/.+\/.+", RegexOptions.Compiled);
 
     static bool IsUrlPlaylist(ReadOnlySpan<char> url)
     {
         return url.Contains("playlist", StringComparison.Ordinal) ||
-url.StartsWith("playlists");
+               url.StartsWith("playlists");
     }
 
     static bool IsUrlAlbum(ReadOnlySpan<char> url)
     {
         return url.Contains("album", StringComparison.Ordinal) ||
-url.StartsWith("albums");
+               url.StartsWith("albums");
     }
 
     public bool IsUrlSupported(ReadOnlySpan<char> url)

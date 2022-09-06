@@ -4,16 +4,16 @@
     "net6.0": {
       "Discord.Net": {
         "type": "Direct",
-        "requested": "[3.7.2, )",
-        "resolved": "3.7.2",
-        "contentHash": "FAiCLGu5rp6+Z10FjKbbJ6LLpKjbMBGpozixkJlz5LZvuncPx8f4AWFAw7pBecKUuAh983qiZ8CZYZcNXsI4qg==",
+        "requested": "[3.8.0, )",
+        "resolved": "3.8.0",
+        "contentHash": "jmn1Y6Qaf5qK+Yw2aEKgxBrNjYNtoaeLtWgqDgcSULDbtQxgKKo33BHMUTFQ1Shy4O8to7PNFB0yGA7orU83Ow==",
         "dependencies": {
-          "Discord.Net.Commands": "3.7.2",
-          "Discord.Net.Core": "3.7.2",
-          "Discord.Net.Interactions": "3.7.2",
-          "Discord.Net.Rest": "3.7.2",
-          "Discord.Net.WebSocket": "3.7.2",
-          "Discord.Net.Webhook": "3.7.2"
+          "Discord.Net.Commands": "3.8.0",
+          "Discord.Net.Core": "3.8.0",
+          "Discord.Net.Interactions": "3.8.0",
+          "Discord.Net.Rest": "3.8.0",
+          "Discord.Net.WebSocket": "3.8.0",
+          "Discord.Net.Webhook": "3.8.0"
         }
       },
       "Microsoft.Extensions.Configuration.UserSecrets": {
@@ -36,9 +36,9 @@
       },
       "Serilog.Sinks.Console": {
         "type": "Direct",
-        "requested": "[4.0.1, )",
-        "resolved": "4.0.1",
-        "contentHash": "apLOvSJQLlIbKlbx+Y2UDHSP05kJsV7mou+fvJoRGs/iR+jC22r8cuFVMjjfVxz/AD4B2UCltFhE1naRLXwKNw==",
+        "requested": "[4.1.0, )",
+        "resolved": "4.1.0",
+        "contentHash": "K6N5q+5fetjnJPvCmkWOpJ/V8IEIoMIB1s86OzBrbxwTyHxdx3pmz4H+8+O/Dc/ftUX12DM1aynx/dDowkwzqg==",
         "dependencies": {
           "Serilog": "2.10.0"
         }
@@ -56,9 +56,9 @@
       },
       "SpotifyAPI.Web": {
         "type": "Direct",
-        "requested": "[6.2.2, )",
-        "resolved": "6.2.2",
-        "contentHash": "WNAqhQYg1xXNCPZ4QKavwFl05wXZ8XiHT89u3SrMeGlPPpJETzKmfozk5BoLaTCRV2HyceGERRrHOvK/BNtC2A==",
+        "requested": "[6.3.0, )",
+        "resolved": "6.3.0",
+        "contentHash": "CeiIf5uvkzLfOIA2SlHj6Tvzq9tgeu1Fs2SZTwTMllsoxlx8FtAAkAIw0cEynCqU3FxWlh0Pzv69Pw7F8WSvxQ==",
         "dependencies": {
           "Newtonsoft.Json": "13.0.1"
         }
@@ -75,9 +75,9 @@
       },
       "YoutubeExplode": {
         "type": "Direct",
-        "requested": "[6.2.0, )",
-        "resolved": "6.2.0",
-        "contentHash": "oH5kst4w1QkUwRjJco0alF57JOmFofSGlPkr4OniODB8R6MEyRWn1xFg3JS2wFYd6scZluoXRDhM3/uyUjO9/g==",
+        "requested": "[6.2.1, )",
+        "resolved": "6.2.1",
+        "contentHash": "VL8EzTwe8ttO0mGWh5EGGsK7A6mDUS71Ayl8mjS+oj/36W8kaWikMeOvcUyUko0Iy5X4atGcL76TMWDcc4Kj9g==",
         "dependencies": {
           "AngleSharp": "0.17.0"
         }
@@ -93,16 +93,16 @@
       },
       "Discord.Net.Commands": {
         "type": "Transitive",
-        "resolved": "3.7.2",
-        "contentHash": "aOEGP04X64htsTr7ozKj9qHpmvOfitSw5gfR8Tw9TX0+FdswD2LNL2KfOAIaxRKZmRTm34aXQEJrVq0K8AptmQ==",
+        "resolved": "3.8.0",
+        "contentHash": "ck5AZ6A3b3minigdRuJJDE8w4Qc1BbMDjwU99y5cYxfmGl6+mHkO3KSOdd1c4Zh21G8ebsWzuQaEhvYzjv7Z1Q==",
         "dependencies": {
-          "Discord.Net.Core": "3.7.2"
+          "Discord.Net.Core": "3.8.0"
         }
       },
       "Discord.Net.Core": {
         "type": "Transitive",
-        "resolved": "3.7.2",
-        "contentHash": "apwswc6LjN4dj3u27SO3Hr56Jzl91wzReahieoD7IQhV+BJQaRxhTRiEEWFTrBzHfeFHEOQ7r6vZnra3zeFhKA==",
+        "resolved": "3.8.0",
+        "contentHash": "Q8ELwL3zBE6Fd+ih2xxKh+stYy3oWW6uEGzprla1eDvkLOxmXkuICH4Wobt3h2vUoTK3p7lizlI/PO5Uh5j6GA==",
         "dependencies": {
           "Newtonsoft.Json": "13.0.1",
           "System.Collections.Immutable": "5.0.0",
@@ -112,12 +112,12 @@
       },
       "Discord.Net.Interactions": {
         "type": "Transitive",
-        "resolved": "3.7.2",
-        "contentHash": "dwGhEdDB0yyo/lGtjwIDVZmsuD52di7lIZWu/sBtvvA05dMgYZq5S6ILdsBXjOyaHeXd+EV4YMlj2VS/rm619w==",
+        "resolved": "3.8.0",
+        "contentHash": "DqDO088Ee1Tc0GG9WSCxReVw7sk+FBckFXW410EDB1EOIRCxIZQnInk1Elaf8wb5y3+3VAXnvXX4qqh9LA4E4Q==",
         "dependencies": {
-          "Discord.Net.Core": "3.7.2",
-          "Discord.Net.Rest": "3.7.2",
-          "Discord.Net.WebSocket": "3.7.2",
+          "Discord.Net.Core": "3.8.0",
+          "Discord.Net.Rest": "3.8.0",
+          "Discord.Net.WebSocket": "3.8.0",
           "Microsoft.Extensions.DependencyInjection.Abstractions": "5.0.0",
           "System.Collections.Immutable": "5.0.0",
           "System.Reactive": "5.0.0"
@@ -125,28 +125,28 @@
       },
       "Discord.Net.Rest": {
         "type": "Transitive",
-        "resolved": "3.7.2",
-        "contentHash": "dyp8YaMBNJ837EH1KNz2PNGZqc2y71WFd1+pdldF+pLQJ3Gf/+V7685paAR7bQw7yFNyqEBR/QRBCNp+QIQ7Wg==",
+        "resolved": "3.8.0",
+        "contentHash": "uGkmkKzeS03JEdYMmPMHhKDrFYSHcGXpT/67YMunze6hCg1hJ0pPdDSlZ3qibp2BjmHbXwvkW5deb4ek1LSX6g==",
         "dependencies": {
-          "Discord.Net.Core": "3.7.2"
+          "Discord.Net.Core": "3.8.0"
         }
       },
       "Discord.Net.Webhook": {
         "type": "Transitive",
-        "resolved": "3.7.2",
-        "contentHash": "da3i/mTq2y7mfj3xlHH14S4PivHbflJCVr8OUikJtQrxBOxvPkqP7ZYk3Y9S28q0K8qik+TUjCcjL5gELKrh/A==",
+        "resolved": "3.8.0",
+        "contentHash": "R7aXA13bFBuLQi6sdnTO8/f018uqxMCOrk6T2a/daS0+Nrs6STIYGFDKXSL9vOFJsWld1c6OlcfHMzs0j6RvKQ==",
         "dependencies": {
-          "Discord.Net.Core": "3.7.2",
-          "Discord.Net.Rest": "3.7.2"
+          "Discord.Net.Core": "3.8.0",
+          "Discord.Net.Rest": "3.8.0"
         }
       },
       "Discord.Net.WebSocket": {
         "type": "Transitive",
-        "resolved": "3.7.2",
-        "contentHash": "pYCd6ET44ADaNiyEw82TaJnR7TKYHfrKCytWFWMPL5faJhoh260avZn3Hwunlf331lEQ0f4K1CujPkQbNuq7kQ==",
+        "resolved": "3.8.0",
+        "contentHash": "5VpgOpKCyW5Xr1dL3lQqkqTkxwdSodgtNlYQ5A+zsHUVS+G1O0kvL9aGrBn0ZO44f8rnouloApgqV0SCMPeqgg==",
         "dependencies": {
-          "Discord.Net.Core": "3.7.2",
-          "Discord.Net.Rest": "3.7.2"
+          "Discord.Net.Core": "3.8.0",
+          "Discord.Net.Rest": "3.8.0"
         }
       },
       "Microsoft.Extensions.Configuration": {
@@ -360,70 +360,6 @@
         "type": "Transitive",
         "resolved": "4.5.0",
         "contentHash": "okurQJO6NRE/apDIP23ajJ0hpiNmJ+f0BwOlB/cSqTLQlw5upkf+5+96+iG2Jw40G1fCVCyPz/FhIABUjMR+RQ=="
-      }
-    },
-    "net6.0/linux-arm64": {
-      "System.Runtime": {
-        "type": "Direct",
-        "requested": "[4.3.1, )",
-        "resolved": "4.3.1",
-        "contentHash": "abhfv1dTK6NXOmu4bgHIONxHyEqFjW8HwXPmpY9gmll+ix9UNo4XDcmzJn6oLooftxNssVHdJC1pGT9jkSynQg==",
-        "dependencies": {
-          "Microsoft.NETCore.Platforms": "1.1.1",
-          "Microsoft.NETCore.Targets": "1.1.3",
-          "runtime.any.System.Runtime": "4.3.0"
-        }
-      },
-      "runtime.any.System.Runtime": {
-        "type": "Transitive",
-        "resolved": "4.3.0",
-        "contentHash": "fRS7zJgaG9NkifaAxGGclDDoRn9HC7hXACl52Or06a/fxdzDajWb5wov3c6a+gVSlekRoexfjwQSK9sh5um5LQ==",
-        "dependencies": {
-          "System.Private.Uri": "4.3.0"
-        }
-      },
-      "runtime.native.System": {
-        "type": "Transitive",
-        "resolved": "4.3.0",
-        "contentHash": "c/qWt2LieNZIj1jGnVNsE2Kl23Ya2aSTBuXMD6V7k9KWr6l16Tqdwq+hJScEpWER9753NWC8h96PaVNY5Ld7Jw==",
-        "dependencies": {
-          "Microsoft.NETCore.Platforms": "1.1.0",
-          "Microsoft.NETCore.Targets": "1.1.0"
-        }
-      },
-      "runtime.unix.System.Private.Uri": {
-        "type": "Transitive",
-        "resolved": "4.3.0",
-        "contentHash": "ooWzobr5RAq34r9uan1r/WPXJYG1XWy9KanrxNvEnBzbFdQbMG7Y3bVi4QxR7xZMNLOxLLTAyXvnSkfj5boZSg==",
-        "dependencies": {
-          "runtime.native.System": "4.3.0"
-        }
-      },
-      "System.Private.Uri": {
-        "type": "Transitive",
-        "resolved": "4.3.0",
-        "contentHash": "I4SwANiUGho1esj4V4oSlPllXjzCZDE+5XXso2P03LW2vOda2Enzh8DWOxwN6hnrJyp314c7KuVu31QYhRzOGg==",
-        "dependencies": {
-          "Microsoft.NETCore.Platforms": "1.1.0",
-          "Microsoft.NETCore.Targets": "1.1.0",
-          "runtime.unix.System.Private.Uri": "4.3.0"
-        }
-      },
-      "System.Text.Encoding.CodePages": {
-        "type": "Transitive",
-        "resolved": "5.0.0",
-        "contentHash": "NyscU59xX6Uo91qvhOs2Ccho3AR2TnZPomo1Z0K6YpyztBPM/A5VbkzOO19sy3A3i1TtEnTxA7bCe3Us+r5MWg==",
-        "dependencies": {
-          "Microsoft.NETCore.Platforms": "5.0.0"
-        }
-      },
-      "System.Text.Encodings.Web": {
-        "type": "Transitive",
-        "resolved": "6.0.0",
-        "contentHash": "Vg8eB5Tawm1IFqj4TVK1czJX89rhFxJo9ELqc/Eiq0eXy13RK00eubyU6TJE6y+GQXjyV5gSfiewDUZjQgSE0w==",
-        "dependencies": {
-          "System.Runtime.CompilerServices.Unsafe": "6.0.0"
-        }
       }
     }
   }

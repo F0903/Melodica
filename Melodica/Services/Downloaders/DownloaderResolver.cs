@@ -7,8 +7,11 @@ namespace Melodica.Services.Downloaders;
 
 public static class DownloaderResolver
 {
-    private static IEnumerable<IAsyncDownloader>? cachedSubtypes;
+    static IEnumerable<IAsyncDownloader>? cachedSubtypes;
 
+    public static IAsyncDownloader DefaultDownloader { get; private set; } = new YouTube.AsyncYoutubeDownloader();
+
+    // Try to replace this with the new static functions on interfaces in next C# version?
     private static IEnumerable<IAsyncDownloader> GetDownloaderSubTypesDynamically()
     {
         var asm = Assembly.GetExecutingAssembly();
@@ -29,7 +32,7 @@ public static class DownloaderResolver
     public static IAsyncDownloader GetDownloaderFromQuery(string query)
     {
         if (!query.IsUrl())
-            return IAsyncDownloader.Default;
+            return DefaultDownloader;
 
         cachedSubtypes ??= GetDownloaderSubTypesDynamically();
         foreach (IAsyncDownloader type in cachedSubtypes)

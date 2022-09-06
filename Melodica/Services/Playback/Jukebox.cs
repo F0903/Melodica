@@ -120,8 +120,7 @@ public class Jukebox
     static async ValueTask<bool> CheckIfAloneAsync(IAudioChannel channel)
     {
         var users = await channel.GetUsersAsync().FirstAsync();
-        if (!users.IsOverSize(1)) return true;
-        else return false;
+        return !users.IsOverSize(1);
     }
 
     static void SendSilence(AudioOutStream output, int frames = 100)
@@ -151,7 +150,7 @@ public class Jukebox
         }
 
         int count;
-        const int BUFSIZE = 20 * 1024;
+        const int BUFSIZE = 4 * 1024;
         Span<byte> buffer = new byte[BUFSIZE];
         Stream? input = audio.GetOutput();
         durationTimer.Start();
@@ -190,7 +189,7 @@ public class Jukebox
                     AloneTimerState ts = (AloneTimerState)(state ?? throw new NullReferenceException("AloneTimer state parameter cannot be null."));
                     if (await CheckIfAloneAsync(ts.Channel))
                         await ts.Stop();
-                }, timerState, 0, 60000);
+                }, timerState, 0, 30000);
 
                 WriteData(audio, output, token);
             }
@@ -249,8 +248,8 @@ public class Jukebox
     {
         if (queue.IsEmpty)
             return;
-        skipRequested = true;
-        return;
+        SetLoop(false).Wait();
+        skipRequested = true; 
     }
 
     public ValueTask ClearAsync()
