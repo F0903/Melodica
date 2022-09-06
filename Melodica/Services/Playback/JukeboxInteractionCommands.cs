@@ -205,9 +205,9 @@ public class JukeboxInteractionCommands : InteractionModuleBase<SocketInteractio
 
     [SlashCommand("abort", "Force the player to stop if the buttons aren't working.")]
     public async Task Abort()
-    {
+    { 
+        await RespondAsync("Stopping...", ephemeral: true);
         await Jukebox.StopAsync();
-        await RespondAsync("Stopped...", ephemeral: true);
     }
 
     [ComponentInteraction("player_stop")]
@@ -219,47 +219,47 @@ public class JukeboxInteractionCommands : InteractionModuleBase<SocketInteractio
             return;
         }
 
-        var jukebox = Jukebox;
-        await jukebox.StopAsync();
         await DeferAsync();
+        var jukebox = Jukebox;
+        await jukebox.StopAsync(); 
     }
 
     [ComponentInteraction("player_shuffle")]
     public async Task Shuffle()
     {
+        await DeferAsync();
         var jukebox = Jukebox;
         await jukebox.SetShuffle(!jukebox.Shuffle);
-        await DeferAsync();
     }
 
     [ComponentInteraction("player_repeat")]
     public async Task Repeat()
     {
+        await DeferAsync();
         var jukebox = Jukebox;
         await jukebox.SetRepeat(!jukebox.Repeat);
-        await DeferAsync();
     }
 
     [ComponentInteraction("player_loop")]
     public async Task Loop()
     {
+        await DeferAsync();
         var jukebox = Jukebox;
         await jukebox.SetLoop(!jukebox.Loop);
-        await DeferAsync();
     }
 
     [ComponentInteraction("player_togglepause")]
     public async Task TogglePause()
     {
+        await DeferAsync();
         var jukebox = Jukebox;
         await jukebox.SetPaused(!jukebox.Paused);
-        await DeferAsync();
     }
 
     [ComponentInteraction("player_skip")]
     public async Task Skip()
     {
-        Jukebox.Skip();
         await DeferAsync();
+        Jukebox.Skip();
     }
 }
