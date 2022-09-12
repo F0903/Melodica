@@ -3,7 +3,7 @@
 using Melodica.Config;
 using Melodica.Services.Downloaders.Exceptions;
 using Melodica.Services.Media;
-using Melodica.Utility.Extensions;
+using Melodica.Utility;
 
 using SpotifyAPI.Web;
 

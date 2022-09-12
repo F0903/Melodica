@@ -1,7 +1,7 @@
 ﻿using System.Reflection;
 
 using Melodica.Services.Downloaders.Exceptions;
-using Melodica.Utility.Extensions;
+using Melodica.Utility;
 
 namespace Melodica.Services.Downloaders;
 

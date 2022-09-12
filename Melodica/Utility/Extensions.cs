@@ -6,7 +6,7 @@ using Discord.WebSocket;
 
 using Melodica.Dependencies;
 
-namespace Melodica.Utility.Extensions;
+namespace Melodica.Utility;
 
 public static class Extensions
 {
@@ -99,7 +99,7 @@ public static class Extensions
 
     public static bool CheckForUser(this SocketGuild guild, string user)
     {
-        return AutoGetUser(guild, user) != null;
+        return guild.AutoGetUser(user) != null;
     }
 
     public static SocketGuildUser? AutoGetUser(this SocketGuild guild, string user)

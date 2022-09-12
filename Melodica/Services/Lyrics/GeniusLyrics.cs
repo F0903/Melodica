@@ -6,8 +6,8 @@ using AngleSharp;
 using AngleSharp.Dom;
 
 using Melodica.Core.Exceptions;
-using Melodica.Utility.Extensions;
 using Melodica.Config;
+using Melodica.Utility;
 
 namespace Melodica.Services.Lyrics;
 

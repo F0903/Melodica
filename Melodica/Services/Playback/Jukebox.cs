@@ -8,7 +8,7 @@ using Melodica.Services.Audio;
 using Melodica.Services.Downloaders.Exceptions;
 using Melodica.Services.Media;
 using Melodica.Services.Playback.Requests;
-using Melodica.Utility.Extensions;
+using Melodica.Utility;
 
 namespace Melodica.Services.Playback;
 

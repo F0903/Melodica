@@ -1,6 +1,6 @@
 ﻿using System.Text.Json;
 
-using Melodica.Utility.Extensions;
+using Melodica.Utility;
 
 namespace Melodica.Services.Wiki;
 

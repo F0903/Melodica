@@ -2,7 +2,7 @@
 using Discord;
 using Discord.Commands;
 
-using Melodica.Utility.Extensions;
+using Melodica.Utility;
 
 namespace Melodica.Core.Commands;
 

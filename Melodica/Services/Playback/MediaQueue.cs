@@ -1,6 +1,6 @@
 ﻿
 using Melodica.Services.Media;
-using Melodica.Utility.Extensions;
+using Melodica.Utility;
 
 namespace Melodica.Services.Playback;
 
