@@ -9,7 +9,7 @@ using SpotifyAPI.Web;
 
 namespace Melodica.Services.Downloaders.Spotify;
 
-public class AsyncSpotifyDownloader : IAsyncDownloader
+public sealed class AsyncSpotifyDownloader : IAsyncDownloader
 {
     static readonly SpotifyClient spotify = new(SpotifyClientConfig
         .CreateDefault()

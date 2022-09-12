@@ -4,7 +4,7 @@ using Melodica.Utility.Extensions;
 
 namespace Melodica.Services.Playback.Requests;
 
-public class AttachmentMediaRequest : IMediaRequest
+public sealed class AttachmentMediaRequest : IMediaRequest
 {
     public AttachmentMediaRequest(Discord.Attachment[] attachments)
     {

@@ -6,7 +6,7 @@ using Melodica.Services.Media;
 
 namespace Melodica.Services.Playback;
 
-public class PlayerButton
+public sealed class PlayerButton
 {
     private PlayerButton(string id)
     {
@@ -26,7 +26,7 @@ public class PlayerButton
     public static implicit operator string(PlayerButton playerButton) => playerButton.id;
 }
 
-public class Player
+public sealed class Player
 {
     public Player(IDiscordInteraction interaction)
     {

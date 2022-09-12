@@ -2,7 +2,7 @@
 
 namespace Melodica.Services.Playback;
 
-public class PlaybackStopwatch : Stopwatch
+public sealed class PlaybackStopwatch : Stopwatch
 {
     private TimeSpan offset;
 

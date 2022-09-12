@@ -5,7 +5,7 @@ using Melodica.Services.Media;
 
 namespace Melodica.Services.Playback.Requests;
 
-public class DownloadRequest : IMediaRequest
+public sealed class DownloadRequest : IMediaRequest
 { 
     public DownloadRequest(ReadOnlyMemory<char> query, IAsyncDownloader dl)
     {

@@ -4,7 +4,7 @@ using Melodica.Utility.Extensions;
 
 namespace Melodica.Services.Playback.Requests;
 
-public class URLMediaRequest : IMediaRequest
+public sealed class URLMediaRequest : IMediaRequest
 {
     public URLMediaRequest(string mediaUrl)
     {

@@ -4,7 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Melodica.Services.Lyrics;
 
-public class LyricsModule : DependencyModule
+public sealed class LyricsModule : DependencyModule
 {
     public override IServiceCollection Load() =>
         new ServiceCollection()

@@ -1,6 +1,6 @@
 ﻿namespace Melodica.Services.Media;
 
-public class StreamableMedia : PlayableMedia
+public sealed class StreamableMedia : PlayableMedia
 {
     public StreamableMedia(MediaInfo info, string url, string format)
         : base(info, null, _ => Task.FromResult(new DataPair(null, new(format))), null)

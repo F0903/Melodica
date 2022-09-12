@@ -10,7 +10,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Melodica.Core;
 
-public class CoreModule : DependencyModule
+public sealed class CoreModule : DependencyModule
 {
     public override IServiceCollection Load() =>
         new ServiceCollection()

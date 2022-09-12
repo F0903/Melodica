@@ -6,7 +6,7 @@ using Melodica.Utility.Extensions;
 
 namespace Melodica.Core.Commands;
 
-public class MiscCommands : ModuleBase<SocketCommandContext>
+public sealed class MiscCommands : ModuleBase<SocketCommandContext>
 {
     public MiscCommands(CommandService commandService)
     {

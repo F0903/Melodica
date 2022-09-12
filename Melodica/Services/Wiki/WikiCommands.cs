@@ -6,7 +6,7 @@ using Melodica.Services.Playback;
 
 namespace Melodica.Services.Wiki;
 
-public class WikiCommands : ModuleBase<SocketCommandContext>
+public sealed class WikiCommands : ModuleBase<SocketCommandContext>
 {
     public WikiCommands(IWikiProvider wiki)
     {

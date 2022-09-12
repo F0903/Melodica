@@ -12,7 +12,7 @@ using Serilog;
 
 namespace Melodica.Core.CommandHandlers;
 
-public class SocketHybridCommandHandler : IAsyncCommandHandler
+public sealed class SocketHybridCommandHandler : IAsyncCommandHandler
 {
     public SocketHybridCommandHandler(DiscordSocketClient client)
     {

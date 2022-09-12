@@ -12,7 +12,7 @@ using Serilog.Events;
 
 namespace Melodica.Config;
 
-public class BotSettings
+public sealed class BotSettings
 { 
     public BotSettings(IConfigurationRoot config)
     {

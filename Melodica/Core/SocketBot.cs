@@ -10,7 +10,7 @@ using Serilog;
 
 namespace Melodica.Core;
 
-public class SocketBot
+public sealed class SocketBot
 {
     public SocketBot()
     {

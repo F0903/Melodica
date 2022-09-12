@@ -3,7 +3,7 @@ using System.Runtime.Serialization.Formatters.Binary;
 
 namespace Melodica.Services.Serialization;
 
-public class BinarySerializer : IAsyncSerializer
+public sealed class BinarySerializer : IAsyncSerializer
 {
     // Disable redundant warning. These files are only stored locally and contain no sensitive info.
 #pragma warning disable SYSLIB0011

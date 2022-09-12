@@ -4,7 +4,7 @@ using Melodica.Utility.Extensions;
 
 namespace Melodica.Services.Wiki;
 
-public class WikipediaWiki : IWikiProvider
+public sealed class WikipediaWiki : IWikiProvider
 {
     static readonly HttpClient http = new() { DefaultRequestHeaders = { { "Accept", "application/json; charset=utf-8" } } };
 

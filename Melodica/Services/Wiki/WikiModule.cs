@@ -4,7 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Melodica.Services.Wiki;
 
-public class WikiModule : DependencyModule
+public sealed class WikiModule : DependencyModule
 {
     public override IServiceCollection Load() =>
         new ServiceCollection()

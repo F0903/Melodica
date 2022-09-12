@@ -8,7 +8,7 @@ using Melodica.Utility.Extensions;
 
 namespace Melodica.Services.Caching;
 
-public class MediaFileCache : IMediaCache
+public sealed class MediaFileCache : IMediaCache
 {
     public MediaFileCache(string dirName)
     {

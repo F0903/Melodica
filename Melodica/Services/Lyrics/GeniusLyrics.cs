@@ -11,7 +11,7 @@ using Melodica.Config;
 
 namespace Melodica.Services.Lyrics;
 
-public class GeniusLyrics : ILyricsProvider
+public sealed class GeniusLyrics : ILyricsProvider
 {
     static readonly HttpClient http = new() { DefaultRequestHeaders = { { "Authorization", $"Bearer {BotConfig.Secrets.GeniusToken}" } } };
 

@@ -2,7 +2,7 @@
 
 namespace Melodica.Services.Media;
 
-public class MediaCollection : IEnumerable<LazyMedia>
+public sealed class MediaCollection : IEnumerable<LazyMedia>
 {
     public MediaCollection(IEnumerable<LazyMedia> media, MediaInfo collectionInfo)
     {

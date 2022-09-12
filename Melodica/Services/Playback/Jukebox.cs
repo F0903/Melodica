@@ -18,7 +18,7 @@ readonly struct AloneTimerState
     public readonly IAudioChannel Channel { get; init; }
 }
 
-public class Jukebox
+public sealed class Jukebox
 {
     public Jukebox(IMessageChannel callbackChannel)
     {

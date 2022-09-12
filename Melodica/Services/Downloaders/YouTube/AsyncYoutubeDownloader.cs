@@ -14,7 +14,7 @@ using YoutubeExplode.Videos.Streams;
 
 namespace Melodica.Services.Downloaders.YouTube;
 
-public class AsyncYoutubeDownloader : IAsyncDownloader
+public sealed class AsyncYoutubeDownloader : IAsyncDownloader
 {
     private static readonly Regex urlRegex = new(@"((http)|(https)):\/\/(www\.)?((youtube\.com\/((watch\?v=)|(playlist\?list=)))|(youtu\.be\/)).+", RegexOptions.Compiled);
     private static readonly YoutubeClient yt = new();

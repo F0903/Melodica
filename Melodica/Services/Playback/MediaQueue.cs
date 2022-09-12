@@ -4,7 +4,7 @@ using Melodica.Utility.Extensions;
 
 namespace Melodica.Services.Playback;
 
-public class MediaQueue
+public sealed class MediaQueue
 {
     static readonly Random rng = new();
 

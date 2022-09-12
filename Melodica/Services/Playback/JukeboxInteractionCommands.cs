@@ -11,7 +11,7 @@ using Melodica.Services.Playback.Requests;
 
 namespace Melodica.Services.Playback;
 
-public class JukeboxInteractionCommands : InteractionModuleBase<SocketInteractionContext>
+public sealed class JukeboxInteractionCommands : InteractionModuleBase<SocketInteractionContext>
 {
     Jukebox? cachedJukebox;
     private Jukebox Jukebox => cachedJukebox ??=

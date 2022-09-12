@@ -2,7 +2,7 @@
 using Microsoft.Extensions.Primitives;
 
 namespace Melodica.Config;
-public class BotSecrets
+public sealed class BotSecrets
 {
     //REASON: Redundant warning.
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.

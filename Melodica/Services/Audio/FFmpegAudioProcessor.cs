@@ -6,7 +6,7 @@ using Melodica.Services.Media;
 
 namespace Melodica.Services.Audio;
 
-public class FFmpegAudioProcessor : AudioProcessor
+public sealed class FFmpegAudioProcessor : AudioProcessor
 {
     public FFmpegAudioProcessor() : base(input, output)
     { }

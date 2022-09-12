@@ -7,7 +7,7 @@ using Melodica.Services.Playback;
 
 namespace Melodica.Services.Lyrics;
 
-public class LyricsCommands : ModuleBase<SocketCommandContext>
+public sealed class LyricsCommands : ModuleBase<SocketCommandContext>
 {
     public LyricsCommands(ILyricsProvider lyrics)
     {
