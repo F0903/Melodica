@@ -44,6 +44,10 @@
 		<PackageReference Include="YoutubeExplode" Version="6.2.4" />
 	</ItemGroup>
 
+	<ItemGroup>
+	  <ProjectReference Include="..\Soundclouder\Soundclouder\Soundclouder.csproj" />
+	</ItemGroup>
+
   <ItemGroup>
 		<None Update="ffmpeg.exe">
 			<CopyToOutputDirectory>Always</CopyToOutputDirectory>

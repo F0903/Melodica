@@ -9,16 +9,17 @@ using SpotifyAPI.Web;
 
 namespace Melodica.Services.Downloaders.Spotify;
 
-public sealed class AsyncSpotifyDownloader : IAsyncDownloader
+public sealed partial class AsyncSpotifyDownloader : IAsyncDownloader
 {
+    [GeneratedRegex("((http)|(https)):\\/\\/((api)|(open))\\.spotify\\.com(\\/v\\d+)?\\/.+\\/.+", RegexOptions.IgnoreCase | RegexOptions.Compiled | RegexOptions.Singleline)]
+    private static partial Regex SpotifyUrlRegex(); 
+
     static readonly SpotifyClient spotify = new(SpotifyClientConfig
         .CreateDefault()
         .WithAuthenticator(new ClientCredentialsAuthenticator(BotConfig.Secrets.SpotifyClientID, BotConfig.Secrets.SpotifyClientSecret)));
 
     // Tie this to the default downloader (can't download directly from Spotify)
     static readonly IAsyncDownloader downloader = DownloaderResolver.DefaultDownloader;
-
-    static readonly Regex urlRegex = new(@"((http)|(https)):\/\/((api)|(open))\.spotify\.com(\/v\d+)?\/.+\/.+", RegexOptions.Compiled);
 
     static bool IsUrlPlaylist(ReadOnlySpan<char> url)
     {
@@ -34,7 +35,7 @@ public sealed class AsyncSpotifyDownloader : IAsyncDownloader
 
     public bool IsUrlSupported(ReadOnlySpan<char> url)
     {
-        return urlRegex.IsMatch(url.ToString());
+        return SpotifyUrlRegex().IsMatch(url.ToString());
     }
 
     static string SeperateArtistNames(List<SimpleArtist> artists)
@@ -228,9 +229,7 @@ public sealed class AsyncSpotifyDownloader : IAsyncDownloader
             throw new UrlNotSupportedException("Spotify does not support livestreams.");
 
         if (info.MediaType == MediaType.Playlist)
-        {
             return await DownloadPlaylistAsync(info);
-        }
 
         PlayableMedia? media = await DownloadFromProviderAsync(info);
         return new MediaCollection(media);
@@ -239,22 +238,16 @@ public sealed class AsyncSpotifyDownloader : IAsyncDownloader
     public async Task<MediaInfo> GetInfoAsync(ReadOnlyMemory<char> query)
     {
         if (!query.IsUrl())
-        {
             throw new UrlNotSupportedException("Must be a valid spotify URL.");
-        }
 
         if (IsUrlPlaylist(query.Span))
-        {
             return await GetPlaylistInfoAsync(query);
-        }
 
         if (IsUrlAlbum(query.Span))
-        {
             return await GetAlbumInfoAsync(query);
-        }
 
         string? id = await ParseURLToIdAsyncAsync(query.Span);
         FullTrack? track = await spotify.Tracks.Get(id);
         return FullTrackToMediaInfo(track);
-    }
+    } 
 }

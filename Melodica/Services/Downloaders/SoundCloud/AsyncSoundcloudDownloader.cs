@@ -4,9 +4,10 @@ using Melodica.Services.Media;
 
 namespace Melodica.Services.Downloaders.SoundCloud;
 
-internal sealed class AsyncSoundcloudDownloader : IAsyncDownloader
+internal sealed partial class AsyncSoundcloudDownloader : IAsyncDownloader
 {
-    readonly Regex urlRegex = new(@"((https)|(http)):\/\/soundcloud\.com\/.+\/.+\?", RegexOptions.Compiled);
+    [GeneratedRegex("((https)|(http)):\\/\\/soundcloud\\.com\\/.+\\/.+\\?", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.Singleline)]
+    private static partial Regex SoundcloudUrlRegex(); 
 
     public Task<MediaCollection> DownloadAsync(MediaInfo info)
     {
@@ -20,6 +21,6 @@ internal sealed class AsyncSoundcloudDownloader : IAsyncDownloader
 
     public bool IsUrlSupported(ReadOnlySpan<char> url)
     {
-        return urlRegex.IsMatch(url.ToString());
-    }
+        return SoundcloudUrlRegex().IsMatch(url.ToString());
+    } 
 }

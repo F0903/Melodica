@@ -11,7 +11,7 @@ using Melodica.Utility;
 
 namespace Melodica.Services.Lyrics;
 
-public sealed class GeniusLyrics : ILyricsProvider
+public sealed partial class GeniusLyrics : ILyricsProvider
 {
     static readonly HttpClient http = new() { DefaultRequestHeaders = { { "Authorization", $"Bearer {BotConfig.Secrets.GeniusToken}" } } };
 
@@ -37,12 +37,10 @@ public sealed class GeniusLyrics : ILyricsProvider
 
         StringBuilder str = new(200);
         foreach (IElement? item in lyricElements)
-        {
             str.Append(item.InnerHtml);
-        }
         str.Replace("<br>", "\n");
 
-        string? finalStr = Regex.Replace(str.ToString(), @"<(?!\s*br\s*\/?)[^>]+>", "");
+        string? finalStr = LyricsBrElementRegex().Replace(str.ToString(), "");
         return finalStr;
     }
 
@@ -84,4 +82,7 @@ public sealed class GeniusLyrics : ILyricsProvider
         LyricsInfo lyrics = await SearchForSongAsync(query);
         return lyrics;
     }
+
+    [GeneratedRegex("<(?!\\s*br\\s*\\/?)[^>]+>")]
+    private static partial Regex LyricsBrElementRegex();
 }

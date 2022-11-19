@@ -8,7 +8,7 @@ using Melodica.Dependencies;
 
 namespace Melodica.Utility;
 
-public static class Extensions
+public static partial class Extensions
 {
     private static readonly char[] customIllegalChars =
     {
@@ -120,20 +120,21 @@ public static class Extensions
         return outStr;
     }
 
-    static readonly Regex urlRegex = new(@"((http)|(https)):\/\/.+", RegexOptions.Compiled);
+    [GeneratedRegex("((http)|(https)):\\/\\/.+", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.Singleline)]
+    private static partial Regex UrlRegex(); 
 
     public static bool IsUrl(this ReadOnlySpan<char> str)
     {
-        return urlRegex.IsMatch(str.ToString());
+        return UrlRegex().IsMatch(str.ToString());
     }
 
     public static bool IsUrl(this ReadOnlyMemory<char> str)
     {
-        return urlRegex.IsMatch(str.ToString());
+        return UrlRegex().IsMatch(str.ToString());
     }
 
     public static bool IsUrl(this string str)
     {
-        return urlRegex.IsMatch(str);
-    }
+        return UrlRegex().IsMatch(str);
+    } 
 }

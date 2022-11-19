@@ -14,9 +14,11 @@ using YoutubeExplode.Videos.Streams;
 
 namespace Melodica.Services.Downloaders.YouTube;
 
-public sealed class AsyncYoutubeDownloader : IAsyncDownloader
+public sealed partial class AsyncYoutubeDownloader : IAsyncDownloader
 {
-    private static readonly Regex urlRegex = new(@"((http)|(https)):\/\/(www\.)?((youtube\.com\/((watch\?v=)|(playlist\?list=)))|(youtu\.be\/)).+", RegexOptions.Compiled);
+    [GeneratedRegex("((http)|(https)):\\/\\/(www\\.)?((youtube\\.com\\/((watch\\?v=)|(playlist\\?list=)))|(youtu\\.be\\/)).+", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.Singleline)]
+    private static partial Regex YoutubeUrlRegex();
+     
     private static readonly YoutubeClient yt = new();
     private static readonly MediaFileCache cache = new("YouTube");
 
@@ -98,7 +100,7 @@ public sealed class AsyncYoutubeDownloader : IAsyncDownloader
 
     public bool IsUrlSupported(ReadOnlySpan<char> url)
     {
-        return urlRegex.IsMatch(url.ToString());
+        return YoutubeUrlRegex().IsMatch(url.ToString());
     }
 
     static async Task<MediaInfo> GetInfoFromPlaylistUrlAsync(ReadOnlyMemory<char> url)
@@ -111,9 +113,7 @@ public sealed class AsyncYoutubeDownloader : IAsyncDownloader
     static async Task<MediaInfo> GetInfoFromUrlAsync(ReadOnlyMemory<char> url)
     {
         if (IsUrlPlaylist(url.Span))
-        {
             return await GetInfoFromPlaylistUrlAsync(url);
-        }
 
         VideoId id = VideoId.Parse(url.ToString());
         Video? video = await yt.Videos.GetAsync(id);
@@ -123,9 +123,7 @@ public sealed class AsyncYoutubeDownloader : IAsyncDownloader
     public async Task<MediaInfo> GetInfoAsync(ReadOnlyMemory<char> query)
     {
         if (query.IsUrl())
-        {
             return await GetInfoFromUrlAsync(query);
-        }
 
         IAsyncEnumerable<YoutubeExplode.Search.VideoSearchResult>? videos = yt.Search.GetVideosAsync(query.ToString());
         YoutubeExplode.Search.VideoSearchResult? result = await videos.FirstAsync();
@@ -181,14 +179,10 @@ public sealed class AsyncYoutubeDownloader : IAsyncDownloader
     public async Task<MediaCollection> DownloadAsync(MediaInfo info)
     {
         if (info.MediaType == MediaType.Playlist)
-        {
             return await DownloadPlaylist(info);
-        }
 
         if (info.MediaType == MediaType.Livestream)
-        {
             return await DownloadLivestream(info);
-        }
 
         if (info.Id is null)
             throw new NullReferenceException("Id was null.");
@@ -204,5 +198,5 @@ public sealed class AsyncYoutubeDownloader : IAsyncDownloader
 
         PlayableMedia? media = new(info, null, DataGetter, cache);
         return new MediaCollection(media);
-    }
+    } 
 }
