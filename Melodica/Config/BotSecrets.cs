@@ -17,16 +17,28 @@ public sealed class BotSecrets
 
     void ReadAndSetValues()
     {
-        if ((DiscordToken = config["discordToken"]) is null)
+        string? token;
+
+        token = config["discordToken"];
+        if (token is null)
             throw new NullReferenceException("discordToken is not defined in user secrets!");
+        DiscordToken = token;
 
-        if ((SpotifyClientSecret = config["spotifySecret"]) is null)
+        token = config["spotifySecret"];
+        if (token is null)
             throw new NullReferenceException("spotifySecret is not defined in user secrets!");
-        if ((SpotifyClientID = config["spotifyID"]) is null)
-            throw new NullReferenceException("spotifyID is not defined in user secrets!");
+        SpotifyClientSecret = token;
 
-        if ((GeniusToken = config["geniusToken"]) is null)
+
+        token = config["spotifyID"];
+        if (token is null)
+            throw new NullReferenceException("spotifyID is not defined in user secrets!");
+        SpotifyClientID = token;
+
+        token = config["geniusToken"];
+        if (token is null)
             throw new NullReferenceException("geniusToken is not defined in user secrets!");
+        GeniusToken = token;
     }
 
     public void Reload()

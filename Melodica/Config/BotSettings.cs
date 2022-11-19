@@ -24,7 +24,7 @@ public sealed class BotSettings
 
     void ReadAndSetValues()
     {  
-        string result;
+        string? result;
         if ((result = config["cacheSizeMB"]) is null)
             throw new NullReferenceException("cacheSizeMB is not defined in user secrets!");
         CacheSizeMB = int.Parse(result.AsSpan());
