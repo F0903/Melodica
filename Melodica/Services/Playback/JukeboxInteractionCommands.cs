@@ -178,9 +178,16 @@ public sealed class JukeboxInteractionCommands : InteractionModuleBase<SocketInt
         var jukebox = Jukebox;
         if (jukebox.Playing)
         {
-            var info = await request.GetInfoAsync();
-            var embed = EmbedUtils.CreateMediaEmbed(info, null);
-            await RespondAsync("The following media will be queued:", embed: embed, ephemeral: true);
+            try
+            {
+                var info = await request.GetInfoAsync();
+                var embed = EmbedUtils.CreateMediaEmbed(info, null);
+                await RespondAsync("The following media will be queued:", embed: embed, ephemeral: true);
+            } catch (Exception ex)
+            {
+                await RespondAsync($"Error occured getting media info: {ex}");
+                return;
+            }
         }
         else
         {
@@ -200,6 +207,10 @@ public sealed class JukeboxInteractionCommands : InteractionModuleBase<SocketInt
         catch (EmptyChannelException)
         {
             await ModifyOriginalResponseAsync(x => x.Content = "All users have left the channel. Disconnecting...");
+        }
+        catch (Exception ex)
+        {
+            await ModifyOriginalResponseAsync(x => x.Content = $"Encountered unknown error: {ex}");
         }
     }
 

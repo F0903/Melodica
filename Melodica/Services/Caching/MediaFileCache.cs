@@ -211,24 +211,25 @@ public sealed class MediaFileCache : IMediaCache
         if (pruneCache)
             await PruneCacheAsync();
 
-        MediaInfo? info = med.Info;
-        string? id = info.Id ?? throw new NullReferenceException("Media ID was null.");
+        var info = med.Info;
+        var id = info.Id ?? throw new NullReferenceException("Media ID was null.");
         try { cache.Add(id, new(med, 1)); }
         catch (ArgumentException) { }
 
-        string? fileLegalId = id.ReplaceIllegalCharacters();
+        var fileLegalId = id.ReplaceIllegalCharacters();
 
         // Write to file.
-        using Stream? dataStream = data.Data;
+        using var dataStream = data.Data;
         if (dataStream is null)
             throw new NullReferenceException("Data stream was null.");
 
-        string? format = data.Format;
-        string? fileExt = $".{format}";
+        var format = data.Format;
+        var fileExt = $".{format}";
         string mediaLocation = Path.Combine(cacheLocation, fileLegalId + fileExt);
-        using FileStream? file = File.OpenWrite(mediaLocation);
+        using var file = File.OpenWrite(mediaLocation); 
+        dataStream.Position = 0;
         await dataStream.CopyToAsync(file);
-        DataInfo? dataInfo = info.DataInfo = new(format, mediaLocation);
+        DataInfo dataInfo = info.DataInfo = new(format, mediaLocation);
 
         // Serialize the metadata.
         string metaLocation = Path.Combine(cacheLocation, fileLegalId + MediaInfo.MetaFileExtension);

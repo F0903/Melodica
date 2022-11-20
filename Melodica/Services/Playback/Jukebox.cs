@@ -123,7 +123,7 @@ public sealed class Jukebox
         return !users.IsOverSize(1);
     }
 
-    static void SendSilence(AudioOutStream output, int frames = 100)
+    static void SendSilence(AudioOutStream output, int frames = 124)
     {
         const int channels = 2;
         const int bits = 16;
@@ -149,9 +149,8 @@ public sealed class Jukebox
             durationTimer.Start();
         }
 
-        int count;
-        const int BUFSIZE = 4 * 1024;
-        Span<byte> buffer = new byte[BUFSIZE];
+        int count; 
+        Span<byte> buffer = new byte[4 * 1024];
         Stream? input = audio.GetOutput();
         durationTimer.Start();
         while ((count = input!.Read(buffer)) != 0)
@@ -169,7 +168,7 @@ public sealed class Jukebox
                 break;
             }
 
-            output.Write(buffer[0..count]);
+            output.Write(buffer[..count]);
         }
         SendSilence(output);
     }
@@ -268,8 +267,8 @@ public sealed class Jukebox
 
     async Task PlayNextAsync(IAudioChannel channel, AudioOutStream output, CancellationToken token, TimeSpan? startingPoint = null)
     {
-        using FFmpegAudioProcessor? audio = new();
-        PlayableMedia? media = await queue.DequeueAsync();
+        using FFmpegAudioProcessor audio = new();
+        PlayableMedia media = await queue.DequeueAsync();
         if (media is null)
             throw new CriticalException("Song from queue was null.");
 

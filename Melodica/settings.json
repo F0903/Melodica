@@ -1,5 +1,5 @@
 { 
-  "cacheSizeMB": 500,
+  "cacheSizeMB": 1000,
   "processPriority": "High",
   "logLevel": "Debug",
   "slashCommandDebugGuild": 153896159834800129

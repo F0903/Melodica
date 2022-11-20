@@ -1,14 +1,17 @@
 ﻿
+using Melodica.Services.Audio;
 using Melodica.Services.Caching;
 
 namespace Melodica.Services.Media;
 
+// Format string just gets passed along raw to FFmpeg.
 public record DataPair(Stream? Data, string Format);
 
 public delegate Task<DataPair> DataGetter(PlayableMedia media);
 
 public class PlayableMedia
 {
+    // Should be a seperate class.
     private PlayableMedia(MediaInfo meta)
     {
         Info = meta;
@@ -32,8 +35,9 @@ public class PlayableMedia
     MediaInfo? collectionInfo;
     public MediaInfo? CollectionInfo { get => collectionInfo; set => collectionInfo = value; }
 
-    public MediaInfo Info { get; set; }
+    public MediaInfo Info { get; set; }  
 
+    // Should be a seperate class.
     public static ValueTask<PlayableMedia> FromExisting(MediaInfo info)
     {
         var media = new PlayableMedia(info);
@@ -58,7 +62,7 @@ public class PlayableMedia
         // Write the media data to file.
         if (Info.DataInfo is null)
         {
-            var dataPair = await dataGetter(this);
+            var dataPair = await dataGetter(this); 
             return Info.DataInfo = await cache.CacheAsync(this, dataPair);
         }
         return Info.DataInfo;

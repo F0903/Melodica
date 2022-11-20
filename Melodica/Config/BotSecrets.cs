@@ -39,6 +39,11 @@ public sealed class BotSecrets
         if (token is null)
             throw new NullReferenceException("geniusToken is not defined in user secrets!");
         GeniusToken = token;
+
+        token = config["soundcloudClientID"];
+        if (token is null)
+            throw new NullReferenceException("soundcloudClientID is not defined in user secrets!");
+        SoundcloudClientID = token;
     }
 
     public void Reload()
@@ -53,4 +58,6 @@ public sealed class BotSecrets
     public string SpotifyClientID { get; private set; }
 
     public string GeniusToken { get; private set; }
+
+    public string SoundcloudClientID { get; private set; }
 }

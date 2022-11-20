@@ -14,14 +14,14 @@ internal static class LogManager
             .WriteTo.Console()
             .CreateLogger();
 
-        BotConfig.OnConfigChanged += ReconfigureLogLevel;
+        BotConfig.OnConfigChanged += ReconfigureLogLevel; 
     }
 
-    static readonly LoggingLevelSwitch logLevelSwitch = new(BotConfig.Settings.LogLevel);
+    static readonly LoggingLevelSwitch logLevelSwitch = new(BotConfig.Settings.LogLevel); 
 
     static void ReconfigureLogLevel()
     {
         var logLevel = logLevelSwitch.MinimumLevel = BotConfig.Settings.LogLevel;
-        Log.Information("Reconfigured Log MinimumLevel to {LogLevel}", logLevel);
+        Log.Information($"Reconfigured Log MinimumLevel to {logLevel}", logLevel);
     }
 }
