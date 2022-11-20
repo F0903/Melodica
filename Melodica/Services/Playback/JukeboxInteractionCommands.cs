@@ -199,11 +199,14 @@ public sealed class JukeboxInteractionCommands : InteractionModuleBase<SocketInt
 
             var player = new Player(Context.Interaction);
             var result = await jukebox.PlayAsync(request, voice, player);
-            var msg = result switch
-            {
-                Jukebox.PlayResult.Error => "The media was not available!",
-                _ => null,
-            };
+            switch (result)
+            { 
+                case Jukebox.PlayResult.Error:
+                    await ModifyOriginalResponseAsync(x => x.Content = "An error occurred playing the media.");
+                    break;
+                default:
+                    break;
+            } 
         }
         catch (EmptyChannelException)
         {
