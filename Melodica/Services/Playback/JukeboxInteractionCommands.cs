@@ -155,47 +155,48 @@ public sealed class JukeboxInteractionCommands : InteractionModuleBase<SocketInt
 
     [SlashCommand("play", "Starts playing a song.")]
     public async Task Play(string query)
-    {
-        var (voice, request) = await GetPlaybackContext(query);
-        if (voice is null)
-        {
-            await RespondAsync("You need to be in a voice channel!", ephemeral: true);
-            return;
-        }
-
-        if (!GuildPermissionsChecker.CheckVoicePermission(Context.Guild, Context.Client.CurrentUser, voice))
-        {
-            await RespondAsync("I don't have permission to connect and speak in this channel :(", ephemeral: true);
-            return;
-        }
-
+    {  
         if (query is null)
         {
             await RespondAsync("You need to specify a url, search query or upload a file.", ephemeral: true);
             return;
         }
-
-        var jukebox = Jukebox;
-        if (jukebox.Playing)
-        {
-            try
-            {
-                var info = await request.GetInfoAsync();
-                var embed = EmbedUtils.CreateMediaEmbed(info, null);
-                await RespondAsync("The following media will be queued:", embed: embed, ephemeral: true);
-            } catch (Exception ex)
-            {
-                await RespondAsync($"Error occured getting media info: {ex}");
-                return;
-            }
-        }
-        else
-        {
-            await DeferAsync(); // Command can take a long time.
-        }
-
+ 
         try
         {
+            var (voice, request) = await GetPlaybackContext(query);
+            if (voice is null)
+            {
+                await RespondAsync("You need to be in a voice channel!", ephemeral: true);
+                return;
+            }
+
+            if (!GuildPermissionsChecker.CheckVoicePermission(Context.Guild, Context.Client.CurrentUser, voice))
+            {
+                await RespondAsync("I don't have permission to connect and speak in this channel :(", ephemeral: true);
+                return;
+            }
+
+            var jukebox = Jukebox;
+            if (jukebox.Playing)
+            {
+                try
+                {
+                    var info = await request.GetInfoAsync();
+                    var embed = EmbedUtils.CreateMediaEmbed(info, null);
+                    await RespondAsync("The following media will be queued:", embed: embed, ephemeral: true);
+                }
+                catch (Exception ex)
+                {
+                    await RespondAsync($"Error occured getting media info: {ex}");
+                    return;
+                }
+            }
+            else
+            {
+                await DeferAsync(); // Command can take a long time.
+            }
+
             var player = new Player(Context.Interaction);
             var result = await jukebox.PlayAsync(request, voice, player);
             var msg = result switch
@@ -210,7 +211,7 @@ public sealed class JukeboxInteractionCommands : InteractionModuleBase<SocketInt
         }
         catch (Exception ex)
         {
-            await ModifyOriginalResponseAsync(x => x.Content = $"Encountered unknown error: {ex}");
+            await ModifyOriginalResponseAsync(x => x.Content = $"Error: {ex.Message}");
         }
     }
 

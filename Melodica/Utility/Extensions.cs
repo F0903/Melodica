@@ -120,7 +120,7 @@ public static partial class Extensions
         return outStr;
     }
 
-    [GeneratedRegex("((http)|(https)):\\/\\/.+", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.Singleline)]
+    [GeneratedRegex(@"((http)|(https)):\/\/.+", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.Singleline)]
     private static partial Regex UrlRegex(); 
 
     public static bool IsUrl(this ReadOnlySpan<char> str)

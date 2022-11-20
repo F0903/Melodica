@@ -11,7 +11,7 @@ namespace Melodica.Services.Downloaders.Spotify;
 
 public sealed partial class AsyncSpotifyDownloader : IAsyncDownloader
 {
-    [GeneratedRegex("((http)|(https)):\\/\\/((api)|(open))\\.spotify\\.com(\\/v\\d+)?\\/.+\\/.+", RegexOptions.IgnoreCase | RegexOptions.Compiled | RegexOptions.Singleline)]
+    [GeneratedRegex(@"((http)|(https)):\/\/((api)|(open))\.spotify\.com(\/v\d+)?\/.+\/.+", RegexOptions.IgnoreCase | RegexOptions.Compiled | RegexOptions.Singleline)]
     private static partial Regex SpotifyUrlRegex(); 
 
     static readonly SpotifyClient spotify = new(SpotifyClientConfig

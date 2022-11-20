@@ -134,7 +134,7 @@ public sealed class Jukebox
         output.Flush();
     }
 
-    void WriteData(AudioProcessor audio, AudioOutStream output, CancellationToken token)
+    void WriteData(Stream input, AudioOutStream output, CancellationToken token)
     {
         bool BreakConditions() => token.IsCancellationRequested || skipRequested;
 
@@ -149,9 +149,8 @@ public sealed class Jukebox
             durationTimer.Start();
         }
 
-        int count; 
-        Span<byte> buffer = new byte[4 * 1024];
-        Stream? input = audio.GetOutput();
+        int count;  
+        Span<byte> buffer = new byte[4 * 1024]; 
         durationTimer.Start();
         while ((count = input!.Read(buffer)) != 0)
         {
@@ -173,11 +172,11 @@ public sealed class Jukebox
         SendSilence(output);
     }
 
-    private Task<bool> SendDataAsync(AudioProcessor audio, AudioOutStream output, IAudioChannel channel, CancellationToken token)
+    private Task<bool> SendDataAsync(DataInfo data, AudioOutStream output, IAudioChannel channel, CancellationToken token)
     {
         bool aborted = false;
 
-        void StartWrite()
+        async void StartWrite()
         {
             try
             {
@@ -190,7 +189,10 @@ public sealed class Jukebox
                         await ts.Stop();
                 }, timerState, 0, 30000);
 
-                WriteData(audio, output, token);
+                var mediaPath = data.MediaPath ?? throw new NullReferenceException("MediaPath was not specified. (internal error)");
+                using IAsyncAudioProcessor audio = data.Format == "s16le" ? new RawProcessor(mediaPath) : new FFmpegProcessor(mediaPath, data.Format);
+                using var input = await audio.ProcessAsync();
+                WriteData(input, output, token);
             }
             catch (Exception)
             {
@@ -266,8 +268,7 @@ public sealed class Jukebox
     }
 
     async Task PlayNextAsync(IAudioChannel channel, AudioOutStream output, CancellationToken token, TimeSpan? startingPoint = null)
-    {
-        using FFmpegAudioProcessor audio = new();
+    { 
         PlayableMedia media = await queue.DequeueAsync();
         if (media is null)
             throw new CriticalException("Song from queue was null.");
@@ -286,17 +287,12 @@ public sealed class Jukebox
             return;
         }
 
-        await currentPlayer!.SetSongEmbedAsync(media.Info, media.CollectionInfo);
-        await audio.StartProcess(dataInfo, startingPoint); 
-
-        bool faulted = await SendDataAsync(audio, output, channel, token);
+        await currentPlayer!.SetSongEmbedAsync(media.Info, media.CollectionInfo); 
+        bool faulted = await SendDataAsync(dataInfo, output, channel, token);
 
         // If media is temporary (3rd party download) then delete the file.
         if ((!Loop || faulted) && media is TempMedia temp)
-        {
-            // Dispose first so ffmpeg releases file handles.
-            audio.Dispose();
-            await audio.WaitForExit();
+        { 
             temp.DiscardTempMedia();
         }
 

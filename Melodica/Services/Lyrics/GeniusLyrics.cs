@@ -83,6 +83,6 @@ public sealed partial class GeniusLyrics : ILyricsProvider
         return lyrics;
     }
 
-    [GeneratedRegex("<(?!\\s*br\\s*\\/?)[^>]+>")]
+    [GeneratedRegex(@"<(?!\s*br\s*\/?)[^>]+>")]
     private static partial Regex LyricsBrElementRegex();
 }

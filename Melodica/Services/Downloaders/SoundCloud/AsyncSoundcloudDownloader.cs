@@ -14,7 +14,7 @@ namespace Melodica.Services.Downloaders.SoundCloud;
 
 internal sealed partial class AsyncSoundcloudDownloader : IAsyncDownloader
 {
-    [GeneratedRegex("((https)|(http)):\\/\\/soundcloud\\.com\\/.+\\/.+\\?", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.Singleline)]
+    [GeneratedRegex(@"(((https)|(http)):\/\/)?soundcloud\.com\/{1}.+\/{1}.+", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.Singleline)]
     private static partial Regex SoundcloudUrlRegex();
 
     private static readonly SearchClient search = new(new ClientInfo { ClientId = BotConfig.Secrets.SoundcloudClientID });
@@ -79,9 +79,8 @@ internal sealed partial class AsyncSoundcloudDownloader : IAsyncDownloader
         {
             using var http = new HttpClient();
             var streamUrl = (string)x.Info.Passthrough!;
-            using var ffmpeg = new FFmpegAudioProcessor();
-            await ffmpeg.StartProcess(new("hls", streamUrl));
-            using var output = ffmpeg.GetOutput()!;
+            using var ffmpeg = new FFmpegProcessor(streamUrl, "hls");
+            using var output = await ffmpeg.ProcessAsync();
             var converted = new MemoryStream();
             await output.CopyToAsync(converted);
             return new DataPair(converted, "s16le");
