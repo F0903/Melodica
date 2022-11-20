@@ -15,6 +15,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2.4.0
       
+      - name: Init Submodules
+        run: git submodule init & git submodule update  
+      
       - name: Check .NET Cache
         id: dotnet-cache
         uses: actions/cache@v2.1.7
