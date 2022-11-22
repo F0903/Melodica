@@ -11,16 +11,26 @@ using Melodica.Utility;
 
 namespace Melodica.Services.Lyrics;
 
+public class LyricsException : Exception
+{
+    public LyricsException(string? msg = null, Exception? inner = null) : base(msg, inner) { }
+}
+
+public class LyricsNotFoundException : LyricsException
+{
+    public LyricsNotFoundException(string query) : base($"No results found for lyrics search. Query was: ```{query}```", null) { }
+}
+
 public sealed partial class GeniusLyrics : ILyricsProvider
 {
     static readonly HttpClient http = new() { DefaultRequestHeaders = { { "Authorization", $"Bearer {BotConfig.Secrets.GeniusToken}" } } };
 
     private static async Task<string> ParseLyricsAsync(string url)
     {
-        IConfiguration? config = Configuration.Default.WithDefaultLoader();
-        IBrowsingContext? context = BrowsingContext.New(config);
+        var config = Configuration.Default.WithDefaultLoader();
+        using var context = BrowsingContext.New(config);
 
-        using IDocument? doc = await context.OpenAsync(url);
+        using var doc = await context.OpenAsync(url);
 
         IHtmlCollection<IElement>? lyricElements = null;
         int tries = 0;
@@ -35,25 +45,25 @@ public sealed partial class GeniusLyrics : ILyricsProvider
             ++tries;
         }
 
-        StringBuilder str = new(200);
+        var strBuf = new StringBuilder(200);
         foreach (IElement? item in lyricElements)
-            str.Append(item.InnerHtml);
-        str.Replace("<br>", "\n");
+            strBuf.Append(item.InnerHtml);
+        strBuf.Replace("<br>", "\n");
 
-        string? finalStr = LyricsBrElementRegex().Replace(str.ToString(), "");
+        var finalStr = LyricsBrElementRegex().Replace(strBuf.ToString(), "");
         return finalStr;
     }
 
     private static async Task<LyricsInfo> SearchForSongAsync(string query)
     {
-        string? fixedQuery = query.FixURLWhitespace();
+        var fixedQuery = query.UrlFriendlyfy();
 
-        HttpResponseMessage? req = await http.GetAsync($"https://api.genius.com/search?q={fixedQuery}");
+        using var req = await http.GetAsync($"https://api.genius.com/search?q={fixedQuery}");
 
-        Stream? responseStream = req.EnsureSuccessStatusCode().Content.ReadAsStream();
-        using JsonDocument? fullResponse = await JsonDocument.ParseAsync(responseStream);
+        using var responseStream = req.EnsureSuccessStatusCode().Content.ReadAsStream();
+        using var fullResponse = await JsonDocument.ParseAsync(responseStream);
 
-        JsonElement responseSection = fullResponse.RootElement.GetProperty("response");
+        var responseSection = fullResponse.RootElement.GetProperty("response");
 
         JsonElement GetElement(int index = 0)
         {
@@ -61,25 +71,25 @@ public sealed partial class GeniusLyrics : ILyricsProvider
 
             JsonElement hit;
             try { hit = responseSection.GetProperty("hits")[index]; }
-            catch { throw new CriticalException($"No results found for lyrics search. Query was: {query}"); }
-            JsonElement hitType = hit.GetProperty("type");
+            catch { throw new LyricsNotFoundException(query); }
+            var hitType = hit.GetProperty("type");
             if (hitType.GetString() != "song")
                 return GetElement(index++);
             else
                 return hit.GetProperty("result");
         }
 
-        JsonElement songInfo = GetElement();
-        string songTitle = songInfo.GetProperty("full_title").GetString() ?? throw new NullReferenceException("Could not convert JSON property to string.");
-        string songImg = songInfo.GetProperty("header_image_url").GetString() ?? throw new NullReferenceException("Could not convert JSON property to string.");
-        string songLyrics = await ParseLyricsAsync(songInfo.GetProperty("url").GetString() ?? throw new NullReferenceException("Could not convert JSON property to string."));
+        var songInfo = GetElement();
+        var songTitle = songInfo.GetProperty("full_title").GetString() ?? throw new NullReferenceException("Could not convert JSON property to string.");
+        var songImg = songInfo.GetProperty("header_image_url").GetString() ?? throw new NullReferenceException("Could not convert JSON property to string.");
+        var songLyrics = await ParseLyricsAsync(songInfo.GetProperty("url").GetString() ?? throw new NullReferenceException("Could not convert JSON property to string."));
 
         return new LyricsInfo { Image = songImg, Title = songTitle, Lyrics = songLyrics };
     }
 
     public async Task<LyricsInfo> GetLyricsAsync(string query)
     {
-        LyricsInfo lyrics = await SearchForSongAsync(query);
+        var lyrics = await SearchForSongAsync(query);
         return lyrics;
     }
 

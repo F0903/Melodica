@@ -11,7 +11,7 @@ using Melodica.Services.Playback.Requests;
 
 namespace Melodica.Services.Playback;
 
-public sealed class JukeboxInteractionCommands : InteractionModuleBase<SocketInteractionContext>
+public sealed class JukeboxCommands : InteractionModuleBase<SocketInteractionContext>
 {
     Jukebox? cachedJukebox;
     private Jukebox Jukebox => cachedJukebox ??=
@@ -155,72 +155,67 @@ public sealed class JukeboxInteractionCommands : InteractionModuleBase<SocketInt
 
     [SlashCommand("play", "Starts playing a song.")]
     public async Task Play(string query)
-    {  
+    {
         if (query is null)
         {
             await RespondAsync("You need to specify a url, search query or upload a file.", ephemeral: true);
             return;
         }
- 
+        var (voice, request) = await GetPlaybackContext(query);
+        if (voice is null)
+        {
+            await RespondAsync("You need to be in a voice channel!", ephemeral: true);
+            return;
+        }
+
+        if (!GuildPermissionsChecker.CheckVoicePermission(Context.Guild, Context.Client.CurrentUser, voice))
+        {
+            await RespondAsync("I don't have permission to connect and speak in this channel :(", ephemeral: true);
+            return;
+        }
+
+        var jukebox = Jukebox;
+        if (jukebox.Playing)
+        {
+            try
+            {
+                var info = await request.GetInfoAsync();
+                var embed = EmbedUtils.CreateMediaEmbed(info, null);
+                await RespondAsync("The following media will be queued:", embed: embed, ephemeral: true);
+            }
+            catch (Exception ex)
+            {
+                await RespondAsync($"Error occured getting media info: {ex}");
+                return;
+            }
+        }
+        else
+        {
+            await DeferAsync(); // Command can take a long time.
+        }
+
         try
         {
-            var (voice, request) = await GetPlaybackContext(query);
-            if (voice is null)
-            {
-                await RespondAsync("You need to be in a voice channel!", ephemeral: true);
-                return;
-            }
-
-            if (!GuildPermissionsChecker.CheckVoicePermission(Context.Guild, Context.Client.CurrentUser, voice))
-            {
-                await RespondAsync("I don't have permission to connect and speak in this channel :(", ephemeral: true);
-                return;
-            }
-
-            var jukebox = Jukebox;
-            if (jukebox.Playing)
-            {
-                try
-                {
-                    var info = await request.GetInfoAsync();
-                    var embed = EmbedUtils.CreateMediaEmbed(info, null);
-                    await RespondAsync("The following media will be queued:", embed: embed, ephemeral: true);
-                }
-                catch (Exception ex)
-                {
-                    await RespondAsync($"Error occured getting media info: {ex}");
-                    return;
-                }
-            }
-            else
-            {
-                await DeferAsync(); // Command can take a long time.
-            }
-
             var player = new Player(Context.Interaction);
             var result = await jukebox.PlayAsync(request, voice, player);
             switch (result)
-            { 
+            {
                 case Jukebox.PlayResult.Error:
                     await ModifyOriginalResponseAsync(x => x.Content = "An error occurred playing the media.");
                     break;
                 default:
                     break;
-            } 
+            }
         }
         catch (EmptyChannelException)
         {
             await ModifyOriginalResponseAsync(x => x.Content = "All users have left the channel. Disconnecting...");
         }
-        catch (Exception ex)
-        {
-            await ModifyOriginalResponseAsync(x => x.Content = $"Error: {ex.Message}");
-        }
     }
 
     [SlashCommand("abort", "Force the player to stop if the buttons aren't working.")]
     public async Task Abort()
-    { 
+    {
         await RespondAsync("Stopping...", ephemeral: true);
         await Jukebox.StopAsync();
     }
@@ -236,7 +231,7 @@ public sealed class JukeboxInteractionCommands : InteractionModuleBase<SocketInt
 
         await DeferAsync();
         var jukebox = Jukebox;
-        await jukebox.StopAsync(); 
+        await jukebox.StopAsync();
     }
 
     [ComponentInteraction("player_shuffle")]

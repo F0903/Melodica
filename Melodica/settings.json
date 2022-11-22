@@ -1,4 +1,4 @@
-{ 
+{
   "cacheSizeMB": 1000,
   "processPriority": "High",
   "logLevel": "Debug",

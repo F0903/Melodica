@@ -1,12 +1,12 @@
 ﻿
 using Discord;
-using Discord.Commands;
+using Discord.Interactions;
 
 using Melodica.Services.Playback;
 
 namespace Melodica.Services.Wiki;
 
-public sealed class WikiCommands : ModuleBase<SocketCommandContext>
+public sealed class WikiCommands : InteractionModuleBase<SocketInteractionContext>
 {
     public WikiCommands(IWikiProvider wiki)
     {
@@ -40,14 +40,20 @@ public sealed class WikiCommands : ModuleBase<SocketCommandContext>
         return await wiki.GetInfoAsync(artist);
     }
 
-    [Command("Info"), Alias("Wiki"), Summary("Gets info from a wiki for the specified page.")]
-    public async Task InfoAsync([Remainder] string? pageTitle = null)
+    [SlashCommand("wiki", "Gets info from a wiki for the specified page.")]
+    public async Task InfoAsync(string? pageTitle = null)
     {
+        await DeferAsync();
+
         WikiElement? maybeInfo = pageTitle is null ? await GetPlayingInfoAsync() : await wiki.GetInfoAsync(pageTitle!);
-        if (maybeInfo is null) return;
+        if (maybeInfo is null)
+        {
+            await ModifyOriginalResponseAsync(x => x.Content = "No page title was provided, and no song is currently playing.");
+            return;
+        }
         WikiElement info = maybeInfo.Value;
 
-        await ReplyAsync(null, false, new EmbedBuilder()
+        await ModifyOriginalResponseAsync(x => x.Embed = new EmbedBuilder()
         {
             ThumbnailUrl = info.ImageUrl,
             Title = info.Title,

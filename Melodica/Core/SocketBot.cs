@@ -15,9 +15,9 @@ public sealed class SocketBot
     public SocketBot()
     {
         this.client = Dependency.Get<DiscordSocketClient>(); 
-        this.commandHandler = new SocketHybridCommandHandler(client);
+        this.commandHandler = new SocketCommandHandler(client);
 
-        client.MessageReceived += commandHandler.OnMessageReceived;
+        client.Ready += OnReady;
         client.Log += static (msg) =>
         {
             Serilog.Log.Write(msg.Severity.ToLogEventLevel(), "{Source}    {Message}", msg.Source, msg.Message);
@@ -27,6 +27,11 @@ public sealed class SocketBot
 
     private readonly DiscordSocketClient client; 
     private readonly IAsyncCommandHandler commandHandler;
+
+    private async Task OnReady()
+    {
+        await commandHandler.InitializeCommands();
+    }
 
     public async Task SetActivityAsync(string name, ActivityType type)
     {
@@ -44,12 +49,7 @@ public sealed class SocketBot
         await client.LoginAsync(TokenType.Bot, BotConfig.Secrets.DiscordToken);
         if (startOnConnect)
             await client.StartAsync();
-    }
-
-    public async Task StartAsync()
-    {
-        await client.StartAsync();
-    }
+    } 
 
     public async Task StopAsync()
     {

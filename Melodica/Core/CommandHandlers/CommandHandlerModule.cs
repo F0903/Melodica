@@ -8,5 +8,5 @@ public sealed class CommandHandlerModule : DependencyModule
 {
     public override IServiceCollection Load() =>
         new ServiceCollection()
-        .AddSingleton<IAsyncCommandHandler, SocketHybridCommandHandler>();
+        .AddSingleton<IAsyncCommandHandler, SocketCommandHandler>();
 }

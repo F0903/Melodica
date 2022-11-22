@@ -44,6 +44,6 @@ public sealed class WikipediaWiki : IWikiProvider
 
     public Task<WikiElement> GetInfoAsync(string query)
     {
-        return GetSummary(query.FixURLWhitespace("_"));
+        return GetSummary(query.Replace(' ','_'));
     }
 }
