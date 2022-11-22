@@ -49,7 +49,7 @@ public sealed class SocketCommandHandler : IAsyncCommandHandler
 
     private static async Task RegisterSlashCommands(InteractionService i)
     {
-        IReadOnlyCollection<Discord.Rest.RestGuildCommand> registeredCommands;
+        IReadOnlyCollection<IApplicationCommand> registeredCommands;
 #if DEBUG
         Log.Debug("Registering commands to debug guild.");
         registeredCommands = await i.RegisterCommandsToGuildAsync(BotConfig.Settings.SlashCommandDebugGuild);
