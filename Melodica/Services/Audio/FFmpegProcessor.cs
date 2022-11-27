@@ -37,7 +37,7 @@ internal class FFmpegProcessor : IAsyncAudioProcessor
             StartInfo = new ProcessStartInfo()
             {
                 FileName = "ffmpeg",
-                Arguments = $"-y -hide_banner -loglevel error -fflags discardcorrupt -flags low_delay -strict experimental -vn {formatString} -protocol_whitelist pipe,file,http,https,tcp,tls,crypto -i {input} -f s16le -ac 2 -ar 48000 pipe:1",
+                Arguments = $"-y -hide_banner -loglevel panic -fflags discardcorrupt -flags low_delay -strict experimental -vn {formatString} -protocol_whitelist pipe,file,http,https,tcp,tls,crypto -i {input} -f s16le -ac 2 -ar 48000 pipe:1",
                 UseShellExecute = false,
                 RedirectStandardError = false,
                 RedirectStandardInput = input == "pipe:0" || input == "pipe:" || input == "-",

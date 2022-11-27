@@ -12,7 +12,8 @@ public sealed class MediaFileCache : IMediaCache
 {
     public MediaFileCache(string dirName)
     {
-        cacheLocation = Path.Combine(RootCacheLocation, dirName);
+        var root = Path.Combine(Directory.GetCurrentDirectory(), "mediacache");
+        cacheLocation = Path.Combine(root, dirName);
         bool exists = Directory.Exists(cacheLocation);
         if (!exists) Directory.CreateDirectory(cacheLocation);
         else LoadPreexistingFilesAsync().Wait();
@@ -26,9 +27,7 @@ public sealed class MediaFileCache : IMediaCache
 
     private static readonly BinarySerializer serializer = new();
 
-    public const int MaxClearAttempt = 5;
-
-    public const string RootCacheLocation = @"./Mediacache/";
+    public const int MaxClearAttempt = 5; 
 
     private readonly string cacheLocation;
 

@@ -19,7 +19,14 @@ void OnStop(object? sender, EventArgs args)
 
 AppDomain.CurrentDomain.ProcessExit += OnStop;
 
-Process.GetCurrentProcess()
-    .PriorityClass = BotConfig.Settings.ProcessPriority;
+try
+{
+    Process.GetCurrentProcess()
+        .PriorityClass = BotConfig.Settings.ProcessPriority;
+}
+catch (System.ComponentModel.Win32Exception ex)
+{
+    Log.Warning(ex, "Could not set process priority!");
+}
 
 await Task.Delay(-1);
