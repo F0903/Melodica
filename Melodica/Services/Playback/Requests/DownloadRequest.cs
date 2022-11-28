@@ -1,12 +1,11 @@
 ﻿
 using Melodica.Services.Downloaders;
-using Melodica.Services.Downloaders.YouTube;
 using Melodica.Services.Media;
 
 namespace Melodica.Services.Playback.Requests;
 
 public sealed class DownloadRequest : IMediaRequest
-{ 
+{
     public DownloadRequest(ReadOnlyMemory<char> query, IAsyncDownloader dl)
     {
         downloader = dl;

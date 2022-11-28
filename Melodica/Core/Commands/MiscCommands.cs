@@ -53,7 +53,7 @@ public sealed class MiscCommands : ModuleBase<SocketCommandContext>
             fields.Add(new EmbedFieldBuilder()
             {
                 IsInline = false,
-                Name = $"**{command.Name}**, { commandAliases.ToArray().SeperateStrings() }",
+                Name = $"**{command.Name}**, {commandAliases.ToArray().SeperateStrings()}",
                 Value = !string.IsNullOrEmpty(command.Summary) ? command.Summary : "No summary."
             });
         }

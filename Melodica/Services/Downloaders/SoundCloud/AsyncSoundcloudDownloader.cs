@@ -1,7 +1,5 @@
 ﻿using System.Text.RegularExpressions;
 
-using Discord;
-
 using Melodica.Config;
 using Melodica.Services.Audio;
 using Melodica.Services.Caching;
@@ -62,7 +60,7 @@ internal sealed partial class AsyncSoundcloudDownloader : IAsyncDownloader
             var result = await search.ResolveAsync(queryString);
             if (result is TrackResolveResult trackResult)
             {
-                track = trackResult.Track; 
+                track = trackResult.Track;
             }
         }
         else

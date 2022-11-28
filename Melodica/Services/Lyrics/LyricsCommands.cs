@@ -1,6 +1,4 @@
-﻿using System.ComponentModel;
-
-using Discord;
+﻿using Discord;
 using Discord.Interactions;
 
 using Melodica.Services.Playback;

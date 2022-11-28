@@ -1,8 +1,7 @@
 ﻿using System.Diagnostics;
 
-using Melodica.Core;
-using Melodica.Core.CommandHandlers;
 using Melodica.Config;
+using Melodica.Core;
 
 using Serilog;
 

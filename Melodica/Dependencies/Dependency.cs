@@ -1,7 +1,6 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+﻿using System.Reflection;
 
-using System.Reflection;
-using System.Linq;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Melodica.Dependencies;
 

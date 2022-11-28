@@ -1,15 +1,21 @@
-﻿using System.Linq;
-
-using Discord;
+﻿using Discord;
 using Discord.Interactions;
 using Discord.WebSocket;
 
 using Melodica.Services.Caching;
+using Melodica.Services.Downloaders;
 using Melodica.Services.Media;
 using Melodica.Services.Playback.Exceptions;
 using Melodica.Services.Playback.Requests;
 
 namespace Melodica.Services.Playback;
+
+public enum ManualProviderOptions
+{
+    YouTube,
+    Spotify,
+    SoundCloud,
+}
 
 public sealed class JukeboxCommands : InteractionModuleBase<SocketInteractionContext>
 {
@@ -105,7 +111,7 @@ public sealed class JukeboxCommands : InteractionModuleBase<SocketInteractionCon
     [SlashCommand("next", "Sets the next song to play.")]
     public async Task Next(string query)
     {
-        var downloader = Downloaders.DownloaderResolver.GetDownloaderFromQuery(query);
+        var downloader = Downloader.GetFromQuery(query);
         var request = new DownloadRequest(query.AsMemory(), downloader);
 
         // Get info to see if the request is actually valid.
@@ -117,16 +123,27 @@ public sealed class JukeboxCommands : InteractionModuleBase<SocketInteractionCon
         await RespondAsync(embed: EmbedUtils.CreateMediaEmbed(info, null), ephemeral: true);
     }
 
-    Task<(IVoiceChannel?, IMediaRequest)> GetPlaybackContext(string query)
+    IAsyncDownloader GetDownloaderFromManualProvider(ManualProviderOptions? provider)
+    {
+        return provider switch
+        {
+            ManualProviderOptions.YouTube => Downloader.YouTube,
+            ManualProviderOptions.Spotify => Downloader.Spotify,
+            ManualProviderOptions.SoundCloud => Downloader.SoundCloud,
+            _ => Downloader.Default,
+        };
+    }
+
+    Task<(IVoiceChannel?, IMediaRequest)> GetPlaybackContext(string query, ManualProviderOptions? provider)
     {
         var voice = (Context.User as SocketGuildUser)?.VoiceChannel;
-        var downloader = Downloaders.DownloaderResolver.GetDownloaderFromQuery(query);
+        var downloader = provider is null ? Downloader.GetFromQuery(query) : GetDownloaderFromManualProvider(provider);
         var request = new DownloadRequest(query.AsMemory(), downloader);
         return Task.FromResult(((IVoiceChannel?)voice, (IMediaRequest)request));
     }
 
     [SlashCommand("switch", "Switches the current song to the one specified.")]
-    public async Task Switch(string query)
+    public async Task Switch(string query, ManualProviderOptions? provider)
     {
         var jukebox = Jukebox;
         if (!jukebox.Playing)
@@ -143,7 +160,7 @@ public sealed class JukeboxCommands : InteractionModuleBase<SocketInteractionCon
 
         await DeferAsync();
 
-        var (_, request) = await GetPlaybackContext(query);
+        var (_, request) = await GetPlaybackContext(query, provider);
         try
         {
             //TODO: Switch doesn't seem to work correctly when playing a playlist
@@ -153,15 +170,15 @@ public sealed class JukeboxCommands : InteractionModuleBase<SocketInteractionCon
         catch (EmptyChannelException) { await ModifyOriginalResponseAsync(x => x.Content = "All users have left the channel. Disconnecting..."); }
     }
 
-    [SlashCommand("play", "Starts playing a song.")]
-    public async Task Play(string query)
+    [SlashCommand("play", "Plays or queues a song.")]
+    public async Task Play(string query, ManualProviderOptions? provider = null)
     {
         if (query is null)
         {
-            await RespondAsync("You need to specify a url, search query or upload a file.", ephemeral: true);
+            await RespondAsync("You need to specify a url or a search query!", ephemeral: true);
             return;
         }
-        var (voice, request) = await GetPlaybackContext(query);
+        var (voice, request) = await GetPlaybackContext(query, provider);
         if (voice is null)
         {
             await RespondAsync("You need to be in a voice channel!", ephemeral: true);
@@ -197,15 +214,7 @@ public sealed class JukeboxCommands : InteractionModuleBase<SocketInteractionCon
         try
         {
             var player = new Player(Context.Interaction);
-            var result = await jukebox.PlayAsync(request, voice, player);
-            switch (result)
-            {
-                case Jukebox.PlayResult.Error:
-                    await ModifyOriginalResponseAsync(x => x.Content = "An error occurred playing the media.");
-                    break;
-                default:
-                    break;
-            }
+            await jukebox.PlayAsync(request, voice, player);
         }
         catch (EmptyChannelException)
         {

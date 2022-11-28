@@ -27,7 +27,7 @@ public sealed class MediaFileCache : IMediaCache
 
     private static readonly BinarySerializer serializer = new();
 
-    public const int MaxClearAttempt = 5; 
+    public const int MaxClearAttempt = 5;
 
     private readonly string cacheLocation;
 
@@ -225,7 +225,7 @@ public sealed class MediaFileCache : IMediaCache
         var format = data.Format;
         var fileExt = $".{format}";
         string mediaLocation = Path.Combine(cacheLocation, fileLegalId + fileExt);
-        using var file = File.OpenWrite(mediaLocation); 
+        using var file = File.OpenWrite(mediaLocation);
         dataStream.Position = 0;
         await dataStream.CopyToAsync(file);
         DataInfo dataInfo = info.DataInfo = new(format, mediaLocation);

@@ -2,10 +2,10 @@
 
 using Discord;
 
-using Serilog.Events;
-
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Primitives;
+
+using Serilog.Events;
 
 namespace Melodica.Config;
 

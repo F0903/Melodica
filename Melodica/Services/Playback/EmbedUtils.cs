@@ -13,10 +13,10 @@ public static class EmbedUtils
     {
         const char InfChar = '\u221E';
 
-        StringBuilder description = new($"[{info.Title}]({info.Url})"); 
-        if(collectionInfo != null)
+        StringBuilder description = new($"[{info.Title}]({info.Url})");
+        if (collectionInfo != null)
         {
-            description.Insert(0, "__"); 
+            description.Insert(0, "__");
             description.Append($"__\n{collectionInfo.Title}");
         }
 

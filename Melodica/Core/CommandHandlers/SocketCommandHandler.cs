@@ -4,11 +4,10 @@ using Discord;
 using Discord.Interactions;
 using Discord.WebSocket;
 
-using Melodica.Dependencies;
 using Melodica.Config;
+using Melodica.Dependencies;
 
 using Serilog;
-using Discord.Net;
 
 namespace Melodica.Core.CommandHandlers;
 
@@ -21,7 +20,7 @@ public sealed class SocketCommandHandler : IAsyncCommandHandler
 
     private readonly IServiceProvider ioc = Dependency.GetServiceProvider();
     private readonly DiscordSocketClient client;
-    private InteractionService? interactions; 
+    private InteractionService? interactions;
 
     private async Task<InteractionService> InitializeSlashCommands(Assembly asm)
     {
@@ -67,7 +66,7 @@ public sealed class SocketCommandHandler : IAsyncCommandHandler
     {
         var asm = Assembly.GetExecutingAssembly();
         interactions = await InitializeSlashCommands(asm);
-    } 
+    }
 
     private static ValueTask<Embed> BuildErrorEmbed(string errorDesc)
     {

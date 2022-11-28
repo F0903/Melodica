@@ -1,19 +1,13 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Diagnostics;
 
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Primitives;
 
 using Serilog.Events;
 
 namespace Melodica.Config;
 
 public sealed class BotSettings
-{ 
+{
     public BotSettings(IConfigurationRoot config)
     {
         this.config = config;
@@ -23,7 +17,7 @@ public sealed class BotSettings
     readonly IConfigurationRoot config;
 
     void ReadAndSetValues()
-    {  
+    {
         string? result;
         if ((result = config["cacheSizeMB"]) is null)
             throw new NullReferenceException("cacheSizeMB is not defined in user secrets!");
@@ -45,7 +39,7 @@ public sealed class BotSettings
     public void Reload()
     {
         ReadAndSetValues();
-    } 
+    }
 
     public int CacheSizeMB { get; private set; }
 

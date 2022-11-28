@@ -1,7 +1,5 @@
 ﻿using System.Text.Json;
 
-using Melodica.Utility;
-
 namespace Melodica.Services.Wiki;
 
 public sealed class WikipediaWiki : IWikiProvider
@@ -44,6 +42,6 @@ public sealed class WikipediaWiki : IWikiProvider
 
     public Task<WikiElement> GetInfoAsync(string query)
     {
-        return GetSummary(query.Replace(' ','_'));
+        return GetSummary(query.Replace(' ', '_'));
     }
 }

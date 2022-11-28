@@ -1,13 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Melodica.Core.Exceptions;
-using Melodica.Services.Caching;
-
-using Melodica.Services.Media;
+﻿using System.Diagnostics;
 
 namespace Melodica.Services.Audio;
 internal class FFmpegProcessor : IAsyncAudioProcessor
@@ -30,14 +21,19 @@ internal class FFmpegProcessor : IAsyncAudioProcessor
 
     public ValueTask<Stream> ProcessAsync()
     {
-        var formatString = inputFormat is not null ? $"-f {inputFormat}" : "";
+        var isStream = inputFormat is not null && inputFormat == "hls";
+
+        var inputFormatOption = inputFormat is not null ? $"-f {inputFormat}" : "";
+        var formatSpecificInputOptions = !isStream ? "-flags +low_delay -fflags +discardcorrupt+fastseek+nobuffer -avioflags direct" : "";
+        var formatSpecificOutputOptions = !isStream ? "-fflags +flush_packets" : "-bufsize 128k";
+        var args = $"-y -hide_banner -loglevel panic -strict experimental -vn -protocol_whitelist pipe,file,http,https,tcp,tls,crypto {inputFormatOption} {formatSpecificInputOptions} -i {input} -f s16le {formatSpecificOutputOptions} -ac 2 -ar 48000 pipe:1";
 
         proc = new()
         {
             StartInfo = new ProcessStartInfo()
             {
                 FileName = "ffmpeg",
-                Arguments = $"-y -hide_banner -loglevel panic -fflags discardcorrupt -flags low_delay -strict experimental -vn {formatString} -protocol_whitelist pipe,file,http,https,tcp,tls,crypto -i {input} -f s16le -ac 2 -ar 48000 pipe:1",
+                Arguments = args,
                 UseShellExecute = false,
                 RedirectStandardError = false,
                 RedirectStandardInput = input == "pipe:0" || input == "pipe:" || input == "-",
@@ -45,6 +41,7 @@ internal class FFmpegProcessor : IAsyncAudioProcessor
                 CreateNoWindow = true,
             }
         };
+
         proc.Start();
 
         return ValueTask.FromResult(proc.StandardOutput.BaseStream);

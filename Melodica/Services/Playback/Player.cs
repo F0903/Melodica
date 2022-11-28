@@ -1,6 +1,4 @@
 ﻿using Discord;
-using Discord.Interactions;
-using Discord.WebSocket;
 
 using Melodica.Services.Media;
 

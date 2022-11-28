@@ -1,6 +1,4 @@
-﻿
-using Melodica.Services.Audio;
-using Melodica.Services.Caching;
+﻿using Melodica.Services.Caching;
 
 namespace Melodica.Services.Media;
 
@@ -35,7 +33,7 @@ public class PlayableMedia
     MediaInfo? collectionInfo;
     public MediaInfo? CollectionInfo { get => collectionInfo; set => collectionInfo = value; }
 
-    public MediaInfo Info { get; set; }  
+    public MediaInfo Info { get; set; }
 
     // Should be a seperate class.
     public static ValueTask<PlayableMedia> FromExisting(MediaInfo info)
@@ -62,7 +60,7 @@ public class PlayableMedia
         // Write the media data to file.
         if (Info.DataInfo is null)
         {
-            var dataPair = await dataGetter(this); 
+            var dataPair = await dataGetter(this);
             return Info.DataInfo = await cache.CacheAsync(this, dataPair);
         }
         return Info.DataInfo;

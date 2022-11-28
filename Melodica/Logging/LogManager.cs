@@ -1,8 +1,7 @@
-﻿using Serilog;
-using Serilog.Core;
-using Serilog.Events;
+﻿using Melodica.Config;
 
-using Melodica.Config;
+using Serilog;
+using Serilog.Core;
 
 namespace Melodica.Logging;
 internal static class LogManager
@@ -14,10 +13,10 @@ internal static class LogManager
             .WriteTo.Console()
             .CreateLogger();
 
-        BotConfig.OnConfigChanged += ReconfigureLogLevel; 
+        BotConfig.OnConfigChanged += ReconfigureLogLevel;
     }
 
-    static readonly LoggingLevelSwitch logLevelSwitch = new(BotConfig.Settings.LogLevel); 
+    static readonly LoggingLevelSwitch logLevelSwitch = new(BotConfig.Settings.LogLevel);
 
     static void ReconfigureLogLevel()
     {

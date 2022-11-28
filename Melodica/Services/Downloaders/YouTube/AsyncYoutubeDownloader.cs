@@ -18,7 +18,7 @@ public sealed partial class AsyncYoutubeDownloader : IAsyncDownloader
 {
     [GeneratedRegex(@"((http)|(https)):\/\/(www\.)?((youtube\.com\/((watch\?v=)|(playlist\?list=)))|(youtu\.be\/)).+", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.Singleline)]
     private static partial Regex YoutubeUrlRegex();
-     
+
     private static readonly YoutubeClient yt = new();
     private static readonly MediaFileCache cache = new("YouTube");
 
@@ -198,5 +198,5 @@ public sealed partial class AsyncYoutubeDownloader : IAsyncDownloader
 
         PlayableMedia? media = new(info, null, DataGetter, cache);
         return new MediaCollection(media);
-    } 
+    }
 }

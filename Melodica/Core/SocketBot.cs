@@ -6,15 +6,13 @@ using Melodica.Config;
 using Melodica.Core.CommandHandlers;
 using Melodica.Dependencies;
 
-using Serilog;
-
 namespace Melodica.Core;
 
 public sealed class SocketBot
 {
     public SocketBot()
     {
-        this.client = Dependency.Get<DiscordSocketClient>(); 
+        this.client = Dependency.Get<DiscordSocketClient>();
         this.commandHandler = new SocketCommandHandler(client);
 
         client.Ready += OnReady;
@@ -25,7 +23,7 @@ public sealed class SocketBot
         };
     }
 
-    private readonly DiscordSocketClient client; 
+    private readonly DiscordSocketClient client;
     private readonly IAsyncCommandHandler commandHandler;
 
     private async Task OnReady()
@@ -49,7 +47,7 @@ public sealed class SocketBot
         await client.LoginAsync(TokenType.Bot, BotConfig.Secrets.DiscordToken);
         if (startOnConnect)
             await client.StartAsync();
-    } 
+    }
 
     public async Task StopAsync()
     {

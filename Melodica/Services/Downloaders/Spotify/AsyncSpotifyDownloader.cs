@@ -12,14 +12,14 @@ namespace Melodica.Services.Downloaders.Spotify;
 public sealed partial class AsyncSpotifyDownloader : IAsyncDownloader
 {
     [GeneratedRegex(@"((http)|(https)):\/\/((api)|(open))\.spotify\.com(\/v\d+)?\/.+\/.+", RegexOptions.IgnoreCase | RegexOptions.Compiled | RegexOptions.Singleline)]
-    private static partial Regex SpotifyUrlRegex(); 
+    private static partial Regex SpotifyUrlRegex();
 
     static readonly SpotifyClient spotify = new(SpotifyClientConfig
         .CreateDefault()
         .WithAuthenticator(new ClientCredentialsAuthenticator(BotConfig.Secrets.SpotifyClientID, BotConfig.Secrets.SpotifyClientSecret)));
 
     // Tie this to the default downloader (can't download directly from Spotify)
-    static readonly IAsyncDownloader downloader = DownloaderResolver.DefaultDownloader;
+    static readonly IAsyncDownloader downloader = Downloader.Default;
 
     static bool IsUrlPlaylist(ReadOnlySpan<char> url)
     {
@@ -249,5 +249,5 @@ public sealed partial class AsyncSpotifyDownloader : IAsyncDownloader
         string? id = await ParseURLToIdAsyncAsync(query.Span);
         FullTrack? track = await spotify.Tracks.Get(id);
         return FullTrackToMediaInfo(track);
-    } 
+    }
 }

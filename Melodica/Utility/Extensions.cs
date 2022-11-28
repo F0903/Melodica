@@ -117,7 +117,7 @@ public static partial class Extensions
                     sb.Append(ch);
                     break;
             }
-        }  
+        }
         return sb.ToString();
     }
 
@@ -167,7 +167,7 @@ public static partial class Extensions
     }
 
     [GeneratedRegex(@"((http)|(https)):\/\/.+", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.Singleline)]
-    private static partial Regex UrlRegex(); 
+    private static partial Regex UrlRegex();
 
     public static bool IsUrl(this ReadOnlySpan<char> str)
     {
@@ -182,5 +182,5 @@ public static partial class Extensions
     public static bool IsUrl(this string str)
     {
         return UrlRegex().IsMatch(str);
-    } 
+    }
 }

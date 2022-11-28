@@ -5,8 +5,8 @@ using System.Text.RegularExpressions;
 using AngleSharp;
 using AngleSharp.Dom;
 
-using Melodica.Core.Exceptions;
 using Melodica.Config;
+using Melodica.Core.Exceptions;
 using Melodica.Utility;
 
 namespace Melodica.Services.Lyrics;
