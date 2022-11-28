@@ -1,5 +1,6 @@
 ﻿using Discord;
 using Discord.Audio;
+using Discord.WebSocket;
 
 using Melodica.Core.Exceptions;
 using Melodica.Services.Audio;
@@ -173,20 +174,11 @@ public sealed class Jukebox
         {
             try
             {
-                //TODO: Reimplement leaving on empty voice channel. 
-                audioClient!.ClientDisconnected += async (_) =>
-                {
-                    var users = await channel.GetUsersAsync().FlattenAsync();
-                    if (!users.IsOverSize(1))
-                    {
-                        await channel.DisconnectAsync();
-                    }
-                };
                 var mediaPath = data.MediaPath ?? throw new NullReferenceException("MediaPath was not specified. (internal error)");
                 using IAsyncAudioProcessor audio = data.Format == "s16le" ? new RawProcessor(mediaPath) : new FFmpegProcessor(mediaPath, data.Format);
                 using var input = await audio.ProcessAsync();
                 WriteData(input, output, token);
-            }
+            } 
             catch (Exception ex)
             {
                 Log.Error(ex, "SendDataAsync encountered an exception.");
@@ -258,8 +250,28 @@ public sealed class Jukebox
 
         audioClient = await audioChannel.ConnectAsync(true);
         this.audioChannel = audioChannel;
+
+        // Setup auto-disconnect when empty.
+        audioClient.ClientDisconnected += async (_) =>
+        {
+            IReadOnlyCollection<IUser> users;
+            if (audioChannel is SocketVoiceChannel svc)
+            {
+                users = svc.ConnectedUsers; // Actually accurate.
+            }
+            else
+            {
+                users = (IReadOnlyCollection<IUser>)await audioChannel.GetUsersAsync().FlattenAsync(); // Will probably report wrong due to caching.
+            }
+
+            if (!users.IsOverSize(1))
+            {
+                await StopAsync();
+            }
+        };
     }
 
+    //TODO: Implement starting point. (seeking)
     async Task PlayNextAsync(IAudioChannel channel, AudioOutStream output, CancellationToken token, TimeSpan? startingPoint = null)
     {
         PlayableMedia media = await queue.DequeueAsync();
@@ -291,7 +303,8 @@ public sealed class Jukebox
 
         if (faulted)
         {
-            throw new CriticalException("SendDataAsync encountered a fatal error. (dbg-msg)");
+            await ResetState();
+            throw new CriticalException("SendDataAsync encountered a fatal error. (please report)");
         }
 
         if ((!Loop && queue.IsEmpty) || cancellation!.IsCancellationRequested)
