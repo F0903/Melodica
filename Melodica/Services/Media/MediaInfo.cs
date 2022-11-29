@@ -3,6 +3,8 @@ using Melodica.Services.Serialization;
 
 namespace Melodica.Services.Media;
 
+//TODO: Split this whole mess into different classes for each downloader, with common interfaces between them.
+
 public enum MediaType
 {
     Video,
@@ -40,7 +42,5 @@ public record MediaInfo(string Id)
 
     public string? ImageUrl { get; init; }
 
-    public DataInfo? DataInfo { get; set; }
-
-    public object? Passthrough { get; set; }
+    public DataInfo? DataInfo { get; set; } 
 }

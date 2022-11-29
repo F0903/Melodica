@@ -1,12 +1,18 @@
-﻿using System.Text.RegularExpressions;
+﻿using System.Diagnostics;
+using System.Formats.Asn1;
+using System.Text.RegularExpressions;
+
+using AngleSharp.Media;
 
 using Melodica.Config;
 using Melodica.Services.Audio;
 using Melodica.Services.Caching;
+using Melodica.Services.Downloaders.Exceptions;
 using Melodica.Services.Media;
 using Melodica.Utility;
 
 using Soundclouder;
+using Soundclouder.Entities;
 
 namespace Melodica.Services.Downloaders.SoundCloud;
 
@@ -19,7 +25,20 @@ internal sealed partial class AsyncSoundcloudDownloader : IAsyncDownloader
 
     private static readonly IMediaCache cache = new MediaFileCache("Soundcloud");
 
-    private static MediaInfo ToMediaInfo(Track track)
+    private static MediaInfo PlaylistToMediaInfo(Playlist playlist)
+    {
+        return new MediaInfo(playlist.ID.ToString())
+        {
+            Title = playlist.Title,
+            Artist = playlist.Author,
+            Duration = TimeSpan.FromSeconds(Math.Round(playlist.Duration.TotalSeconds)), // Don't include all the milliseconds.
+            ImageUrl = playlist.ArtworkUrl,
+            Url = playlist.PermaLinkUrl,
+            MediaType = MediaType.Playlist,
+        };
+    }
+
+    private static MediaInfo TrackToMediaInfo(Track track)
     {
         return new MediaInfo(track.ID.ToString())
         {
@@ -32,49 +51,84 @@ internal sealed partial class AsyncSoundcloudDownloader : IAsyncDownloader
         };
     }
 
-    public Task<MediaCollection> DownloadAsync(MediaInfo info)
+    static LazyMedia CreateLazyMedia(MediaInfo info, MediaInfo? collectionInfo = null)
     {
-        if (info.Passthrough is null)
-            throw new NullReferenceException("Soundcloud media was null.");
-
-        var media = new PlayableMedia(info, null, static async (x) =>
+        var media = new PlayableMedia(info, collectionInfo, static async (x) =>
         {
-            using var http = new HttpClient();
-            var streamUrl = (string)x.Info.Passthrough!;
+            var tracks = await search.GetTracksAsync(x.Info.Id);
+            var track = tracks.First();
+            var streamUrl = await track.GetStreamURLAsync();
             using var ffmpeg = new FFmpegProcessor(streamUrl, "hls");
-            using var output = await ffmpeg.ProcessAsync();
-            var converted = new MemoryStream();
-            await output.CopyToAsync(converted);
-            return new DataPair(converted, "s16le");
+            using var output = await ffmpeg.ProcessAsync(); 
+            return new DataPair(output, "s16le");
         }, cache);
-        var lazyMedia = new LazyMedia(media);
+        return new LazyMedia(media);
+    }
+
+    static Task<MediaCollection> DownloadTrackAsync(MediaInfo info)
+    { 
+        var media = CreateLazyMedia(info); 
         return Task.FromResult(new MediaCollection(media));
     }
+
+    static async Task<MediaCollection> DownloadPlaylistAsync(MediaInfo info)
+    {
+        var result = await search.ResolveAsync(info.Url ?? throw new NullReferenceException("Playlist url was null!"));
+        var playlist = result switch
+        {
+            PlaylistResolveResult prs => prs.Playlist,
+            _ => throw new UnreachableException(),
+        };
+
+        var tracks = new List<LazyMedia>();
+        foreach (var track in playlist.Tracks)
+        {
+            var trackInfo = TrackToMediaInfo(track);
+            var media = CreateLazyMedia(trackInfo, info);
+            tracks.Add(media);
+        }
+        var collection = new MediaCollection(tracks, info);
+        return collection;
+    }
+
+    public Task<MediaCollection> DownloadAsync(MediaInfo info)
+    {  
+        return info.MediaType switch
+        {
+            MediaType.Video => DownloadTrackAsync(info),
+            MediaType.Playlist => DownloadPlaylistAsync(info),
+            _ => throw new DownloaderException("SoundCloud does not support the provided media type!"),
+        }; 
+    } 
 
     public async Task<MediaInfo> GetInfoAsync(ReadOnlyMemory<char> query)
     {
         var queryString = query.Span.ToString();
-        Track? track = null;
+        MediaInfo? info = null;
         if (query.IsUrl())
         {
             var result = await search.ResolveAsync(queryString);
             if (result is TrackResolveResult trackResult)
             {
-                track = trackResult.Track;
+                var track = trackResult.Track;
+                info = TrackToMediaInfo(track); 
+            } else if (result is PlaylistResolveResult playlistResult)
+            {
+                var playlist = playlistResult.Playlist;
+                info = PlaylistToMediaInfo(playlist);
             }
         }
         else
         {
-            var result = await search.SearchAsync(queryString);
-            track = result.ReturnedMedia.First();
+            var result = await search.SearchAsync(queryString, filterKind: ResolveKind.Track);
+            var track = result.ReturnedMedia.First(); 
+            info = TrackToMediaInfo(track); 
         }
-        if (track == null)
-            throw new Exception("Track was not available!");
 
+        if (info is null)
+            throw new MediaUnavailableException($"No info was found for the specified query: {query}");
 
-        var media = ToMediaInfo(track);
-        media.Passthrough = await track.GetStreamURLAsync(); //Kinda smelly.
-        return media;
+        return info;
     }
 
     public bool IsUrlSupported(ReadOnlySpan<char> url)
