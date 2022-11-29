@@ -1,12 +1,12 @@
-﻿using System.Diagnostics;
-
-using Melodica.Config;
+﻿using Melodica.Config;
 using Melodica.Core;
 
 using Serilog;
 
+using System.Diagnostics;
+
 Melodica.Logging.LogManager.Init();
-var bot = new SocketBot();
+SocketBot bot = new();
 
 await bot.ConnectAsync($"🎵", Discord.ActivityType.Listening, true);
 

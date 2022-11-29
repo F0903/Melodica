@@ -4,7 +4,6 @@ using Discord.WebSocket;
 
 using Melodica.Services.Caching;
 using Melodica.Services.Downloaders;
-using Melodica.Services.Media;
 using Melodica.Services.Playback.Exceptions;
 using Melodica.Services.Playback.Requests;
 
@@ -26,7 +25,7 @@ public sealed class JukeboxCommands : InteractionModuleBase<SocketInteractionCon
     [SlashCommand("clear-cache", "Clears the media cache.")]
     public async Task ClearCache()
     {
-        (int deletedFiles, int filesInUse, long ms) = await MediaFileCache.ClearAllCachesAsync();
+        (var deletedFiles, var filesInUse, var ms) = await MediaFileCache.ClearAllCachesAsync();
         await RespondAsync($"Deleted {deletedFiles} files. ({filesInUse} files in use) [{ms}ms]", ephemeral: true);
     }
 
@@ -39,14 +38,14 @@ public sealed class JukeboxCommands : InteractionModuleBase<SocketInteractionCon
             return;
         }
 
-        TimeSpan dur = Jukebox.Elapsed;
-        PlayableMedia? song = Jukebox.GetSong();
+        var dur = Jukebox.Elapsed;
+        var song = Jukebox.GetSong();
         if (song is null)
         {
             await RespondAsync("Could not get song from jukebox. Contact developer.", ephemeral: true);
             return;
         }
-        TimeSpan songDur = song.Info.Duration;
+        var songDur = song.Info.Duration;
         await RespondAsync((songDur != TimeSpan.Zero ? $"__{songDur}__\n" : "") + $"{dur}", ephemeral: true);
     }
 
@@ -77,7 +76,7 @@ public sealed class JukeboxCommands : InteractionModuleBase<SocketInteractionCon
     {
         await DeferAsync(true);
         var queue = Jukebox.GetQueue();
-        var eb = new EmbedBuilder();
+        EmbedBuilder eb = new();
         if (queue.IsEmpty)
         {
             eb.WithTitle("**Queue**")
@@ -86,13 +85,13 @@ public sealed class JukeboxCommands : InteractionModuleBase<SocketInteractionCon
         }
         else
         {
-            (TimeSpan queueDuration, string? imageUrl) = await queue.GetQueueInfo();
+            (var queueDuration, var imageUrl) = await queue.GetQueueInfo();
             eb.WithTitle("**Queue**")
               .WithThumbnailUrl(imageUrl)
               .WithFooter($"{(queueDuration == TimeSpan.Zero ? '\u221E'.ToString() : queueDuration.ToString())}{(Jukebox.Shuffle ? " | Shuffle" : "")}");
 
-            int maxElems = 20;
-            for (int i = 1; i <= maxElems; i++)
+            var maxElems = 20;
+            for (var i = 1; i <= maxElems; i++)
             {
                 if (i > queue.Length)
                     break;
@@ -112,7 +111,7 @@ public sealed class JukeboxCommands : InteractionModuleBase<SocketInteractionCon
     public async Task Next(string query)
     {
         var downloader = Downloader.GetFromQuery(query);
-        var request = new DownloadRequest(query.AsMemory(), downloader);
+        DownloadRequest request = new(query.AsMemory(), downloader);
 
         // Get info to see if the request is actually valid.
         var info = await request.GetInfoAsync();
@@ -138,7 +137,7 @@ public sealed class JukeboxCommands : InteractionModuleBase<SocketInteractionCon
     {
         var voice = (Context.User as SocketGuildUser)?.VoiceChannel;
         var downloader = provider is null ? Downloader.GetFromQuery(query) : GetDownloaderFromManualProvider(provider);
-        var request = new DownloadRequest(query.AsMemory(), downloader);
+        DownloadRequest request = new(query.AsMemory(), downloader);
         return Task.FromResult(((IVoiceChannel?)voice, (IMediaRequest)request));
     }
 
@@ -160,7 +159,7 @@ public sealed class JukeboxCommands : InteractionModuleBase<SocketInteractionCon
 
         await DeferAsync();
 
-        var (_, request) = await GetPlaybackContext(query, provider);
+        (var _, var request) = await GetPlaybackContext(query, provider);
         try
         {
             //TODO: Switch doesn't seem to work correctly when playing a playlist
@@ -178,7 +177,7 @@ public sealed class JukeboxCommands : InteractionModuleBase<SocketInteractionCon
             await RespondAsync("You need to specify a url or a search query!", ephemeral: true);
             return;
         }
-        var (voice, request) = await GetPlaybackContext(query, provider);
+        (var voice, var request) = await GetPlaybackContext(query, provider);
         if (voice is null)
         {
             await RespondAsync("You need to be in a voice channel!", ephemeral: true);
@@ -213,7 +212,7 @@ public sealed class JukeboxCommands : InteractionModuleBase<SocketInteractionCon
 
         try
         {
-            var player = new Player(Context.Interaction);
+            Player player = new(Context.Interaction);
             await jukebox.PlayAsync(request, voice, player);
         }
         catch (EmptyChannelException)

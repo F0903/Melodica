@@ -51,10 +51,10 @@ public sealed class Player
         var msgComps = playerMsg.Components;
         await playerMsg.ModifyAsync(x =>
         {
-            var compBuilder = new ComponentBuilder();
+            ComponentBuilder compBuilder = new();
             foreach (var row in msgComps)
             {
-                var rowBuilder = new ActionRowBuilder();
+                ActionRowBuilder rowBuilder = new();
                 foreach (var comp in ((ActionRowComponent)row).Components)
                 {
                     var toAdd = comp;

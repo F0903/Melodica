@@ -25,7 +25,7 @@ public sealed class DownloadRequest : IMediaRequest
 
     public async Task<MediaCollection> GetMediaAsync()
     {
-        MediaInfo? info = await GetInfoAsync();
+        var info = await GetInfoAsync();
         return await downloader.DownloadAsync(info);
     }
 }

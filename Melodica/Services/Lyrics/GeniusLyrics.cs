@@ -1,13 +1,13 @@
-﻿using System.Text;
-using System.Text.Json;
-using System.Text.RegularExpressions;
-
-using AngleSharp;
+﻿using AngleSharp;
 using AngleSharp.Dom;
 
 using Melodica.Config;
 using Melodica.Core.Exceptions;
 using Melodica.Utility;
+
+using System.Text;
+using System.Text.Json;
+using System.Text.RegularExpressions;
 
 namespace Melodica.Services.Lyrics;
 
@@ -33,7 +33,7 @@ public sealed partial class GeniusLyrics : ILyricsProvider
         using var doc = await context.OpenAsync(url);
 
         IHtmlCollection<IElement>? lyricElements = null;
-        int tries = 0;
+        var tries = 0;
         while (lyricElements == null)
         {
             if (tries > 5)
@@ -45,8 +45,8 @@ public sealed partial class GeniusLyrics : ILyricsProvider
             ++tries;
         }
 
-        var strBuf = new StringBuilder(200);
-        foreach (IElement? item in lyricElements)
+        StringBuilder strBuf = new(200);
+        foreach (var item in lyricElements)
             strBuf.Append(item.InnerHtml);
         strBuf.Replace("<br>", "\n");
 
@@ -73,10 +73,7 @@ public sealed partial class GeniusLyrics : ILyricsProvider
             try { hit = responseSection.GetProperty("hits")[index]; }
             catch { throw new LyricsNotFoundException(query); }
             var hitType = hit.GetProperty("type");
-            if (hitType.GetString() != "song")
-                return GetElement(index++);
-            else
-                return hit.GetProperty("result");
+            return hitType.GetString() != "song" ? GetElement(index++) : hit.GetProperty("result");
         }
 
         var songInfo = GetElement();

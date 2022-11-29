@@ -1,11 +1,11 @@
-﻿using System.Text.RegularExpressions;
-
-using Melodica.Config;
+﻿using Melodica.Config;
 using Melodica.Services.Downloaders.Exceptions;
 using Melodica.Services.Media;
 using Melodica.Utility;
 
 using SpotifyAPI.Web;
+
+using System.Text.RegularExpressions;
 
 namespace Melodica.Services.Downloaders.Spotify;
 
@@ -40,7 +40,7 @@ public sealed partial class AsyncSpotifyDownloader : IAsyncDownloader
 
     static string SeperateArtistNames(List<SimpleArtist> artists)
     {
-        string[]? nameArray = artists.ToArray().Convert(x => x.Name).ToArray();
+        var nameArray = artists.ToArray().Convert(x => x.Name).ToArray();
         return nameArray.SeperateStrings();
     }
 
@@ -48,21 +48,21 @@ public sealed partial class AsyncSpotifyDownloader : IAsyncDownloader
     {
         if (!(url.StartsWith("https://") || url.StartsWith("http://")))
             return ValueTask.FromResult(url.ToString()); // Just return, cause the url is probably already an id.
-        int startIndex = url.LastIndexOf('/') + 1;
-        int qIndx = url.IndexOf('?');
-        int stopIndex = qIndx == -1 ? url.Length : qIndx;
-        string? id = url[startIndex..stopIndex].ToString();
+        var startIndex = url.LastIndexOf('/') + 1;
+        var qIndx = url.IndexOf('?');
+        var stopIndex = qIndx == -1 ? url.Length : qIndx;
+        var id = url[startIndex..stopIndex].ToString();
         return ValueTask.FromResult(id);
     }
 
     static ValueTask<FullTrack[]> PlaylistToTrackListAsync(FullPlaylist playlist)
     {
-        List<PlaylistTrack<IPlayableItem>>? tracks = playlist.Tracks?.Items ?? throw new NullReferenceException("No tracks were found in playlist.");
-        int trackCount = tracks.Count;
-        FullTrack[]? tracklist = new FullTrack[trackCount];
-        for (int i = 0; i < trackCount; i++)
+        var tracks = playlist.Tracks?.Items ?? throw new NullReferenceException("No tracks were found in playlist.");
+        var trackCount = tracks.Count;
+        var tracklist = new FullTrack[trackCount];
+        for (var i = 0; i < trackCount; i++)
         {
-            IPlayableItem? track = tracks[i].Track;
+            var track = tracks[i].Track;
             if (track is FullEpisode)
                 throw new UrlNotSupportedException("Episodes are not supported. :(");
             tracklist[i] = (FullTrack)track;
@@ -108,7 +108,7 @@ public sealed partial class AsyncSpotifyDownloader : IAsyncDownloader
 
     static async ValueTask<MediaInfo> PlaylistToMediaInfoAsync(FullPlaylist playlist)
     {
-        FullTrack[]? tracks = await PlaylistToTrackListAsync(playlist);
+        var tracks = await PlaylistToTrackListAsync(playlist);
         return new MediaInfo(playlist.Id ?? throw new NullReferenceException("Playlist id was null. (spotify)"))
         {
             Artist = (playlist.Owner?.DisplayName) ?? "Unknown",
@@ -135,22 +135,22 @@ public sealed partial class AsyncSpotifyDownloader : IAsyncDownloader
 
     static async Task<MediaInfo> GetAlbumInfoAsync(ReadOnlyMemory<char> url)
     {
-        string? id = await ParseURLToIdAsyncAsync(url.ToString());
-        FullAlbum? album = await spotify.Albums.Get(id);
+        var id = await ParseURLToIdAsyncAsync(url.ToString());
+        var album = await spotify.Albums.Get(id);
         return AlbumToMediaInfo(album);
     }
 
     static async Task<MediaInfo> GetPlaylistInfoAsync(ReadOnlyMemory<char> url)
     {
-        string? id = await ParseURLToIdAsyncAsync(url.ToString());
-        FullPlaylist? playlist = await spotify.Playlists.Get(id);
+        var id = await ParseURLToIdAsyncAsync(url.ToString());
+        var playlist = await spotify.Playlists.Get(id);
         return await PlaylistToMediaInfoAsync(playlist);
     }
 
     static async ValueTask<PlayableMedia> DownloadFromProviderAsync(MediaInfo info)
     {
-        MediaInfo? extInfo = await downloader.GetInfoAsync($"{info.Artist} {info.Title}".AsMemory());
-        MediaCollection? extMedia = await downloader.DownloadAsync(extInfo);
+        var extInfo = await downloader.GetInfoAsync($"{info.Artist} {info.Title}".AsMemory());
+        var extMedia = await downloader.DownloadAsync(extInfo);
         PlayableMedia extVideo = extMedia.First();
         extVideo.Info = info with { Id = extVideo.Info.Id, Url = extVideo.Info.Url };
         return extVideo;
@@ -158,18 +158,18 @@ public sealed partial class AsyncSpotifyDownloader : IAsyncDownloader
 
     static async ValueTask<MediaCollection> DownloadSpotifyAlbumAsync(FullAlbum album)
     {
-        MediaInfo? albumInfo = AlbumToMediaInfo(album);
-        List<SimpleTrack>? tracks = await AlbumToTrackListAsync(album);
-        int trackLength = tracks.Count;
+        var albumInfo = AlbumToMediaInfo(album);
+        var tracks = await AlbumToTrackListAsync(album);
+        var trackLength = tracks.Count;
 
         IEnumerable<LazyMedia> GetCollection()
         {
-            foreach (SimpleTrack? track in tracks)
+            foreach (var track in tracks)
             {
                 MediaGetter getter = () =>
                 {
-                    MediaInfo? info = SimpleTrackToMediaInfo(track, album);
-                    PlayableMedia? video = DownloadFromProviderAsync(info).AsTask().Result;
+                    var info = SimpleTrackToMediaInfo(track, album);
+                    var video = DownloadFromProviderAsync(info).AsTask().Result;
                     video.CollectionInfo = albumInfo;
                     return video;
                 };
@@ -182,18 +182,18 @@ public sealed partial class AsyncSpotifyDownloader : IAsyncDownloader
 
     static async ValueTask<MediaCollection> DownloadSpotifyPlaylistAsync(FullPlaylist playlist)
     {
-        MediaInfo? playlistInfo = await PlaylistToMediaInfoAsync(playlist);
-        FullTrack[]? tracks = await PlaylistToTrackListAsync(playlist);
-        int trackLength = tracks.Length;
+        var playlistInfo = await PlaylistToMediaInfoAsync(playlist);
+        var tracks = await PlaylistToTrackListAsync(playlist);
+        var trackLength = tracks.Length;
 
         IEnumerable<LazyMedia> GetCollection()
         {
-            foreach (FullTrack? track in tracks)
+            foreach (var track in tracks)
             {
                 MediaGetter getter = () =>
                 {
-                    MediaInfo? info = FullTrackToMediaInfo(track);
-                    PlayableMedia? video = DownloadFromProviderAsync(info).AsTask().Result;
+                    var info = FullTrackToMediaInfo(track);
+                    var video = DownloadFromProviderAsync(info).AsTask().Result;
                     video.CollectionInfo = playlistInfo;
                     return video;
                 };
@@ -208,14 +208,14 @@ public sealed partial class AsyncSpotifyDownloader : IAsyncDownloader
     {
         try
         {
-            FullAlbum? album = await spotify.Albums.Get(info.Id);
+            var album = await spotify.Albums.Get(info.Id);
             return await DownloadSpotifyAlbumAsync(album);
         }
         catch { }
 
         try
         {
-            FullPlaylist? playlist = await spotify.Playlists.Get(info.Id);
+            var playlist = await spotify.Playlists.Get(info.Id);
             return await DownloadSpotifyPlaylistAsync(playlist);
         }
         catch { }
@@ -231,7 +231,7 @@ public sealed partial class AsyncSpotifyDownloader : IAsyncDownloader
         if (info.MediaType == MediaType.Playlist)
             return await DownloadPlaylistAsync(info);
 
-        PlayableMedia? media = await DownloadFromProviderAsync(info);
+        var media = await DownloadFromProviderAsync(info);
         return new MediaCollection(media);
     }
 
@@ -246,8 +246,8 @@ public sealed partial class AsyncSpotifyDownloader : IAsyncDownloader
         if (IsUrlAlbum(query.Span))
             return await GetAlbumInfoAsync(query);
 
-        string? id = await ParseURLToIdAsyncAsync(query.Span);
-        FullTrack? track = await spotify.Tracks.Get(id);
+        var id = await ParseURLToIdAsyncAsync(query.Span);
+        var track = await spotify.Tracks.Get(id);
         return FullTrackToMediaInfo(track);
     }
 }

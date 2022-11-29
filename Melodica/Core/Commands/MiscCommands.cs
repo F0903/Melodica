@@ -28,14 +28,14 @@ public sealed class MiscCommands : ModuleBase<SocketCommandContext>
 
         if (cachedCommandInfo == null)
         {
-            IOrderedEnumerable<ModuleInfo>? modules = commandService.Modules.ToArray().OrderBy(x => x.Group);
+            var modules = commandService.Modules.ToArray().OrderBy(x => x.Group);
             cachedCommandInfo = new List<CommandInfo>();
-            foreach (ModuleInfo? module in modules)
+            foreach (var module in modules)
                 cachedCommandInfo.AddRange(module.Commands);
         }
 
-        int maxElemsPerPage = 20;
-        int totalPages = cachedCommandInfo.Count / maxElemsPerPage;
+        var maxElemsPerPage = 20;
+        var totalPages = cachedCommandInfo.Count / maxElemsPerPage;
 
         if (page > totalPages)
         {
@@ -44,12 +44,12 @@ public sealed class MiscCommands : ModuleBase<SocketCommandContext>
         }
 
         List<EmbedFieldBuilder>? fields = new(cachedCommandInfo.Count);
-        int startIndx = page * maxElemsPerPage;
-        int endIndx = (cachedCommandInfo.Count - startIndx) <= maxElemsPerPage ? cachedCommandInfo.Count : startIndx + maxElemsPerPage;
-        for (int i = startIndx; i < endIndx; i++)
+        var startIndx = page * maxElemsPerPage;
+        var endIndx = (cachedCommandInfo.Count - startIndx) <= maxElemsPerPage ? cachedCommandInfo.Count : startIndx + maxElemsPerPage;
+        for (var i = startIndx; i < endIndx; i++)
         {
-            CommandInfo? command = cachedCommandInfo[i];
-            IReadOnlyList<string>? commandAliases = command.Aliases;
+            var command = cachedCommandInfo[i];
+            var commandAliases = command.Aliases;
             fields.Add(new EmbedFieldBuilder()
             {
                 IsInline = false,
@@ -72,7 +72,7 @@ public sealed class MiscCommands : ModuleBase<SocketCommandContext>
     [Command("Owner"), Summary("Gets the owner of the bot.")]
     public async Task GetOwnerAsync()
     {
-        IUser? owner = await Utility.Utils.GetAppOwnerAsync();
+        var owner = await Utility.Utils.GetAppOwnerAsync();
         await ReplyAsync(Context.Message.Author.Id == owner.Id ? "You already know..." : $"My owner is {owner}");
     }
 

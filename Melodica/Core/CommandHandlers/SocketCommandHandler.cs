@@ -1,6 +1,4 @@
-﻿using System.Reflection;
-
-using Discord;
+﻿using Discord;
 using Discord.Interactions;
 using Discord.WebSocket;
 
@@ -8,6 +6,8 @@ using Melodica.Config;
 using Melodica.Dependencies;
 
 using Serilog;
+
+using System.Reflection;
 
 namespace Melodica.Core.CommandHandlers;
 
@@ -103,7 +103,7 @@ public sealed class SocketCommandHandler : IAsyncCommandHandler
     {
         if (interactions is null) return;
 
-        var ctx = new SocketInteractionContext(client, command);
+        SocketInteractionContext ctx = new(client, command);
         var result = await interactions.ExecuteCommandAsync(ctx, ioc);
         if (!result.IsSuccess)
         {

@@ -12,12 +12,12 @@ public sealed class TempMedia : PlayableMedia
 
     public override async Task<DataInfo> GetDataAsync()
     {
-        DataPair? pair = await data(this);
+        var pair = await data(this);
         if (pair.Data is null)
             throw new NullReferenceException("Data in temp media was null.");
         path = $"./temp/{Info.Title}";
         Directory.CreateDirectory("./temp");
-        using FileStream? fs = File.OpenWrite(path);
+        using var fs = File.OpenWrite(path);
         using (pair.Data) await pair.Data.CopyToAsync(fs);
         return new DataInfo(pair.Format, path);
     }

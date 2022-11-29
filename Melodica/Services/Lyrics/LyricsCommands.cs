@@ -31,11 +31,11 @@ public sealed class LyricsCommands : InteractionModuleBase<SocketInteractionCont
 
         if (songName is null)
         {
-            Media.PlayableMedia? song = juke!.GetSong();
+            var song = juke!.GetSong();
             if (song is null)
                 throw new NullReferenceException("Song was null. (dbg-err)");
 
-            Media.MediaInfo? songInfo = song.Info;
+            var songInfo = song.Info;
             songName = $"{songInfo.Artist} {songInfo.Title}";
         }
 
@@ -50,11 +50,11 @@ public sealed class LyricsCommands : InteractionModuleBase<SocketInteractionCont
             return;
         }
 
-        ReadOnlyMemory<char> text = lyrs.Lyrics.AsMemory();
+        var text = lyrs.Lyrics.AsMemory();
         const int pageSize = 2048;
-        for (int i = 0; i < text.Length; i += pageSize)
+        for (var i = 0; i < text.Length; i += pageSize)
         {
-            string pageText = text.Span.Slice(i, Math.Min(pageSize, text.Length - i)).ToString();
+            var pageText = text.Span.Slice(i, Math.Min(pageSize, text.Length - i)).ToString();
             await ModifyOriginalResponseAsync(x => x.Embed = new EmbedBuilder()
             {
                 Title = i == 0 ? lyrs.Title : "",

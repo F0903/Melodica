@@ -16,14 +16,14 @@ public static class Utils
     public static Task<string> GetURLArgumentAsync(Span<char> url, string argName)
     {
         //Note: This algo is untested.
-        int startPos = 0;
-        int endPos = 0;
-        for (int i = 0; i < url.Length; i++)
+        var startPos = 0;
+        var endPos = 0;
+        for (var i = 0; i < url.Length; i++)
         {
             if (url[i] == '&')
             {
-                bool match = true;
-                for (int j = 0; j < argName.Length; j++)
+                var match = true;
+                for (var j = 0; j < argName.Length; j++)
                 {
                     if (url[i + j] != argName[j])
                     {
@@ -49,11 +49,11 @@ public static class Utils
 
     public static string GetUrlResourceFormat(ReadOnlySpan<char> url)
     {
-        string format = "";
-        int start = url.LastIndexOf('.') + 1;
-        foreach (char ch in url[start..])
+        var format = "";
+        var start = url.LastIndexOf('.') + 1;
+        foreach (var ch in url[start..])
         {
-            if (ch == '?' || ch == '/' || ch == '\\') break;
+            if (ch is '?' or '/' or '\\') break;
             format += ch;
         }
         return format;

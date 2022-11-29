@@ -21,7 +21,7 @@ public sealed class MediaCollection : IEnumerable<LazyMedia>
 
     public IEnumerator<LazyMedia> GetEnumerator()
     {
-        foreach (LazyMedia? item in media)
+        foreach (var item in media)
         {
             yield return item;
         }

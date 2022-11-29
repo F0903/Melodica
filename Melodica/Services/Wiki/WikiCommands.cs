@@ -32,10 +32,10 @@ public sealed class WikiCommands : InteractionModuleBase<SocketInteractionContex
             return null;
         }
 
-        Media.PlayableMedia? song = juke.GetSong();
+        var song = juke.GetSong();
         if (song is null)
             throw new NullReferenceException("Song was null.");
-        string? artist = song.Info.Artist;
+        var artist = song.Info.Artist;
 
         return await wiki.GetInfoAsync(artist);
     }
@@ -45,13 +45,13 @@ public sealed class WikiCommands : InteractionModuleBase<SocketInteractionContex
     {
         await DeferAsync();
 
-        WikiElement? maybeInfo = pageTitle is null ? await GetPlayingInfoAsync() : await wiki.GetInfoAsync(pageTitle!);
+        var maybeInfo = pageTitle is null ? await GetPlayingInfoAsync() : await wiki.GetInfoAsync(pageTitle!);
         if (maybeInfo is null)
         {
             await ModifyOriginalResponseAsync(x => x.Content = "No page title was provided, and no song is currently playing.");
             return;
         }
-        WikiElement info = maybeInfo.Value;
+        var info = maybeInfo.Value;
 
         await ModifyOriginalResponseAsync(x => x.Embed = new EmbedBuilder()
         {

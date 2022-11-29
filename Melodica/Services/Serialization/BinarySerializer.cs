@@ -23,7 +23,7 @@ public sealed class BinarySerializer : IAsyncSerializer
 
     public Task<T> DeserializeFileAsync<T>(string path)
     {
-        using FileStream? file = File.Open(path, FileMode.Open, FileAccess.Read, FileShare.Read);
+        using var file = File.Open(path, FileMode.Open, FileAccess.Read, FileShare.Read);
         return Task.FromResult((T)bin.Deserialize(file));
     }
 

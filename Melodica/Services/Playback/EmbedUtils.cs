@@ -1,9 +1,9 @@
 ﻿
-using System.Text;
-
 using Discord;
 
 using Melodica.Services.Media;
+
+using System.Text;
 
 namespace Melodica.Services.Playback;
 
@@ -20,11 +20,11 @@ public static class EmbedUtils
             description.Append($"__\n{collectionInfo.Title}");
         }
 
-        bool durationUnknown = info.MediaType == MediaType.Livestream || info.Duration == TimeSpan.Zero;
-        string durationStr = $"{info.Duration}{(info.MediaType != MediaType.Playlist && collectionInfo is not null ? $" | {collectionInfo.Duration}" : "")}";
-        string footer = durationUnknown ? InfChar.ToString() : durationStr;
+        var durationUnknown = info.MediaType == MediaType.Livestream || info.Duration == TimeSpan.Zero;
+        var durationStr = $"{info.Duration}{(info.MediaType != MediaType.Playlist && collectionInfo is not null ? $" | {collectionInfo.Duration}" : "")}";
+        var footer = durationUnknown ? InfChar.ToString() : durationStr;
 
-        Embed? embed = new EmbedBuilder()
+        var embed = new EmbedBuilder()
                     .WithTitle(info.Artist)
                     .WithDescription(description.ToString())
                     .WithFooter(footer)

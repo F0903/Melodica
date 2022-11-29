@@ -19,10 +19,10 @@ public sealed class URLMediaRequest : IMediaRequest
 
     public Task<MediaCollection> GetMediaAsync()
     {
-        TempMedia? media = new TempMedia(info, async (_) =>
+        TempMedia? media = new(info, async (_) =>
         {
-            Stream? data = await http.GetStreamAsync(remote);
-            string? format = remote.AsSpan().ExtractFormatFromFileUrl();
+            var data = await http.GetStreamAsync(remote);
+            var format = remote.AsSpan().ExtractFormatFromFileUrl();
             return new(data, format);
         });
         return Task.FromResult(new MediaCollection(media));

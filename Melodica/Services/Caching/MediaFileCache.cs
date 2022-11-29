@@ -1,10 +1,10 @@
-﻿using System.Diagnostics;
-
-using Melodica.Config;
+﻿using Melodica.Config;
 using Melodica.Services.Downloaders.Exceptions;
 using Melodica.Services.Media;
 using Melodica.Services.Serialization;
 using Melodica.Utility;
+
+using System.Diagnostics;
 
 namespace Melodica.Services.Caching;
 
@@ -14,7 +14,7 @@ public sealed class MediaFileCache : IMediaCache
     {
         var root = Path.Combine(Directory.GetCurrentDirectory(), "mediacache");
         cacheLocation = Path.Combine(root, dirName);
-        bool exists = Directory.Exists(cacheLocation);
+        var exists = Directory.Exists(cacheLocation);
         if (!exists) Directory.CreateDirectory(cacheLocation);
         else LoadPreexistingFilesAsync().Wait();
 
@@ -39,9 +39,9 @@ public sealed class MediaFileCache : IMediaCache
             throw new Exception("No cache instances have been instanciated. Please play a song first to create the caches.");
         int deletedFiles = 0, filesInUse = 0;
         long msDuration = 0;
-        foreach (MediaFileCache? cache in cacheInstances)
+        foreach (var cache in cacheInstances)
         {
-            (int deletedFiles, int filesInUse, long msDuration) result = await cache.PruneCacheAsync(true);
+            var result = await cache.PruneCacheAsync(true);
             deletedFiles += result.deletedFiles;
             filesInUse += result.filesInUse;
             msDuration += result.msDuration;
@@ -51,13 +51,13 @@ public sealed class MediaFileCache : IMediaCache
 
     private async Task LoadPreexistingFilesAsync()
     {
-        foreach (FileInfo? metaFile in Directory.EnumerateFileSystemEntries(cacheLocation, $"*{MediaInfo.MetaFileExtension}", SearchOption.AllDirectories).Convert(x => new FileInfo(x)))
+        foreach (var metaFile in Directory.EnumerateFileSystemEntries(cacheLocation, $"*{MediaInfo.MetaFileExtension}", SearchOption.AllDirectories).Convert(x => new FileInfo(x)))
         {
             try
             {
-                MediaInfo? info = await MediaInfo.LoadFromFile(metaFile.FullName);
-                PlayableMedia? med = await PlayableMedia.FromExisting(info);
-                string? id = info.Id ?? throw new Exception("Id was null.");
+                var info = await MediaInfo.LoadFromFile(metaFile.FullName);
+                var med = await PlayableMedia.FromExisting(info);
+                var id = info.Id ?? throw new Exception("Id was null.");
                 cache.Add(id, new(med, 0));
             }
             catch (Exception)
@@ -75,7 +75,7 @@ public sealed class MediaFileCache : IMediaCache
             file.Delete();
             if (file.DirectoryName != null)
             {
-                foreach (string? dirFile in Directory.EnumerateFiles(file.DirectoryName, $"{Path.ChangeExtension(file.Name, null)}.*"))
+                foreach (var dirFile in Directory.EnumerateFiles(file.DirectoryName, $"{Path.ChangeExtension(file.Name, null)}.*"))
                 {
                     File.Delete(dirFile);
                 }
@@ -88,17 +88,17 @@ public sealed class MediaFileCache : IMediaCache
 
     public Task<long> GetCacheSizeAsync()
     {
-        IEnumerable<string>? files = Directory.EnumerateFiles(cacheLocation);
+        var files = Directory.EnumerateFiles(cacheLocation);
         return Task.FromResult(files.AsParallel().Convert(x => new FileInfo(x)).Sum(f => f.Length));
     }
 
     private Task<(int deletedFiles, int filesInUse, long msDuration)> NukeCacheAsync()
     {
-        int deletedFiles = 0;
-        int filesInUse = 0;
+        var deletedFiles = 0;
+        var filesInUse = 0;
 
-        IEnumerable<FileInfo>? files = Directory.EnumerateFiles(cacheLocation).Convert(x => new FileInfo(x));
-        var sw = new Stopwatch();
+        var files = Directory.EnumerateFiles(cacheLocation).Convert(x => new FileInfo(x));
+        Stopwatch sw = new();
         sw.Start();
         Parallel.ForEach<FileInfo>(files, (file, loop) =>
         {
@@ -107,8 +107,8 @@ public sealed class MediaFileCache : IMediaCache
             try
             {
                 DeleteMediaFile(file);
-                string? name = Path.ChangeExtension(file.Name, null);
-                (PlayableMedia media, long accessCount) = cache[name];
+                var name = Path.ChangeExtension(file.Name, null);
+                (var media, var accessCount) = cache[name];
                 if (media != null)
                     cache.Remove(name);
                 ++deletedFiles;
@@ -124,17 +124,17 @@ public sealed class MediaFileCache : IMediaCache
 
     private Task<(int deletedFiles, int filesInUse, long msDuration)> PruneCacheAsync(bool force)
     {
-        int maxSize = BotConfig.Settings.CacheSizeMB;
+        var maxSize = BotConfig.Settings.CacheSizeMB;
         if (!force && cache.Count < maxSize)
             return Task.FromResult((0, 0, 0L));
 
-        int deletedFiles = 0;
-        int filesInUse = 0;
+        var deletedFiles = 0;
+        var filesInUse = 0;
 
-        var sw = new Stopwatch();
+        Stopwatch sw = new();
         sw.Start();
 
-        IOrderedEnumerable<KeyValuePair<string, CachePair>>? ordered = cache.OrderByDescending(x => x.Value.AccessCount);
+        var ordered = cache.OrderByDescending(x => x.Value.AccessCount);
         Parallel.ForEach(ordered, (x, s, i) =>
         {
             if (!force && i > cache.Count - maxSize)
@@ -145,10 +145,10 @@ public sealed class MediaFileCache : IMediaCache
 
             try
             {
-                CachePair? pair = x.Value;
-                PlayableMedia? media = pair.Media;
-                DataInfo? dataInfo = media.Info.DataInfo;
-                string? file = dataInfo!.MediaPath ?? throw new Exception("MediaPath or DataInfo was null when trying to delete media file in PruneCache.");
+                var pair = x.Value;
+                var media = pair.Media;
+                var dataInfo = media.Info.DataInfo;
+                var file = dataInfo!.MediaPath ?? throw new Exception("MediaPath or DataInfo was null when trying to delete media file in PruneCache.");
                 DeleteMediaFile(new(file));
                 cache.Remove(x.Key);
                 ++deletedFiles;
@@ -165,14 +165,14 @@ public sealed class MediaFileCache : IMediaCache
         if (!forceClear && await GetCacheSizeAsync() < BotConfig.Settings.CacheSizeMB * 1024 * 1024)
             return (0, 0, 0);
 
-        (int deletedFiles, int filesInUse, long msDuration) = nuke ? await NukeCacheAsync() : await PruneCacheAsync(forceClear);
+        (var deletedFiles, var filesInUse, var msDuration) = nuke ? await NukeCacheAsync() : await PruneCacheAsync(forceClear);
 
         return (deletedFiles, filesInUse, msDuration);
     }
 
     async Task<PlayableMedia> InternalGetAsync(string id)
     {
-        CachePair? pair = cache[id];
+        var pair = cache[id];
         cache[id] = pair with { AccessCount = pair.AccessCount + 1 };
         return await PlayableMedia.FromExisting(pair.Media.Info);
     }
@@ -224,14 +224,14 @@ public sealed class MediaFileCache : IMediaCache
 
         var format = data.Format;
         var fileExt = $".{format}";
-        string mediaLocation = Path.Combine(cacheLocation, fileLegalId + fileExt);
+        var mediaLocation = Path.Combine(cacheLocation, fileLegalId + fileExt);
         using var file = File.OpenWrite(mediaLocation);
         dataStream.Position = 0;
         await dataStream.CopyToAsync(file);
-        DataInfo dataInfo = info.DataInfo = new(format, mediaLocation);
+        var dataInfo = info.DataInfo = new(format, mediaLocation);
 
         // Serialize the metadata.
-        string metaLocation = Path.Combine(cacheLocation, fileLegalId + MediaInfo.MetaFileExtension);
+        var metaLocation = Path.Combine(cacheLocation, fileLegalId + MediaInfo.MetaFileExtension);
         await serializer.SerializeToFileAsync(metaLocation, info);
 
         return dataInfo;

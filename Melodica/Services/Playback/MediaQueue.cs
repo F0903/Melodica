@@ -60,8 +60,8 @@ public sealed class MediaQueue
     {
         lock (locker)
         {
-            int index = Shuffle ? rng.Next(0, list.Count) : 0;
-            LazyMedia? item = list[index];
+            var index = Shuffle ? rng.Next(0, list.Count) : 0;
+            var item = list[index];
             list.RemoveAt(index);
             lastMedia = item;
             return ValueTask.FromResult((PlayableMedia)item);
@@ -72,7 +72,7 @@ public sealed class MediaQueue
     {
         if (Loop && lastMedia is not null)
             return lastMedia;
-        PlayableMedia? next = await GetNextAsync();
+        var next = await GetNextAsync();
         if (Repeat)
         {
             lock (locker)

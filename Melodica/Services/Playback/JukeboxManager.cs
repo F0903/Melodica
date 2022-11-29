@@ -1,6 +1,6 @@
-﻿using System.Collections.Concurrent;
+﻿using Discord;
 
-using Discord;
+using System.Collections.Concurrent;
 
 namespace Melodica.Services.Playback;
 
@@ -15,7 +15,7 @@ public static class JukeboxManager
 
     public static Jukebox GetOrCreateJukebox(IGuild guild, Func<Jukebox> newFactory)
     {
-        Jukebox? juke = jukeboxes.GetOrAdd(guild, newFactory());
+        var juke = jukeboxes.GetOrAdd(guild, newFactory());
         return juke;
     }
 }

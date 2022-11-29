@@ -42,5 +42,5 @@ public record MediaInfo(string Id)
 
     public string? ImageUrl { get; init; }
 
-    public DataInfo? DataInfo { get; set; } 
+    public DataInfo? DataInfo { get; set; }
 }

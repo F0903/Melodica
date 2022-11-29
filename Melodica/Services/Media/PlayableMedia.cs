@@ -38,7 +38,7 @@ public class PlayableMedia
     // Should be a seperate class.
     public static ValueTask<PlayableMedia> FromExisting(MediaInfo info)
     {
-        var media = new PlayableMedia(info);
+        PlayableMedia media = new(info);
         return ValueTask.FromResult(media);
     }
 
@@ -47,9 +47,9 @@ public class PlayableMedia
         if (cache is null)
             throw new NullReferenceException("Cache was null.");
 
-        if (cache.TryGet(Info.Id, out PlayableMedia? cachedMedia))
+        if (cache.TryGet(Info.Id, out var cachedMedia))
         {
-            DataInfo? info = cachedMedia!.Info.DataInfo;
+            var info = cachedMedia!.Info.DataInfo;
             if (info is not null)
                 return info;
         }

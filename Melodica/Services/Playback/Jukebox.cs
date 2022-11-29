@@ -121,7 +121,7 @@ public sealed class Jukebox
         const int channels = 2;
         const int bits = 16;
         const int blockAlign = channels * bits;
-        int bytes = blockAlign * frames;
+        var bytes = blockAlign * frames;
         Span<byte> buffer = bytes < 1024 ? stackalloc byte[bytes] : new byte[bytes];
         output.Write(buffer);
         output.Flush();
@@ -168,7 +168,7 @@ public sealed class Jukebox
     private Task<bool> SendDataAsync(DataInfo data, AudioOutStream output, IAudioChannel channel, CancellationToken token)
     {
 
-        bool aborted = false;
+        var aborted = false;
 
         async void StartWrite()
         {
@@ -178,7 +178,7 @@ public sealed class Jukebox
                 using IAsyncAudioProcessor audio = data.Format == "s16le" ? new RawProcessor(mediaPath) : new FFmpegProcessor(mediaPath, data.Format);
                 using var input = await audio.ProcessAsync();
                 WriteData(input, output, token);
-            } 
+            }
             catch (Exception ex)
             {
                 Log.Error(ex, "SendDataAsync encountered an exception.");
@@ -190,7 +190,7 @@ public sealed class Jukebox
             }
         }
 
-        var writeThread = new Thread(StartWrite)
+        Thread writeThread = new(StartWrite)
         {
             IsBackground = false,
             Priority = ThreadPriority.Highest
@@ -274,7 +274,7 @@ public sealed class Jukebox
     //TODO: Implement starting point. (seeking)
     async Task PlayNextAsync(IAudioChannel channel, AudioOutStream output, CancellationToken token, TimeSpan? startingPoint = null)
     {
-        PlayableMedia media = await queue.DequeueAsync();
+        var media = await queue.DequeueAsync();
         if (media is null)
             throw new CriticalException("Song from queue was null.");
 
@@ -293,7 +293,7 @@ public sealed class Jukebox
         }
 
         await currentPlayer!.SetSongEmbedAsync(media.Info, media.CollectionInfo);
-        bool faulted = await SendDataAsync(dataInfo, output, channel, token);
+        var faulted = await SendDataAsync(dataInfo, output, channel, token);
 
         // If media is temporary (3rd party download) then delete the file.
         if ((!Loop || faulted) && media is TempMedia temp)
@@ -347,13 +347,13 @@ public sealed class Jukebox
         try
         {
             cancellation = new();
-            CancellationToken token = cancellation.Token;
+            var token = cancellation.Token;
 
             await ConnectAsync(channel);
-            int bitrate = (channel as IVoiceChannel)?.Bitrate ?? 96000;
+            var bitrate = (channel as IVoiceChannel)?.Bitrate ?? 96000;
             await player.SpawnAsync(reqInfo, collection.CollectionInfo);
             currentPlayer = player;
-            using AudioOutStream output = audioClient!.CreatePCMStream(AudioApplication.Music, bitrate, 200, 0);
+            using var output = audioClient!.CreatePCMStream(AudioApplication.Music, bitrate, 200, 0);
             await PlayNextAsync(channel, output, token, startingPoint);
         }
         finally
@@ -374,7 +374,7 @@ public sealed class Jukebox
 
     public async Task SetNextAsync(IMediaRequest request)
     {
-        MediaCollection media = await request.GetMediaAsync();
+        var media = await request.GetMediaAsync();
         await queue.PutFirstAsync(media);
     }
 }

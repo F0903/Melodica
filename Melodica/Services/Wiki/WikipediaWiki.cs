@@ -11,21 +11,21 @@ public sealed class WikipediaWiki : IWikiProvider
 
     private static async Task<WikiElement> GetSummary(string pageName)
     {
-        string? fullEndpoint = $"{wikipediaSummaryEndpoint}{pageName}?redirect=false";
+        var fullEndpoint = $"{wikipediaSummaryEndpoint}{pageName}?redirect=false";
 
-        HttpResponseMessage? response = await http.GetAsync(fullEndpoint);
+        var response = await http.GetAsync(fullEndpoint);
         response.EnsureSuccessStatusCode();
 
-        using Stream? resStream = await response.Content.ReadAsStreamAsync();
+        using var resStream = await response.Content.ReadAsStreamAsync();
         JsonDocument doc;
         try { doc = JsonDocument.Parse(resStream); }
         catch { throw new JsonException("Could not parse the response stream."); }
-        JsonElement root = doc.RootElement;
+        var root = doc.RootElement;
 
-        string? title = root.GetProperty("title").GetString();
+        var title = root.GetProperty("title").GetString();
         string? imageUrl = null;
         try { imageUrl = root.GetProperty("thumbnail").GetProperty("source").GetString(); } catch { }
-        string? summary = root.GetProperty("extract").GetString();
+        var summary = root.GetProperty("extract").GetString();
 
         if (root.GetProperty("type").GetString() == "disambiguation")
             summary = $"Could not find a wiki page with the name '{pageName}'. Was directed to disambiguation page.";

@@ -36,9 +36,9 @@ public sealed class AttachmentMediaRequest : IMediaRequest
     {
         TempMedia? media = new(await GetInfoAsync(), async (_) =>
         {
-            string? remote = attachment.Url;
-            Stream? data = await http.GetStreamAsync(remote);
-            string? format = remote.AsSpan().ExtractFormatFromFileUrl();
+            var remote = attachment.Url;
+            var data = await http.GetStreamAsync(remote);
+            var format = remote.AsSpan().ExtractFormatFromFileUrl();
             return new DataPair(data, format);
         });
         return new MediaCollection(media);

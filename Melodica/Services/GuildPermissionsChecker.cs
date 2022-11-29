@@ -18,14 +18,14 @@ public static class GuildPermissionsChecker
     public static bool CheckVoicePermission(SocketGuild guild, ISelfUser bot, IVoiceChannel voice)
     {
         botGuildRoles ??= guild.GetUser(bot.Id).Roles;
-        foreach (SocketRole? role in botGuildRoles) // Check through all roles.
+        foreach (var role in botGuildRoles) // Check through all roles.
         {
             if (role.Permissions.Administrator)
                 return true;
-            OverwritePermissions? guildRolePerms = voice.GetPermissionOverwrite(role);
+            var guildRolePerms = voice.GetPermissionOverwrite(role);
             if (guildRolePerms == null)
                 continue;
-            List<ChannelPermission>? allowedGuildPerms = guildRolePerms!.Value.ToAllowList();
+            var allowedGuildPerms = guildRolePerms!.Value.ToAllowList();
             if (allowedGuildPerms.Contains(ChannelPermission.Connect) && allowedGuildPerms.Contains(ChannelPermission.Speak))
                 return true;
         }
@@ -34,7 +34,7 @@ public static class GuildPermissionsChecker
         botPerms ??= voice.GetPermissionOverwrite(bot);
         if (botPerms != null)
         {
-            List<ChannelPermission>? allowedBotPerms = botPerms!.Value.ToAllowList();
+            var allowedBotPerms = botPerms!.Value.ToAllowList();
             if (allowedBotPerms.Contains(ChannelPermission.Connect) && allowedBotPerms.Contains(ChannelPermission.Speak))
                 return true;
         }

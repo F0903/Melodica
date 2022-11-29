@@ -12,8 +12,8 @@ public sealed class SocketBot
 {
     public SocketBot()
     {
-        this.client = Dependency.Get<DiscordSocketClient>();
-        this.commandHandler = new SocketCommandHandler(client);
+        client = Dependency.Get<DiscordSocketClient>();
+        commandHandler = new SocketCommandHandler(client);
 
         client.Ready += OnReady;
         client.Log += static (msg) =>

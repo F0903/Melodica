@@ -1,10 +1,4 @@
-﻿using System.Diagnostics;
-using System.Formats.Asn1;
-using System.Text.RegularExpressions;
-
-using AngleSharp.Media;
-
-using Melodica.Config;
+﻿using Melodica.Config;
 using Melodica.Services.Audio;
 using Melodica.Services.Caching;
 using Melodica.Services.Downloaders.Exceptions;
@@ -13,6 +7,9 @@ using Melodica.Utility;
 
 using Soundclouder;
 using Soundclouder.Entities;
+
+using System.Diagnostics;
+using System.Text.RegularExpressions;
 
 namespace Melodica.Services.Downloaders.SoundCloud;
 
@@ -53,21 +50,21 @@ internal sealed partial class AsyncSoundcloudDownloader : IAsyncDownloader
 
     static LazyMedia CreateLazyMedia(MediaInfo info, MediaInfo? collectionInfo = null)
     {
-        var media = new PlayableMedia(info, collectionInfo, static async (x) =>
+        PlayableMedia media = new(info, collectionInfo, static async (x) =>
         {
             var tracks = await search.GetTracksAsync(x.Info.Id);
-            var track = tracks.First();
+            var track = tracks[0];
             var streamUrl = await track.GetStreamURLAsync();
-            using var ffmpeg = new FFmpegProcessor(streamUrl, "hls");
-            using var output = await ffmpeg.ProcessAsync(); 
+            using FFmpegProcessor ffmpeg = new(streamUrl, "hls");
+            using var output = await ffmpeg.ProcessAsync();
             return new DataPair(output, "s16le");
         }, cache);
         return new LazyMedia(media);
     }
 
     static Task<MediaCollection> DownloadTrackAsync(MediaInfo info)
-    { 
-        var media = CreateLazyMedia(info); 
+    {
+        var media = CreateLazyMedia(info);
         return Task.FromResult(new MediaCollection(media));
     }
 
@@ -80,26 +77,26 @@ internal sealed partial class AsyncSoundcloudDownloader : IAsyncDownloader
             _ => throw new UnreachableException(),
         };
 
-        var tracks = new List<LazyMedia>();
+        List<LazyMedia> tracks = new();
         foreach (var track in playlist.Tracks)
         {
             var trackInfo = TrackToMediaInfo(track);
             var media = CreateLazyMedia(trackInfo, info);
             tracks.Add(media);
         }
-        var collection = new MediaCollection(tracks, info);
+        MediaCollection collection = new(tracks, info);
         return collection;
     }
 
     public Task<MediaCollection> DownloadAsync(MediaInfo info)
-    {  
+    {
         return info.MediaType switch
         {
             MediaType.Video => DownloadTrackAsync(info),
             MediaType.Playlist => DownloadPlaylistAsync(info),
             _ => throw new DownloaderException("SoundCloud does not support the provided media type!"),
-        }; 
-    } 
+        };
+    }
 
     public async Task<MediaInfo> GetInfoAsync(ReadOnlyMemory<char> query)
     {
@@ -111,8 +108,9 @@ internal sealed partial class AsyncSoundcloudDownloader : IAsyncDownloader
             if (result is TrackResolveResult trackResult)
             {
                 var track = trackResult.Track;
-                info = TrackToMediaInfo(track); 
-            } else if (result is PlaylistResolveResult playlistResult)
+                info = TrackToMediaInfo(track);
+            }
+            else if (result is PlaylistResolveResult playlistResult)
             {
                 var playlist = playlistResult.Playlist;
                 info = PlaylistToMediaInfo(playlist);
@@ -121,14 +119,11 @@ internal sealed partial class AsyncSoundcloudDownloader : IAsyncDownloader
         else
         {
             var result = await search.SearchAsync(queryString, filterKind: ResolveKind.Track);
-            var track = result.ReturnedMedia.First(); 
-            info = TrackToMediaInfo(track); 
+            var track = result.ReturnedMedia.First();
+            info = TrackToMediaInfo(track);
         }
 
-        if (info is null)
-            throw new MediaUnavailableException($"No info was found for the specified query: {query}");
-
-        return info;
+        return info is null ? throw new MediaUnavailableException($"No info was found for the specified query: {query}") : info;
     }
 
     public bool IsUrlSupported(ReadOnlySpan<char> url)

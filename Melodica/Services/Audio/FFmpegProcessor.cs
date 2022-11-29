@@ -21,7 +21,7 @@ internal class FFmpegProcessor : IAsyncAudioProcessor
 
     public ValueTask<Stream> ProcessAsync()
     {
-        var isStream = inputFormat is not null && inputFormat == "hls";
+        var isStream = inputFormat is not null and "hls";
 
         var inputFormatOption = inputFormat is not null ? $"-f {inputFormat}" : "";
         var formatSpecificInputOptions = !isStream ? "-flags +low_delay -fflags +discardcorrupt+fastseek+nobuffer -avioflags direct" : "";
@@ -36,7 +36,7 @@ internal class FFmpegProcessor : IAsyncAudioProcessor
                 Arguments = args,
                 UseShellExecute = false,
                 RedirectStandardError = false,
-                RedirectStandardInput = input == "pipe:0" || input == "pipe:" || input == "-",
+                RedirectStandardInput = input is "pipe:0" or "pipe:" or "-",
                 RedirectStandardOutput = true,
                 CreateNoWindow = true,
             }
