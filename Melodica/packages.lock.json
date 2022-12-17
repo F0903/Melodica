@@ -2,6 +2,20 @@
   "version": 1,
   "dependencies": {
     "net7.0": {
+      "Discord.Net": {
+        "type": "Direct",
+        "requested": "[3.9.0-20221217.4, )",
+        "resolved": "3.9.0-20221217.4",
+        "contentHash": "7HWDCNALagMirNBLgVSZM7xODazlxOTpfTsRfe10nlPzbwE71FOxGweBK+346IDr/NxXFO3NuWAhw3qDoI+/GQ==",
+        "dependencies": {
+          "Discord.Net.Commands": "3.9.0-20221217.4",
+          "Discord.Net.Core": "3.9.0-20221217.4",
+          "Discord.Net.Interactions": "3.9.0-20221217.4",
+          "Discord.Net.Rest": "3.9.0-20221217.4",
+          "Discord.Net.WebSocket": "3.9.0-20221217.4",
+          "Discord.Net.Webhook": "3.9.0-20221217.4"
+        }
+      },
       "Microsoft.Extensions.Configuration.UserSecrets": {
         "type": "Direct",
         "requested": "[7.0.0, )",
@@ -253,7 +267,7 @@
         "type": "Project"
       }
     },
-    "net7.0/linux-arm64": {
+    "net7.0/win-x64": {
       "System.Text.Encoding.CodePages": {
         "type": "Transitive",
         "resolved": "5.0.0",
