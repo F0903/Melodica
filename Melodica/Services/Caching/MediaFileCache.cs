@@ -8,6 +8,11 @@ using System.Diagnostics;
 
 namespace Melodica.Services.Caching;
 
+public sealed class NoMediaFileCachesException : Exception
+{
+    public NoMediaFileCachesException() : base("No cache instances have been instanciated. Please play a song first to create the caches.") { }
+}
+
 public sealed class MediaFileCache : IMediaCache
 {
     public MediaFileCache(string dirName)
@@ -36,7 +41,7 @@ public sealed class MediaFileCache : IMediaCache
     public static async Task<(int deletedFiles, int filesInUse, long msDuration)> ClearAllCachesAsync()
     {
         if (cacheInstances.Count == 0)
-            throw new Exception("No cache instances have been instanciated. Please play a song first to create the caches.");
+            throw new NoMediaFileCachesException();
         int deletedFiles = 0, filesInUse = 0;
         long msDuration = 0;
         foreach (var cache in cacheInstances)

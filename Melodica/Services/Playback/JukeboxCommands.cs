@@ -25,8 +25,15 @@ public sealed class JukeboxCommands : InteractionModuleBase<SocketInteractionCon
     [SlashCommand("clear-cache", "Clears the media cache.")]
     public async Task ClearCache()
     {
-        (var deletedFiles, var filesInUse, var ms) = await MediaFileCache.ClearAllCachesAsync();
-        await RespondAsync($"Deleted {deletedFiles} files. ({filesInUse} files in use) [{ms}ms]", ephemeral: true);
+        try
+        {
+            (var deletedFiles, var filesInUse, var ms) = await MediaFileCache.ClearAllCachesAsync();
+            await RespondAsync($"Deleted {deletedFiles} files. ({filesInUse} files in use) [{ms}ms]", ephemeral: true);
+        }
+        catch (NoMediaFileCachesException e)
+        {
+            await RespondAsync(e.Message, ephemeral: true); 
+        } 
     }
 
     [SlashCommand("duration", "Shows the remaining duration of the current song.")]

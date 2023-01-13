@@ -4,16 +4,16 @@
     "net7.0": {
       "Discord.Net": {
         "type": "Direct",
-        "requested": "[3.9.0-20221217.4, )",
-        "resolved": "3.9.0-20221217.4",
-        "contentHash": "7HWDCNALagMirNBLgVSZM7xODazlxOTpfTsRfe10nlPzbwE71FOxGweBK+346IDr/NxXFO3NuWAhw3qDoI+/GQ==",
+        "requested": "[3.9.0, )",
+        "resolved": "3.9.0",
+        "contentHash": "vAY3N9jNjESU4dq9A7MBVIQ4pmap4eUhNzwD3I//aq3plZRsK1qKJTDHEsqzBJZ0jxLSBASCgc5tgabWADForA==",
         "dependencies": {
-          "Discord.Net.Commands": "3.9.0-20221217.4",
-          "Discord.Net.Core": "3.9.0-20221217.4",
-          "Discord.Net.Interactions": "3.9.0-20221217.4",
-          "Discord.Net.Rest": "3.9.0-20221217.4",
-          "Discord.Net.WebSocket": "3.9.0-20221217.4",
-          "Discord.Net.Webhook": "3.9.0-20221217.4"
+          "Discord.Net.Commands": "3.9.0",
+          "Discord.Net.Core": "3.9.0",
+          "Discord.Net.Interactions": "3.9.0",
+          "Discord.Net.Rest": "3.9.0",
+          "Discord.Net.WebSocket": "3.9.0",
+          "Discord.Net.Webhook": "3.9.0"
         }
       },
       "Microsoft.Extensions.Configuration.UserSecrets": {
@@ -63,9 +63,9 @@
       },
       "YoutubeExplode": {
         "type": "Direct",
-        "requested": "[6.2.4, )",
-        "resolved": "6.2.4",
-        "contentHash": "BimWtLTa2Tf4sme56QDO1R2npetI1p0Bvb/h62LypEFzFx5GSF3EFkLNmgEDi3tm8lgkutYO/Lmmd43cCkE1jg==",
+        "requested": "[6.2.5, )",
+        "resolved": "6.2.5",
+        "contentHash": "YzkfJ/2bMh4WWIdnJNH14/xooRr58qqDn9IquFnus3qPJIPgW4YFYE/Bw0YUMrUj6R92VXixgIf4kg+FJQbwPg==",
         "dependencies": {
           "AngleSharp": "0.17.0"
         }
