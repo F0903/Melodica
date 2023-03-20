@@ -63,20 +63,20 @@
       },
       "YoutubeExplode": {
         "type": "Direct",
-        "requested": "[6.2.5, )",
-        "resolved": "6.2.5",
-        "contentHash": "YzkfJ/2bMh4WWIdnJNH14/xooRr58qqDn9IquFnus3qPJIPgW4YFYE/Bw0YUMrUj6R92VXixgIf4kg+FJQbwPg==",
+        "requested": "[6.2.10, )",
+        "resolved": "6.2.10",
+        "contentHash": "5ASIVtb8NLAm3jhgRSHWW2jDrnDb8J0bq/O+DWjpCuMSVJNs2rqs+BR1BziIqrC1Hs3hvUotu85dU3Yj+/rMKA==",
         "dependencies": {
-          "AngleSharp": "0.17.0"
+          "AngleSharp": "1.0.1"
         }
       },
       "AngleSharp": {
         "type": "Transitive",
-        "resolved": "0.17.0",
-        "contentHash": "74haoXINcj4SdMsmiNzk+9VUwIX1U9P61O6AZd5Uao8SGNnJJB8Y/r8VJRc8orn4c7Vk/oURAKSNF9XcSDxbfA==",
+        "resolved": "1.0.1",
+        "contentHash": "uIezZhHZqWEb4zw/D5Xnskqb/sivIFwfWcUX2srPWTE10IYahfrdhWTIk859BpEmPmxSlMoL+S0JimFTaWGaHA==",
         "dependencies": {
           "System.Buffers": "4.5.1",
-          "System.Text.Encoding.CodePages": "5.0.0"
+          "System.Text.Encoding.CodePages": "7.0.0"
         }
       },
       "Microsoft.Extensions.Configuration": {
@@ -153,11 +153,6 @@
         "resolved": "7.0.0",
         "contentHash": "um1KU5kxcRp3CNuI8o/GrZtD4AIOXDk+RLsytjZ9QPok3ttLUelLKpilVPuaFT3TFjOhSibUAso0odbOaCDj3Q=="
       },
-      "Microsoft.NETCore.Platforms": {
-        "type": "Transitive",
-        "resolved": "5.0.0",
-        "contentHash": "VyPlqzH2wavqquTcYpkIIAQ6WdenuKoFN0BdYBbCWsclXacSOHNQn66Gt4z5NBqEYW0FAPm5rlvki9ZiCij5xQ=="
-      },
       "Newtonsoft.Json": {
         "type": "Transitive",
         "resolved": "13.0.1",
@@ -193,11 +188,8 @@
       },
       "System.Text.Encoding.CodePages": {
         "type": "Transitive",
-        "resolved": "5.0.0",
-        "contentHash": "NyscU59xX6Uo91qvhOs2Ccho3AR2TnZPomo1Z0K6YpyztBPM/A5VbkzOO19sy3A3i1TtEnTxA7bCe3Us+r5MWg==",
-        "dependencies": {
-          "Microsoft.NETCore.Platforms": "5.0.0"
-        }
+        "resolved": "7.0.0",
+        "contentHash": "LSyCblMpvOe0N3E+8e0skHcrIhgV2huaNcjUUEa8hRtgEAm36aGkRoC8Jxlb6Ra6GSfF29ftduPNywin8XolzQ=="
       },
       "System.Text.Encodings.Web": {
         "type": "Transitive",
@@ -270,11 +262,8 @@
     "net7.0/win-x64": {
       "System.Text.Encoding.CodePages": {
         "type": "Transitive",
-        "resolved": "5.0.0",
-        "contentHash": "NyscU59xX6Uo91qvhOs2Ccho3AR2TnZPomo1Z0K6YpyztBPM/A5VbkzOO19sy3A3i1TtEnTxA7bCe3Us+r5MWg==",
-        "dependencies": {
-          "Microsoft.NETCore.Platforms": "5.0.0"
-        }
+        "resolved": "7.0.0",
+        "contentHash": "LSyCblMpvOe0N3E+8e0skHcrIhgV2huaNcjUUEa8hRtgEAm36aGkRoC8Jxlb6Ra6GSfF29ftduPNywin8XolzQ=="
       },
       "System.Text.Encodings.Web": {
         "type": "Transitive",
