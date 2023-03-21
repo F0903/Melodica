@@ -259,7 +259,7 @@
         "type": "Project"
       }
     },
-    "net7.0/win-x64": {
+    "net7.0/linux-arm64": {
       "System.Text.Encoding.CodePages": {
         "type": "Transitive",
         "resolved": "7.0.0",
