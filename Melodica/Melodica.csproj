@@ -20,7 +20,7 @@
 
 	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
 		<DefineConstants>DEBUG;TRACE</DefineConstants>
-		<WarningLevel>5</WarningLevel>
+		<WarningLevel>9999</WarningLevel>
 		<TreatWarningsAsErrors>True</TreatWarningsAsErrors>
 		<CheckForOverflowUnderflow>True</CheckForOverflowUnderflow>
 	</PropertyGroup>
@@ -28,13 +28,13 @@
 	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
 		<DebugType>none</DebugType>
 		<DebugSymbols>false</DebugSymbols>
-		<WarningLevel>5</WarningLevel>
+		<WarningLevel>9999</WarningLevel>
 		<TreatWarningsAsErrors>True</TreatWarningsAsErrors>
 		<CheckForOverflowUnderflow>True</CheckForOverflowUnderflow>
 	</PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include="Discord.Net" Version="3.9.0" />
+		<PackageReference Include="Discord.Net" Version="3.10.0" />
 		<PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" Version="7.0.0" />
 		<PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="7.0.0" />
 		<PackageReference Include="Serilog" Version="2.12.0" />
@@ -44,12 +44,6 @@
 	</ItemGroup>
 
 	<ItemGroup>
-	  <ProjectReference Include="..\..\Discord.Net\src\Discord.Net.Commands\Discord.Net.Commands.csproj" />
-	  <ProjectReference Include="..\..\Discord.Net\src\Discord.Net.Core\Discord.Net.Core.csproj" />
-	  <ProjectReference Include="..\..\Discord.Net\src\Discord.Net.Interactions\Discord.Net.Interactions.csproj" />
-	  <ProjectReference Include="..\..\Discord.Net\src\Discord.Net.Rest\Discord.Net.Rest.csproj" />
-	  <ProjectReference Include="..\..\Discord.Net\src\Discord.Net.Webhook\Discord.Net.Webhook.csproj" />
-	  <ProjectReference Include="..\..\Discord.Net\src\Discord.Net.WebSocket\Discord.Net.WebSocket.csproj" />
 	  <ProjectReference Include="..\Soundclouder\Soundclouder\Soundclouder.csproj" />
 	</ItemGroup>
 
