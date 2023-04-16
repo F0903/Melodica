@@ -4,52 +4,53 @@ using Melodica.Services.Media;
 
 namespace Melodica.Services.Playback;
 
-public sealed class PlayerButton
+public sealed class JukeboxInterfaceButton
 {
-    private PlayerButton(string id)
+    private JukeboxInterfaceButton(string id)
     {
         this.id = id;
     }
 
     readonly string id;
 
-    public static readonly PlayerButton PlayPause = "player_togglepause";
-    public static readonly PlayerButton Stop = "player_stop";
-    public static readonly PlayerButton Skip = "player_skip";
-    public static readonly PlayerButton Shuffle = "player_shuffle";
-    public static readonly PlayerButton Repeat = "player_repeat";
-    public static readonly PlayerButton Loop = "player_loop";
+    public static readonly JukeboxInterfaceButton PlayPause = "player_togglepause";
+    public static readonly JukeboxInterfaceButton Stop = "player_stop";
+    public static readonly JukeboxInterfaceButton Skip = "player_skip";
+    public static readonly JukeboxInterfaceButton Shuffle = "player_shuffle";
+    public static readonly JukeboxInterfaceButton Repeat = "player_repeat";
+    public static readonly JukeboxInterfaceButton Loop = "player_loop";
 
-    public static implicit operator PlayerButton(string id) => new(id);
-    public static implicit operator string(PlayerButton playerButton) => playerButton.id;
+    public static implicit operator JukeboxInterfaceButton(string id) => new(id);
+    public static implicit operator string(JukeboxInterfaceButton playerButton) => playerButton.id;
 }
 
-public sealed class Player
+public sealed class JukeboxInterface
 {
-    public Player(IDiscordInteraction interaction)
+    public JukeboxInterface(IDiscordInteraction interaction)
     {
         this.interaction = interaction;
     }
 
     readonly IDiscordInteraction interaction;
-    IUserMessage? playerMsg;
+    IUserMessage? interfaceMessage;
 
-    readonly MessageComponent player =
+    static readonly MessageComponent playerComponent =
             new ComponentBuilder()
-            .WithButton(customId: PlayerButton.PlayPause, emote: Emoji.Parse(":play_pause:"))
-            .WithButton(customId: PlayerButton.Stop, emote: Emoji.Parse(":stop_button:"), style: ButtonStyle.Secondary)
-            .WithButton(customId: PlayerButton.Skip, emote: Emoji.Parse(":track_next:"), style: ButtonStyle.Secondary)
-            .WithButton(customId: PlayerButton.Shuffle, emote: Emoji.Parse(":twisted_rightwards_arrows:"), style: ButtonStyle.Secondary)
-            .WithButton(customId: PlayerButton.Repeat, emote: Emoji.Parse(":repeat:"), style: ButtonStyle.Secondary)
-            .WithButton(customId: PlayerButton.Loop, emote: Emoji.Parse(":repeat_one:"), style: ButtonStyle.Secondary)
+            .WithButton(customId: JukeboxInterfaceButton.PlayPause, emote: Emoji.Parse(":play_pause:"))
+            .WithButton(customId: JukeboxInterfaceButton.Stop, emote: Emoji.Parse(":stop_button:"), style: ButtonStyle.Secondary)
+            .WithButton(customId: JukeboxInterfaceButton.Skip, emote: Emoji.Parse(":track_next:"), style: ButtonStyle.Secondary)
+            .WithButton(customId: JukeboxInterfaceButton.Shuffle, emote: Emoji.Parse(":twisted_rightwards_arrows:"), style: ButtonStyle.Secondary)
+            .WithButton(customId: JukeboxInterfaceButton.Repeat, emote: Emoji.Parse(":repeat:"), style: ButtonStyle.Secondary)
+            .WithButton(customId: JukeboxInterfaceButton.Loop, emote: Emoji.Parse(":repeat_one:"), style: ButtonStyle.Secondary)
             .Build();
 
+    public bool AreButtonsDisabled { get; private set; }
 
     async Task ChangeButtonAsync(Func<IMessageComponent, bool> selector, Func<IMessageComponent, IMessageComponent> modifier)
     {
-        if (playerMsg is null) return;
-        var msgComps = playerMsg.Components;
-        await playerMsg.ModifyAsync(x =>
+        if (interfaceMessage is null) return;
+        var msgComps = interfaceMessage.Components;
+        await interfaceMessage.ModifyAsync(x =>
         {
             ComponentBuilder compBuilder = new();
             foreach (var row in msgComps)
@@ -68,21 +69,9 @@ public sealed class Player
             }
             x.Components = compBuilder.Build();
         });
-    }
+    } 
 
-    public async Task DisableButtonAsync(PlayerButton button)
-    {
-        await ChangeButtonAsync(x => x.CustomId == button, x =>
-        {
-            return ((ButtonComponent)x)
-                .ToBuilder()
-                .WithStyle(ButtonStyle.Secondary)
-                .WithDisabled(true)
-                .Build();
-        });
-    }
-
-    public async Task SetButtonStateAsync(PlayerButton button, bool pressed)
+    public async Task SetButtonStateAsync(JukeboxInterfaceButton button, bool pressed)
     {
         await ChangeButtonAsync(x => x.CustomId == button, x =>
         {
@@ -95,6 +84,7 @@ public sealed class Player
 
     public async Task DisableAllButtonsAsync()
     {
+        if(AreButtonsDisabled) return;
         await ChangeButtonAsync(_ => true, x =>
         {
             return ((ButtonComponent)x)
@@ -103,22 +93,23 @@ public sealed class Player
                 .WithDisabled(true)
                 .Build();
         });
+        AreButtonsDisabled = true;
     }
 
     public async Task SpawnAsync(MediaInfo mediaInfo, MediaInfo? colInfo)
     {
-        playerMsg = await interaction.ModifyOriginalResponseAsync(x =>
+        interfaceMessage = await interaction.ModifyOriginalResponseAsync(x =>
         {
             x.Embed = EmbedUtils.CreateMediaEmbed(mediaInfo, colInfo);
-            x.Components = player;
+            x.Components = playerComponent;
         });
     }
 
     public async Task SetSongEmbedAsync(MediaInfo info, MediaInfo? collectionInfo)
     {
-        if (playerMsg is null) return;
+        if (interfaceMessage is null) return;
         var embed = EmbedUtils.CreateMediaEmbed(info, collectionInfo);
-        await playerMsg.ModifyAsync(x =>
+        await interfaceMessage.ModifyAsync(x =>
         {
             x.Embed = embed;
         });

@@ -10,6 +10,9 @@ using Melodica.Utility;
 
 using Serilog;
 
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+
 namespace Melodica.Services.Playback;
 
 public sealed class Jukebox
@@ -50,7 +53,7 @@ public sealed class Jukebox
     private bool skipRequested = false;
     private bool downloading = false;
 
-    private Player? currentPlayer;
+    private JukeboxInterface? currentPlayer;
     private PlayableMedia? currentSong;
 
     public async Task SetPaused(bool value)
@@ -59,7 +62,7 @@ public sealed class Jukebox
         Paused = value;
         if (currentPlayer is not null)
         {
-            await currentPlayer.SetButtonStateAsync(PlayerButton.PlayPause, !value);
+            await currentPlayer.SetButtonStateAsync(JukeboxInterfaceButton.PlayPause, !value);
         }
     }
 
@@ -68,7 +71,7 @@ public sealed class Jukebox
         queue.Loop = value;
         if (currentPlayer is not null)
         {
-            await currentPlayer.SetButtonStateAsync(PlayerButton.Loop, value);
+            await currentPlayer.SetButtonStateAsync(JukeboxInterfaceButton.Loop, value);
         }
     }
 
@@ -77,7 +80,7 @@ public sealed class Jukebox
         queue.Shuffle = value;
         if (currentPlayer is not null)
         {
-            await currentPlayer.SetButtonStateAsync(PlayerButton.Shuffle, value);
+            await currentPlayer.SetButtonStateAsync(JukeboxInterfaceButton.Shuffle, value);
         }
     }
 
@@ -86,7 +89,7 @@ public sealed class Jukebox
         queue.Repeat = value;
         if (currentPlayer is not null)
         {
-            await currentPlayer.SetButtonStateAsync(PlayerButton.Repeat, value);
+            await currentPlayer.SetButtonStateAsync(JukeboxInterfaceButton.Repeat, value);
         }
     }
 
@@ -110,31 +113,14 @@ public sealed class Jukebox
         return currentSong;
     }
 
-    static async ValueTask<bool> CheckIfAloneAsync(IAudioChannel channel)
-    {
-        var users = await channel.GetUsersAsync().FirstAsync();
-        return !users.IsOverSize(1);
-    }
-
-    static void SendSilence(AudioOutStream output, int frames = 124)
-    {
-        const int channels = 2;
-        const int bits = 16;
-        const int blockAlign = channels * bits;
-        var bytes = blockAlign * frames;
-        Span<byte> buffer = bytes < 1024 ? stackalloc byte[bytes] : new byte[bytes];
-        output.Write(buffer);
-        output.Flush();
-    }
-
-    void WriteData(Stream input, AudioOutStream output, CancellationToken token)
+    //TODO: Implement sending silent frames in Discord.Net library
+    async ValueTask WriteData(Stream input, AudioOutStream output, CancellationToken token)
     {
         bool BreakConditions() => token.IsCancellationRequested || skipRequested;
 
         void Pause()
         {
             durationTimer.Stop();
-            SendSilence(output);
             while (Paused && !BreakConditions())
             {
                 Thread.Sleep(1000);
@@ -143,9 +129,9 @@ public sealed class Jukebox
         }
 
         int count;
-        Span<byte> buffer = new byte[4 * 1024];
+        Memory<byte> buffer = new byte[4 * 1024];
         durationTimer.Start();
-        while ((count = input!.Read(buffer)) != 0)
+        while ((count = await input.ReadAsync(buffer, token)) != 0)
         {
             if (Paused)
             {
@@ -156,16 +142,14 @@ public sealed class Jukebox
             {
                 if (token.IsCancellationRequested)
                     return;
-                SendSilence(output);
                 break;
             }
 
-            output.Write(buffer[..count]);
+            await output.WriteAsync(buffer[..count], token);
         }
-        SendSilence(output);
     }
 
-    private Task<bool> SendDataAsync(DataInfo data, AudioOutStream output, IAudioChannel channel, CancellationToken token)
+    private Task<bool> SendDataAsync(DataInfo data, AudioOutStream output, CancellationToken token)
     {
 
         var aborted = false;
@@ -177,7 +161,7 @@ public sealed class Jukebox
                 var mediaPath = data.MediaPath ?? throw new NullReferenceException("MediaPath was not specified. (internal error)");
                 using IAsyncAudioProcessor audio = data.Format == "s16le" ? new RawProcessor(mediaPath) : new FFmpegProcessor(mediaPath, data.Format);
                 using var input = await audio.ProcessAsync();
-                WriteData(input, output, token);
+                await WriteData(input, output, token);
             }
             catch (Exception ex)
             {
@@ -222,11 +206,10 @@ public sealed class Jukebox
 
     public async ValueTask StopAsync()
     {
-        if (cancellation is null || (cancellation is not null && cancellation.IsCancellationRequested))
-            return;
+        if (cancellation is null || cancellation.IsCancellationRequested) return; 
 
         await ClearAsync();
-        cancellation!.Cancel();
+        cancellation.Cancel();
         playLock.Wait(5000);
     }
 
@@ -254,15 +237,11 @@ public sealed class Jukebox
         // Setup auto-disconnect when empty.
         audioClient.ClientDisconnected += async (_) =>
         {
-            IReadOnlyCollection<IUser> users;
-            if (audioChannel is SocketVoiceChannel svc)
+            IReadOnlyCollection<IUser> users = audioChannel switch
             {
-                users = svc.ConnectedUsers; // Actually accurate.
-            }
-            else
-            {
-                users = (IReadOnlyCollection<IUser>)await audioChannel.GetUsersAsync().FlattenAsync(); // Will probably report wrong due to caching.
-            }
+                SocketVoiceChannel svc => svc.ConnectedUsers, // Actually accurate.
+                _ => (IReadOnlyCollection<IUser>)await audioChannel.GetUsersAsync().FlattenAsync() // Will probably report wrong due to caching.
+            };
 
             if (!users.IsOverSize(1))
             {
@@ -271,8 +250,7 @@ public sealed class Jukebox
         };
     }
 
-    //TODO: Implement starting point. (seeking)
-    async Task PlayNextAsync(IAudioChannel channel, AudioOutStream output, CancellationToken token, TimeSpan? startingPoint = null)
+    async Task PlayNextAsync(IAudioChannel channel, AudioOutStream output, CancellationToken token)
     {
         var media = await queue.DequeueAsync() ?? throw new CriticalException("Song from queue was null.");
         currentSong = media;
@@ -284,13 +262,13 @@ public sealed class Jukebox
         }
         catch
         {
-            if (!queue.IsEmpty) await PlayNextAsync(channel, output, token, null);
+            if (!queue.IsEmpty) await PlayNextAsync(channel, output, token);
             else await DisconnectAsync();
             return;
         }
 
         await currentPlayer!.SetSongEmbedAsync(media.Info, media.CollectionInfo);
-        var faulted = await SendDataAsync(dataInfo, output, channel, token);
+        var faulted = await SendDataAsync(dataInfo, output, token);
 
         // If media is temporary (3rd party download) then delete the file.
         if ((!Loop || faulted) && media is TempMedia temp)
@@ -310,10 +288,10 @@ public sealed class Jukebox
             return;
         }
 
-        await PlayNextAsync(channel, output, token, null);
+        await PlayNextAsync(channel, output, token);
     }
 
-    public async Task<PlayResult> PlayAsync(IMediaRequest request, IAudioChannel channel, Player player, TimeSpan? startingPoint = null)
+    public async Task<PlayResult> PlayAsync(IMediaRequest request, IAudioChannel channel, JukeboxInterface player)
     {
         if (downloading)
             return PlayResult.Occupied;
@@ -351,7 +329,7 @@ public sealed class Jukebox
             await player.SpawnAsync(reqInfo, collection.CollectionInfo);
             currentPlayer = player;
             using var output = audioClient!.CreatePCMStream(AudioApplication.Music, bitrate, 200, 0);
-            await PlayNextAsync(channel, output, token, startingPoint);
+            await PlayNextAsync(channel, output, token);
         }
         finally
         {

@@ -1,9 +1,6 @@
-﻿
-using Melodica.Services.Serialization;
+﻿using Melodica.Services.Serialization;
 
 namespace Melodica.Services.Media;
-
-//TODO: Split this whole mess into different classes for each downloader, with common interfaces between them.
 
 public enum MediaType
 {

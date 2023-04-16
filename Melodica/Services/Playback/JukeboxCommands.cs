@@ -219,7 +219,7 @@ public sealed class JukeboxCommands : InteractionModuleBase<SocketInteractionCon
 
         try
         {
-            Player player = new(Context.Interaction);
+            JukeboxInterface player = new(Context.Interaction);
             await jukebox.PlayAsync(request, voice, player);
         }
         catch (EmptyChannelException)
