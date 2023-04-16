@@ -274,10 +274,7 @@ public sealed class Jukebox
     //TODO: Implement starting point. (seeking)
     async Task PlayNextAsync(IAudioChannel channel, AudioOutStream output, CancellationToken token, TimeSpan? startingPoint = null)
     {
-        var media = await queue.DequeueAsync();
-        if (media is null)
-            throw new CriticalException("Song from queue was null.");
-
+        var media = await queue.DequeueAsync() ?? throw new CriticalException("Song from queue was null.");
         currentSong = media;
 
         DataInfo dataInfo;

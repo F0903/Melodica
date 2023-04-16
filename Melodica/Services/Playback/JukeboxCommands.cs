@@ -129,7 +129,7 @@ public sealed class JukeboxCommands : InteractionModuleBase<SocketInteractionCon
         await RespondAsync(embed: EmbedUtils.CreateMediaEmbed(info, null), ephemeral: true);
     }
 
-    IAsyncDownloader GetDownloaderFromManualProvider(ManualProviderOptions? provider)
+    static IAsyncDownloader GetDownloaderFromManualProvider(ManualProviderOptions? provider)
     {
         return provider switch
         {
@@ -149,7 +149,7 @@ public sealed class JukeboxCommands : InteractionModuleBase<SocketInteractionCon
     }
 
     [SlashCommand("switch", "Switches the current song to the one specified.")]
-    public async Task Switch(string query, ManualProviderOptions? provider)
+    public async Task Switch(string query, ManualProviderOptions? provider = null)
     {
         var jukebox = Jukebox;
         if (!jukebox.Playing)
