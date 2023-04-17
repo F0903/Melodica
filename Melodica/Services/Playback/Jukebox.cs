@@ -1,5 +1,6 @@
 ﻿using Discord;
 using Discord.Audio;
+using Discord.Audio.Streams;
 using Discord.WebSocket;
 
 using Melodica.Core.Exceptions;
@@ -114,7 +115,7 @@ public sealed class Jukebox
     }
 
     //TODO: Implement sending silent frames in Discord.Net library
-    async ValueTask WriteData(Stream input, AudioOutStream output, CancellationToken token)
+    async Task WriteData(Stream input, OpusEncodeStream output, CancellationToken token)
     {
         bool BreakConditions() => token.IsCancellationRequested || skipRequested;
 
@@ -129,32 +130,40 @@ public sealed class Jukebox
         }
 
         int count;
-        Memory<byte> buffer = new byte[4 * 1024];
+        var buffer = new byte[5 * 1024];
         durationTimer.Start();
-        while ((count = await input.ReadAsync(buffer, token)) != 0)
+        try
         {
-            if (Paused)
+            while ((count = await input.ReadAsync(buffer, token)) != 0)
             {
-                Pause();
-            }
+                if (Paused)
+                {
+                    await output.WriteSilentFramesAsync();
+                    Pause();
+                    await output.WriteSilentFramesAsync();
+                }
 
-            if (BreakConditions())
-            {
-                if (token.IsCancellationRequested)
-                    return;
-                break;
-            }
+                if (BreakConditions())
+                {
+                    if (token.IsCancellationRequested)
+                        return;
+                    break;
+                }
 
-            await output.WriteAsync(buffer[..count], token);
+                await output.WriteAsync(buffer, token);
+            }
+        }
+        finally
+        {
+            await output.WriteSilentFramesAsync();
         }
     }
 
-    private Task<bool> SendDataAsync(DataInfo data, AudioOutStream output, CancellationToken token)
+    private Task<bool> SendDataAsync(DataInfo data, OpusEncodeStream output, CancellationToken token)
     {
-
         var aborted = false;
 
-        async void StartWrite()
+        async Task StartWrite()
         {
             try
             {
@@ -163,7 +172,7 @@ public sealed class Jukebox
                 using var input = await audio.ProcessAsync();
                 await WriteData(input, output, token);
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is not OperationCanceledException)
             {
                 Log.Error(ex, "SendDataAsync encountered an exception.");
                 aborted = true;
@@ -174,7 +183,8 @@ public sealed class Jukebox
             }
         }
 
-        Thread writeThread = new(StartWrite)
+        // Start a new manual thread so that priority can be set.
+        Thread writeThread = new(StartWrite().Wait)
         {
             IsBackground = false,
             Priority = ThreadPriority.Highest
@@ -206,7 +216,7 @@ public sealed class Jukebox
 
     public async ValueTask StopAsync()
     {
-        if (cancellation is null || cancellation.IsCancellationRequested) return; 
+        if (cancellation is null || cancellation.IsCancellationRequested) return;
 
         await ClearAsync();
         cancellation.Cancel();
@@ -250,7 +260,7 @@ public sealed class Jukebox
         };
     }
 
-    async Task PlayNextAsync(IAudioChannel channel, AudioOutStream output, CancellationToken token)
+    async Task PlayNextAsync(IAudioChannel channel, OpusEncodeStream output, CancellationToken token)
     {
         var media = await queue.DequeueAsync() ?? throw new CriticalException("Song from queue was null.");
         currentSong = media;
@@ -328,7 +338,7 @@ public sealed class Jukebox
             var bitrate = (channel as IVoiceChannel)?.Bitrate ?? 96000;
             await player.SpawnAsync(reqInfo, collection.CollectionInfo);
             currentPlayer = player;
-            using var output = audioClient!.CreatePCMStream(AudioApplication.Music, bitrate, 200, 0);
+            using var output = (OpusEncodeStream)audioClient!.CreatePCMStream(AudioApplication.Music, bitrate, 200, 0);
             await PlayNextAsync(channel, output, token);
         }
         finally
