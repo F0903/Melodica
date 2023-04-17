@@ -32,9 +32,7 @@ public sealed class WikiCommands : InteractionModuleBase<SocketInteractionContex
             return null;
         }
 
-        var song = juke.GetSong();
-        if (song is null)
-            throw new NullReferenceException("Song was null.");
+        var song = juke.Song ?? throw new NullReferenceException("Song was null.");
         var artist = song.Info.Artist;
 
         return await wiki.GetInfoAsync(artist);

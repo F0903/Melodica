@@ -31,10 +31,7 @@ public sealed class LyricsCommands : InteractionModuleBase<SocketInteractionCont
 
         if (songName is null)
         {
-            var song = juke!.GetSong();
-            if (song is null)
-                throw new NullReferenceException("Song was null. (dbg-err)");
-
+            var song = juke!.Song ?? throw new NullReferenceException("Song was null. (dbg-err)");
             var songInfo = song.Info;
             songName = $"{songInfo.Artist} {songInfo.Title}";
         }

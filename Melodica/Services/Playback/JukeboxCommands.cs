@@ -46,7 +46,7 @@ public sealed class JukeboxCommands : InteractionModuleBase<SocketInteractionCon
         }
 
         var dur = Jukebox.Elapsed;
-        var song = Jukebox.GetSong();
+        var song = Jukebox.Song;
         if (song is null)
         {
             await RespondAsync("Could not get song from jukebox. Contact developer.", ephemeral: true);
@@ -66,7 +66,7 @@ public sealed class JukeboxCommands : InteractionModuleBase<SocketInteractionCon
     [SlashCommand("remove", "Removes song from queue by index, or removes the last element if no parameter is given.")]
     public async Task Remove(int? index = null)
     {
-        var queue = Jukebox.GetQueue();
+        var queue = Jukebox.Queue;
         var removed = index == null ? await queue.RemoveAtAsync(^0) : await queue.RemoveAtAsync(index.Value - 1);
         var removedInfo = removed.Info;
         await RespondAsync(embed: new EmbedBuilder()
@@ -82,7 +82,7 @@ public sealed class JukeboxCommands : InteractionModuleBase<SocketInteractionCon
     public async Task Queue()
     {
         await DeferAsync(true);
-        var queue = Jukebox.GetQueue();
+        var queue = Jukebox.Queue;
         EmbedBuilder eb = new();
         if (queue.IsEmpty)
         {
@@ -124,7 +124,7 @@ public sealed class JukeboxCommands : InteractionModuleBase<SocketInteractionCon
         var info = await request.GetInfoAsync();
 
         var jukebox = Jukebox;
-        await jukebox.SetShuffle(false);
+        await jukebox.SetShuffleAsync(false);
         await jukebox.SetNextAsync(request);
         await RespondAsync(embed: EmbedUtils.CreateMediaEmbed(info, null), ephemeral: true);
     }
@@ -254,7 +254,7 @@ public sealed class JukeboxCommands : InteractionModuleBase<SocketInteractionCon
     {
         await DeferAsync();
         var jukebox = Jukebox;
-        await jukebox.SetShuffle(!jukebox.Shuffle);
+        await jukebox.SetShuffleAsync(!jukebox.Shuffle);
     }
 
     [ComponentInteraction("player_repeat")]
@@ -262,7 +262,7 @@ public sealed class JukeboxCommands : InteractionModuleBase<SocketInteractionCon
     {
         await DeferAsync();
         var jukebox = Jukebox;
-        await jukebox.SetRepeat(!jukebox.Repeat);
+        await jukebox.SetRepeatAsync(!jukebox.Repeat);
     }
 
     [ComponentInteraction("player_loop")]
@@ -270,7 +270,7 @@ public sealed class JukeboxCommands : InteractionModuleBase<SocketInteractionCon
     {
         await DeferAsync();
         var jukebox = Jukebox;
-        await jukebox.SetLoop(!jukebox.Loop);
+        await jukebox.SetLoopAsync(!jukebox.Loop);
     }
 
     [ComponentInteraction("player_togglepause")]
@@ -278,13 +278,13 @@ public sealed class JukeboxCommands : InteractionModuleBase<SocketInteractionCon
     {
         await DeferAsync();
         var jukebox = Jukebox;
-        await jukebox.SetPaused(!jukebox.Paused);
+        await jukebox.SetPausedAsync(!jukebox.Paused);
     }
 
     [ComponentInteraction("player_skip")]
     public async Task Skip()
     {
         await DeferAsync();
-        Jukebox.Skip();
+        Jukebox.SkipAsync();
     }
 }
