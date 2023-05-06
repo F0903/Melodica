@@ -25,7 +25,7 @@ internal class FFmpegProcessor : IAsyncAudioProcessor
 
         var inputFormatOption = inputFormat is not null ? $"-f {inputFormat}" : "";
         var formatSpecificInputOptions = !isStream ? "-flags +low_delay -fflags +discardcorrupt+fastseek+nobuffer -avioflags direct" : "";
-        var formatSpecificOutputOptions = !isStream ? "-fflags +flush_packets" : "-bufsize 128k";
+        var formatSpecificOutputOptions = !isStream ? "-fflags +flush_packets" : "";
         var args = $"-y -hide_banner -loglevel panic -strict experimental -vn -protocol_whitelist pipe,file,http,https,tcp,tls,crypto {inputFormatOption} {formatSpecificInputOptions} -i {input} -f s16le {formatSpecificOutputOptions} -ac 2 -ar 48000 pipe:1";
 
         proc = new()
@@ -36,14 +36,14 @@ internal class FFmpegProcessor : IAsyncAudioProcessor
                 Arguments = args,
                 UseShellExecute = false,
                 RedirectStandardError = false,
-                RedirectStandardInput = input is "pipe:0" or "pipe:" or "-",
+                RedirectStandardInput = input == "pipe:0" || input == "pipe:" || input == "-",
                 RedirectStandardOutput = true,
                 CreateNoWindow = true,
             }
         };
 
-        proc.Start();
+        proc.Start();  
 
-        return ValueTask.FromResult(proc.StandardOutput.BaseStream);
+        return ValueTask.FromResult(proc.StandardInput.BaseStream);
     }
 }

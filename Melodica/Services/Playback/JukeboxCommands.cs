@@ -285,6 +285,6 @@ public sealed class JukeboxCommands : InteractionModuleBase<SocketInteractionCon
     public async Task Skip()
     {
         await DeferAsync();
-        Jukebox.SkipAsync();
+        await Jukebox.SkipAsync();
     }
 }

@@ -223,15 +223,12 @@ public sealed class MediaFileCache : IMediaCache
         var fileLegalId = id.ReplaceIllegalCharacters();
 
         // Write to file.
-        using var dataStream = data.Data;
-        if (dataStream is null)
-            throw new NullReferenceException("Data stream was null.");
-
+        using var dataStream = data.Data ?? throw new NullReferenceException("Data stream was null.");
         var format = data.Format;
         var fileExt = $".{format}";
         var mediaLocation = Path.Combine(cacheLocation, fileLegalId + fileExt);
         using var file = File.OpenWrite(mediaLocation);
-        dataStream.Position = 0;
+        if (dataStream.CanSeek) dataStream.Position = 0;
         await dataStream.CopyToAsync(file);
         var dataInfo = info.DataInfo = new(format, mediaLocation);
 

@@ -56,7 +56,7 @@ internal sealed partial class AsyncSoundcloudDownloader : IAsyncDownloader
             var track = tracks[0];
             var streamUrl = await track.GetStreamURLAsync();
             using FFmpegProcessor ffmpeg = new(streamUrl, "hls");
-            using var output = await ffmpeg.ProcessAsync();
+            var output = await ffmpeg.ProcessAsync();
             return new DataPair(output, "s16le");
         }, cache);
         return new LazyMedia(media);
