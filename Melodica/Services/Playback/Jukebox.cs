@@ -279,7 +279,7 @@ public sealed class Jukebox
 
         if (faulted)
         {
-            await ResetState();
+            await DisconnectAsync();
             throw new CriticalException("SendDataAsync encountered a fatal error. (please report)");
         }
 
