@@ -11,6 +11,7 @@ using Melodica.Utility;
 
 using Serilog;
 
+using System.Buffers;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
@@ -54,6 +55,8 @@ public sealed class Jukebox
     private bool downloading = false;
 
     private JukeboxInterface? currentPlayer;
+
+    private readonly MemoryPool<byte> memory = MemoryPool<byte>.Shared;
 
     public MediaQueue Queue { get; } = new();
     public PlayableMedia? Song { get; private set; }
@@ -119,12 +122,13 @@ public sealed class Jukebox
             durationTimer.Start();
         }
 
-        const int frameBytes = 3840; 
-        Memory<byte> buffer = new byte[frameBytes];
+        const int frameBytes = 3840;
+        using var memHandle = memory.Rent(frameBytes);
+        Memory<byte> buffer = memHandle.Memory;
         durationTimer.Start();
         try
         {
-            while (await input.ReadAsync(buffer, CancellationToken.None) != 0)
+            while (await input.ReadAsync(buffer[..frameBytes], CancellationToken.None) != 0)
             {
                 if (Paused)
                 {
@@ -138,7 +142,7 @@ public sealed class Jukebox
                     break;
                 }
 
-                await output.WriteAsync(buffer, CancellationToken.None);
+                await output.WriteAsync(buffer[..frameBytes], CancellationToken.None);
             }
         }
         finally
@@ -158,8 +162,8 @@ public sealed class Jukebox
             {
                 var mediaPath = data.MediaPath ?? throw new NullReferenceException("MediaPath was not specified. (internal error)");
                 using IAsyncAudioProcessor audio = data.Format == "s16le" ? new RawProcessor(mediaPath) : new FFmpegProcessor(mediaPath, data.Format);
-                using var input = await audio.ProcessAsync();
-                await WriteData(input, output, token);
+                using var procStreams = await audio.ProcessAsync();
+                await WriteData(procStreams.Output, output, token);
             }
             catch (OperationCanceledException) { }
             catch (Exception ex)

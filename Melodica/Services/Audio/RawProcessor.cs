@@ -3,18 +3,17 @@ internal class RawProcessor : IAsyncAudioProcessor
 {
     internal RawProcessor(string file)
     {
-        this.file = File.OpenRead(file);
+        this.file = file;
     }
 
-    readonly FileStream file;
+    readonly string file;
 
-    public ValueTask<Stream> ProcessAsync()
+    public Task<ProcessorStreams> ProcessAsync()
     {
-        return ValueTask.FromResult((Stream)file);
+        using var fileStream = File.OpenRead(file);
+        var streams = new ProcessorStreams { Output = fileStream };
+        return Task.FromResult(streams);
     }
 
-    public void Dispose()
-    {
-        file.Dispose();
-    }
+    public void Dispose() { }
 }

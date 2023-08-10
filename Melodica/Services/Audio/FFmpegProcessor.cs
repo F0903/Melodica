@@ -1,6 +1,7 @@
 ﻿using System.Diagnostics;
 
 namespace Melodica.Services.Audio;
+
 internal class FFmpegProcessor : IAsyncAudioProcessor
 {
     internal FFmpegProcessor(string input, string? inputFormat)
@@ -19,9 +20,10 @@ internal class FFmpegProcessor : IAsyncAudioProcessor
         proc?.Dispose();
     }
 
-    public ValueTask<Stream> ProcessAsync()
+    public Task<ProcessorStreams> ProcessAsync()
     {
         var isStream = inputFormat is not null and "hls";
+        var isInputPiped = input == "pipe:0" || input == "pipe:" || input == "-";
 
         var inputFormatOption = inputFormat is not null ? $"-f {inputFormat}" : "";
         var formatSpecificInputOptions = !isStream ? "-flags +low_delay -fflags +discardcorrupt+fastseek+nobuffer -avioflags direct" : "";
@@ -36,14 +38,15 @@ internal class FFmpegProcessor : IAsyncAudioProcessor
                 Arguments = args,
                 UseShellExecute = false,
                 RedirectStandardError = false,
-                RedirectStandardInput = input == "pipe:0" || input == "pipe:" || input == "-",
+                RedirectStandardInput = isInputPiped,
                 RedirectStandardOutput = true,
                 CreateNoWindow = true,
             }
         };
 
-        proc.Start();  
+        proc.Start();
 
-        return ValueTask.FromResult(proc.StandardInput.BaseStream);
+        var streams = new ProcessorStreams { Input = isInputPiped ? proc.StandardInput.BaseStream : null, Output = proc.StandardOutput.BaseStream };
+        return Task.FromResult(streams);
     }
 }
