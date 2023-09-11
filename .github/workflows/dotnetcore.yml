@@ -13,20 +13,20 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v2.4.0
+        uses: actions/checkout@v4
       
       - name: Init Submodules
         run: git submodule init & git submodule update  
       
       - name: Check .NET Cache
         id: dotnet-cache
-        uses: actions/cache@v2.1.7
+        uses: actions/cache@v3
         with:
           path: ~/.dotnet/
           key: ${{ runner.os }}-dotnet-${{ env.DOTNET_VER }}
         
       - name: Setup .NET
-        uses: actions/setup-dotnet@v1.9.0
+        uses: actions/setup-dotnet@v3
         with:
           dotnet-version: ${{ env.DOTNET_VER }}
       
@@ -37,7 +37,7 @@ jobs:
         run: dotnet nuget add source https://www.myget.org/F/discord-net/api/v3/index.json
 
       - name: Check NuGet Cache
-        uses: actions/cache@v2.1.7
+        uses: actions/cache@v3
         with:
           path: ~/.nuget/packages
           key: ${{ runner.os }}-nuget-${{ hashFiles('**/packages.lock.json') }}
