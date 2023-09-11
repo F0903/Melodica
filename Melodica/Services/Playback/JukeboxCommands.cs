@@ -176,7 +176,7 @@ public sealed class JukeboxCommands : InteractionModuleBase<SocketInteractionCon
         catch (EmptyChannelException) { await ModifyOriginalResponseAsync(x => x.Content = "All users have left the channel. Disconnecting..."); }
     }
 
-    [SlashCommand("play", "Plays or queues a song.")]
+    [SlashCommand("play", "Plays or queues a song."), RequireBotPermission(ChannelPermission.Connect | ChannelPermission.Speak)]
     public async Task Play(string query, ManualProviderOptions? provider = null)
     {
         if (query is null)
@@ -189,13 +189,7 @@ public sealed class JukeboxCommands : InteractionModuleBase<SocketInteractionCon
         {
             await RespondAsync("You need to be in a voice channel!", ephemeral: true);
             return;
-        }
-
-        if (!GuildPermissionsChecker.CheckVoicePermission(Context.Guild, Context.Client.CurrentUser, voice))
-        {
-            await RespondAsync("I don't have permission to connect and speak in this channel :(", ephemeral: true);
-            return;
-        }
+        } 
 
         var jukebox = Jukebox;
         if (jukebox.Playing)
