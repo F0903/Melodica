@@ -14,9 +14,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      
-      - name: Init Submodules
-        run: git submodule init & git submodule update  
+        with:
+          submodules: "recursive"
       
       - name: Check .NET Cache
         id: dotnet-cache
