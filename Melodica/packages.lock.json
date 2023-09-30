@@ -63,9 +63,9 @@
       },
       "YoutubeExplode": {
         "type": "Direct",
-        "requested": "[6.3.4, )",
-        "resolved": "6.3.4",
-        "contentHash": "vxb4QAOkfvhRRkUHkm4L/ZGXEUxfQecvdr/4CCfHpibUab/r6QFQTvO5zrQFSk+rEJjOlrgl+CBf1aRyUhBTcg==",
+        "requested": "[6.3.5, )",
+        "resolved": "6.3.5",
+        "contentHash": "PfXGgL/Mph80fSR9dZ7U/zPrvVOIeTebzDzDocK4fD+Y9ZvhItoaCDAsMzx8I0U/5ygvZb2P58IOHOVcNLqw4w==",
         "dependencies": {
           "AngleSharp": "1.0.4"
         }
