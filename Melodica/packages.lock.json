@@ -39,41 +39,41 @@
       },
       "Serilog": {
         "type": "Direct",
-        "requested": "[3.0.1, )",
-        "resolved": "3.0.1",
-        "contentHash": "E4UmOQ++eNJax1laE+lws7E3zbhKgHsGJbO7ra0yE5smUh+5FfUPIKKBxM3MO1tK4sgpQke6/pLReDxIc/ggNw=="
+        "requested": "[3.1.1, )",
+        "resolved": "3.1.1",
+        "contentHash": "P6G4/4Kt9bT635bhuwdXlJ2SCqqn2nhh4gqFqQueCOr9bK/e7W9ll/IoX1Ter948cV2Z/5+5v8pAfJYUISY03A=="
       },
       "Serilog.Sinks.Console": {
         "type": "Direct",
-        "requested": "[4.1.0, )",
-        "resolved": "4.1.0",
-        "contentHash": "K6N5q+5fetjnJPvCmkWOpJ/V8IEIoMIB1s86OzBrbxwTyHxdx3pmz4H+8+O/Dc/ftUX12DM1aynx/dDowkwzqg==",
+        "requested": "[5.0.0, )",
+        "resolved": "5.0.0",
+        "contentHash": "IZ6bn79k+3SRXOBpwSOClUHikSkp2toGPCZ0teUkscv4dpDg9E2R2xVsNkLmwddE4OpNVO3N0xiYsAH556vN8Q==",
         "dependencies": {
-          "Serilog": "2.10.0"
+          "Serilog": "3.1.0"
         }
       },
       "SpotifyAPI.Web": {
         "type": "Direct",
-        "requested": "[7.0.0, )",
-        "resolved": "7.0.0",
-        "contentHash": "XZtF0OtzwytroHuHxMxdDtNv6Ybb9vV6TwvFei1oWch001ahTerbPckLGjx+h/LOEiX5Z+LuQ6Z1YXTaoA4BLw==",
+        "requested": "[7.0.2, )",
+        "resolved": "7.0.2",
+        "contentHash": "QzuwE1zzgQmm7YPodztT4kZUNLNGKPLD2mT5+TW2aCHpMm65O39PWNvJm7OalRbdcOI5Xmk8ZF+NOm7Xt0428w==",
         "dependencies": {
-          "Newtonsoft.Json": "13.0.1"
+          "Newtonsoft.Json": "13.0.3"
         }
       },
       "YoutubeExplode": {
         "type": "Direct",
-        "requested": "[6.3.5, )",
-        "resolved": "6.3.5",
-        "contentHash": "PfXGgL/Mph80fSR9dZ7U/zPrvVOIeTebzDzDocK4fD+Y9ZvhItoaCDAsMzx8I0U/5ygvZb2P58IOHOVcNLqw4w==",
+        "requested": "[6.3.7, )",
+        "resolved": "6.3.7",
+        "contentHash": "MWER4pgMGHdNGDINhafl7PxTnVJUT6bIpwDZIG+OdaMsYtlu30wTgkz496l16aah4R0GoJQLnOhw3ltUfhvsUQ==",
         "dependencies": {
-          "AngleSharp": "1.0.4"
+          "AngleSharp": "1.0.5"
         }
       },
       "AngleSharp": {
         "type": "Transitive",
-        "resolved": "1.0.4",
-        "contentHash": "G8R4C2MEDFQvjUbYz1QIcGfibjsTJnzP0aWy8iQgWWk7eKacYydCNGD3JMhVL0Q5pZQ9RYlqpKNESEU5NpqsRw==",
+        "resolved": "1.0.5",
+        "contentHash": "4IeYlrwnbjLloXFigls5JkdfxfkBUp5DKI+8sUl4OUZQ3VKcsVCb99bqlxJOTIuAHy6rT6pfb2Lq87n+Tp3IqQ==",
         "dependencies": {
           "System.Text.Encoding.CodePages": "7.0.0"
         }
@@ -81,7 +81,7 @@
       "Discord.Net.Commands": {
         "type": "Transitive",
         "resolved": "3.12.0",
-        "contentHash": "S/VLmwZNzlmLsKbffIuCrzXa8OAVEsX27b1zdTM9RQUKpsjkK8DBspnw2gPOj8tOtTU6FxZnhDEhBDwtK6MaTw==",
+        "contentHash": "xsX/cL3jDJKBDQjSk3lk1mT6nWAPOJFQHYYmoCExGvKBKsAYc7YxxPIY1zlXCEkJ0OiU62swuuEZdGevTNK01Q==",
         "dependencies": {
           "Discord.Net.Core": "3.12.0"
         }
@@ -89,7 +89,7 @@
       "Discord.Net.Core": {
         "type": "Transitive",
         "resolved": "3.12.0",
-        "contentHash": "+wuWS2VQoBKPS/ohGtcyrwrYFEt+8nssf5Qs4AiYL9a29bQYKobpkCyZZJXubawSb/bK757fh63KmKLl1leMZg==",
+        "contentHash": "9MU124jnJYqfOt5nIGtpUZhQCFR6Ag2pB5KNDZRqZNMsKE2L3OkHuzDeD+iLSbOYYRPrbk+dfKOdnJZl+K1itA==",
         "dependencies": {
           "Newtonsoft.Json": "13.0.2",
           "System.Collections.Immutable": "5.0.0",
@@ -100,7 +100,7 @@
       "Discord.Net.Interactions": {
         "type": "Transitive",
         "resolved": "3.12.0",
-        "contentHash": "FTDsblRj5KU2cHGgEjU4S2l2tFPDZlHj3P1yVEUT5qm9jSpUi7ITX3LDuyqhmKSSf/hAvZ83/TBnO9x17UUj3A==",
+        "contentHash": "FlfWqw3O56AAXbR5sc67E1vuRT0WScFlwE7+BdIAW5m/ziiQVTFuZLmUPnE5rnWSf4lcqeLx7UXFJknBGMr6uw==",
         "dependencies": {
           "Discord.Net.Core": "3.12.0",
           "Discord.Net.Rest": "3.12.0",
@@ -113,7 +113,7 @@
       "Discord.Net.Rest": {
         "type": "Transitive",
         "resolved": "3.12.0",
-        "contentHash": "5dPzsuoBHQyVlGavWHIoEgzCpdylnJHREaq/EtGpwqkw8/kuFmm6QfLvYVHwqEb/+AHG4EfB6lp888R3Ui6HSg==",
+        "contentHash": "lyp+1bVd4RnOmEMgM//yJ3zD7PZmT9tr6ljl/SPH66/kzlxex6kvlV7TyH7K93S0joKHzvGWm+lL0rEbkiFXPQ==",
         "dependencies": {
           "Discord.Net.Core": "3.12.0"
         }
@@ -121,7 +121,7 @@
       "Discord.Net.Webhook": {
         "type": "Transitive",
         "resolved": "3.12.0",
-        "contentHash": "bT+t8YP3J1/d2hgZ5X8Y5qxVrBUJYtF3ULSHr5gRNHXxPG0Y8EA+ZacwlvYlUvQOG1eLFx4aC+H3lyqOLdZ9/A==",
+        "contentHash": "0n8dh/WbuEvR4jptPsGXyCMLbhgRzEh1/pZpCcNcQSnDLYNB3EYH9KtMzjH4ykDBBsL2LNcwWWBKpXC77AG6nA==",
         "dependencies": {
           "Discord.Net.Core": "3.12.0",
           "Discord.Net.Rest": "3.12.0"
@@ -212,8 +212,8 @@
       },
       "Newtonsoft.Json": {
         "type": "Transitive",
-        "resolved": "13.0.2",
-        "contentHash": "R2pZ3B0UjeyHShm9vG+Tu0EBb2lC8b0dFzV9gVn50ofHXh9Smjk6kTn7A/FdAsC8B5cKib1OnGYOXxRBz5XQDg=="
+        "resolved": "13.0.3",
+        "contentHash": "HrC5BXdl00IP9zeV+0Z848QWPAoCr9P3bDEZguI+gkLcBKAOxix/tLEAAHC+UvDNPv4a2d18lOReHMOagPa+zQ=="
       },
       "System.Collections.Immutable": {
         "type": "Transitive",
