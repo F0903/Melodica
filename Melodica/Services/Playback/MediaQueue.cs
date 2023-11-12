@@ -112,7 +112,7 @@ public sealed class MediaQueue
     {
         lock (locker)
         {
-            return RemoveAtAsync(index.GetOffset(list.Count - 1));
+            return RemoveAtAsync(index.GetOffset(list.Count));
         }
     }
 }

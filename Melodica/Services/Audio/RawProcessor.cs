@@ -10,7 +10,8 @@ internal class RawProcessor : IAsyncAudioProcessor
 
     public Task<ProcessorStreams> ProcessAsync()
     {
-        using var fileStream = File.OpenRead(file);
+        // Don't dispose, we have to keep it open for the reader later.
+        var fileStream = File.OpenRead(file);
         var streams = new ProcessorStreams { Output = fileStream };
         return Task.FromResult(streams);
     }

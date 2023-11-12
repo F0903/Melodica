@@ -11,9 +11,7 @@ using Melodica.Utility;
 
 using Serilog;
 
-using System.Buffers;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
+using System.Buffers; 
 
 namespace Melodica.Services.Playback;
 
@@ -56,7 +54,7 @@ public sealed class Jukebox
 
     private JukeboxInterface? currentPlayer;
 
-    private readonly MemoryPool<byte> memory = MemoryPool<byte>.Shared;
+    private static readonly MemoryPool<byte> memory = MemoryPool<byte>.Shared;
 
     public MediaQueue Queue { get; } = new();
     public PlayableMedia? Song { get; private set; }
@@ -138,24 +136,26 @@ public sealed class Jukebox
                 }
 
                 if (BreakConditions())
-                {  
+                {
                     break;
                 }
 
                 await output.WriteAsync(buffer[..frameBytes], CancellationToken.None);
             }
         }
+        catch (Exception ex)
+        {
+            Log.Error(ex, $"Got exception when trying to write audio:\n{ex.Message}");
+        }
         finally
         {
             await output.WriteSilentFramesAsync();
             await output.FlushAsync(CancellationToken.None);
-        } 
+        }
     }
 
-    private Task<bool> SendDataAsync(DataInfo data, OpusEncodeStream output, CancellationToken token)
+    private async Task SendDataAsync(DataInfo data, OpusEncodeStream output, CancellationToken token)
     {
-        var aborted = false;
-
         async Task StartWrite()
         {
             try
@@ -168,8 +168,8 @@ public sealed class Jukebox
             catch (OperationCanceledException) { }
             catch (Exception ex)
             {
-                Log.Error(ex, "SendDataAsync encountered an exception.");
-                aborted = true;
+                Log.Error(ex, $"SendDataAsync encountered an exception:\n{ex.Message}");
+                throw;
             }
             finally
             {
@@ -177,19 +177,9 @@ public sealed class Jukebox
             }
         }
 
-        // Start a new manual thread so that priority can be set.
-        Thread writeThread = new(StartWrite().Wait)
-        {
-            IsBackground = false,
-            Priority = ThreadPriority.Highest
-        };
-
-        writeThread.Start();
-        writeThread.Join(); // Thread exit
+        await StartWrite();
 
         if (skipRequested) skipRequested = false;
-
-        return Task.FromResult(aborted); // Returns true if an error occured.
     }
 
     async Task DisconnectAsync()
@@ -273,24 +263,30 @@ public sealed class Jukebox
         }
 
         await currentPlayer!.SetSongEmbedAsync(media.Info, media.CollectionInfo);
-        var faulted = await SendDataAsync(dataInfo, output, token);
-
-        // If media is temporary (3rd party download) then delete the file.
-        if ((!Loop || faulted) && media is TempMedia temp)
+        try
         {
-            temp.DiscardTempMedia();
+            await SendDataAsync(dataInfo, output, token);
         }
-
-        if (faulted)
+        catch (Exception ex)
         {
             await DisconnectAsync();
-            throw new CriticalException("SendDataAsync encountered a fatal error. (please report)");
+            throw new CriticalException($"SendDataAsync encountered a fatal error. (please report)\n```{ex.Message}```");
         }
-
-        if ((!Loop && Queue.IsEmpty) || cancellation!.IsCancellationRequested)
+        finally
         {
-            await DisconnectAsync();
-            return;
+            if (!Loop)
+            {
+                // If media is temporary (3rd party download) then delete the file.
+                if (media is TempMedia temp)
+                {
+                    temp.DiscardTempMedia();
+                }
+
+                if (Queue.IsEmpty || cancellation!.IsCancellationRequested)
+                {
+                    await DisconnectAsync();
+                }
+            }
         }
 
         await PlayNextAsync(channel, output, token);
@@ -341,7 +337,7 @@ public sealed class Jukebox
             playLock.Set();
             await player.DisableAllButtonsAsync();
             await ResetState();
-            if (audioClient is not null) 
+            if (audioClient is not null)
                 audioClient.ClientDisconnected -= OnClientDisconnect;
         }
         return PlayResult.Done;
