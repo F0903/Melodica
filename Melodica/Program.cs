@@ -1,9 +1,8 @@
-﻿using Melodica.Config;
+﻿using System.Diagnostics;
+using Melodica.Config;
 using Melodica.Core;
-
 using Serilog;
 
-using System.Diagnostics;
 
 Melodica.Logging.LogManager.Init();
 SocketBot bot = new();

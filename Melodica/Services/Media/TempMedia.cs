@@ -1,15 +1,12 @@
 ﻿namespace Melodica.Services.Media;
 
-public sealed class TempMedia : PlayableMedia
+public sealed class TempMedia(MediaInfo info, DataGetter data) : PlayableMedia(info, data)
 {
-    public TempMedia(MediaInfo info, DataGetter data) : base(info, null, data, null) => this.data = data;
-
-    readonly DataGetter data;
     string? path;
 
     public override async Task<DataInfo> GetDataAsync()
     {
-        var pair = await data(this);
+        var pair = await DataGetter!(this);
         if (pair.Data is null)
             throw new NullReferenceException("Data in temp media was null.");
         path = $"./temp/{Info.Title}";

@@ -1,5 +1,4 @@
-﻿
-using Melodica.Services.Media;
+﻿using Melodica.Services.Media;
 
 namespace Melodica.Services.Caching;
 

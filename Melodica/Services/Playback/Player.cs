@@ -1,14 +1,11 @@
 ﻿using Discord;
-
 using Melodica.Services.Media;
 
 namespace Melodica.Services.Playback;
 
-public sealed class JukeboxInterfaceButton
+public sealed class JukeboxInterfaceButton(string id)
 {
-    private JukeboxInterfaceButton(string id) => this.id = id;
-
-    readonly string id;
+    readonly string id = id;
 
     public static readonly JukeboxInterfaceButton PlayPause = "player_togglepause";
     public static readonly JukeboxInterfaceButton Stop = "player_stop";
@@ -21,11 +18,8 @@ public sealed class JukeboxInterfaceButton
     public static implicit operator string(JukeboxInterfaceButton playerButton) => playerButton.id;
 }
 
-public sealed class JukeboxInterface
+public sealed class JukeboxInterface(IDiscordInteraction interaction)
 {
-    public JukeboxInterface(IDiscordInteraction interaction) => this.interaction = interaction;
-
-    readonly IDiscordInteraction interaction;
     IUserMessage? interfaceMessage;
 
     static readonly MessageComponent playerComponent =

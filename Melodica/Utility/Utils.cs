@@ -1,7 +1,5 @@
-﻿
-using Discord;
+﻿using Discord;
 using Discord.WebSocket;
-
 using Melodica.Dependencies;
 
 namespace Melodica.Utility;

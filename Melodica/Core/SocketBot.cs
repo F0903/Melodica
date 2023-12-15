@@ -1,7 +1,5 @@
-﻿
-using Discord;
+﻿using Discord;
 using Discord.WebSocket;
-
 using Melodica.Config;
 using Melodica.Core.CommandHandlers;
 using Melodica.Dependencies;

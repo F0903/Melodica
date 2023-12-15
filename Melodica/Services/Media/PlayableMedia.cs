@@ -7,21 +7,16 @@ public record DataPair(Stream? Data, string Format);
 
 public delegate Task<DataPair> DataGetter(PlayableMedia media);
 
-public class PlayableMedia
+// Perhaps seperate into different classes.
+public class PlayableMedia(MediaInfo info, DataGetter? dataGetter)
 {
-    // Should be a seperate class.
-    private PlayableMedia(MediaInfo meta) => Info = meta;
-
-    public PlayableMedia(MediaInfo info, MediaInfo? collectionInfo, DataGetter dataGetter, IMediaCache? cache)
+    public PlayableMedia(MediaInfo info, MediaInfo? collectionInfo, DataGetter dataGetter, IMediaCache? cache) : this(info, dataGetter)
     {
-        Info = info;
         CollectionInfo = collectionInfo;
-        this.dataGetter = dataGetter;
         this.cache = cache;
     }
 
-    [NonSerialized]
-    private readonly DataGetter? dataGetter;
+    protected DataGetter? DataGetter { get; init; } = dataGetter;
 
     [NonSerialized]
     private readonly IMediaCache? cache;
@@ -30,12 +25,11 @@ public class PlayableMedia
     MediaInfo? collectionInfo;
     public MediaInfo? CollectionInfo { get => collectionInfo; set => collectionInfo = value; }
 
-    public MediaInfo Info { get; set; }
+    public MediaInfo Info { get; set; } = info;
 
-    // Should be a seperate class.
     public static ValueTask<PlayableMedia> FromExisting(MediaInfo info)
     {
-        PlayableMedia media = new(info);
+        PlayableMedia media = new(info, null);
         return ValueTask.FromResult(media);
     }
 
@@ -51,13 +45,13 @@ public class PlayableMedia
                 return info;
         }
 
-        if (dataGetter is null)
-            throw new NullReferenceException("DataGetter was null. (1)");
+        if (DataGetter is null)
+            throw new NullReferenceException("DataGetter was null.");
 
         // Write the media data to file.
         if (Info.DataInfo is null)
         {
-            var dataPair = await dataGetter(this);
+            var dataPair = await DataGetter(this);
             return Info.DataInfo = await cache.CacheAsync(this, dataPair);
         }
         return Info.DataInfo;

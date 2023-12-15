@@ -1,4 +1,5 @@
 ﻿namespace Melodica.Services.Audio;
+
 internal class RawProcessor : IAsyncAudioProcessor
 {
     internal RawProcessor(string file) => this.file = file;

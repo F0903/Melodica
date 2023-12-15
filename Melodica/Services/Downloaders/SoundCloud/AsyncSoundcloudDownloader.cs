@@ -1,15 +1,13 @@
-﻿using Melodica.Config;
+﻿using System.Diagnostics;
+using System.Text.RegularExpressions;
+using Melodica.Config;
 using Melodica.Services.Audio;
 using Melodica.Services.Caching;
 using Melodica.Services.Downloaders.Exceptions;
 using Melodica.Services.Media;
 using Melodica.Utility;
-
 using Soundclouder;
 using Soundclouder.Entities;
-
-using System.Diagnostics;
-using System.Text.RegularExpressions;
 
 namespace Melodica.Services.Downloaders.SoundCloud;
 
@@ -18,7 +16,7 @@ internal sealed partial class AsyncSoundcloudDownloader : IAsyncDownloader
     [GeneratedRegex(@"(((https)|(http)):\/\/)?soundcloud\.com\/{1}.+\/{1}.+", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.Singleline)]
     private static partial Regex SoundcloudUrlRegex();
 
-    private static readonly SearchClient search = new(BotConfig.Secrets.SoundcloudClientID);
+    private static readonly SearchClient search = new(BotConfig.Secrets.SoundcloudClientID ?? throw new NullReferenceException("SoundCloud ID was null!"));
 
     private static readonly IMediaCache cache = new MediaFileCache("Soundcloud");
 
@@ -65,7 +63,7 @@ internal sealed partial class AsyncSoundcloudDownloader : IAsyncDownloader
     static Task<MediaCollection> DownloadTrackAsync(MediaInfo info)
     {
         var media = CreateLazyMedia(info);
-        return Task.FromResult(new MediaCollection(media));
+        return Task.FromResult(MediaCollection.WithOne(media));
     }
 
     static async Task<MediaCollection> DownloadPlaylistAsync(MediaInfo info)

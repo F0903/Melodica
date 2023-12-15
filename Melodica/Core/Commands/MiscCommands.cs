@@ -1,7 +1,5 @@
-﻿
-using Discord;
+﻿using Discord;
 using Discord.Commands;
-
 using Melodica.Utility;
 
 namespace Melodica.Core.Commands;

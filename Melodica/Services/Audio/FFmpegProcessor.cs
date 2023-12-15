@@ -2,16 +2,10 @@
 
 namespace Melodica.Services.Audio;
 
-internal class FFmpegProcessor : IAsyncAudioProcessor
+internal class FFmpegProcessor(string input, string? inputFormat) : IAsyncAudioProcessor
 {
-    internal FFmpegProcessor(string input, string? inputFormat)
-    {
-        this.input = input;
-        this.inputFormat = inputFormat;
-    }
-
-    readonly string input;
-    readonly string? inputFormat;
+    readonly string input = input;
+    readonly string? inputFormat = inputFormat;
 
     Process? proc;
 

@@ -1,6 +1,4 @@
-﻿
-using Melodica.Dependencies;
-
+﻿using Melodica.Dependencies;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Melodica.Services.Caching;

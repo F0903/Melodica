@@ -1,7 +1,6 @@
 ﻿using Discord;
 using Discord.Interactions;
 using Discord.WebSocket;
-
 using Melodica.Services.Caching;
 using Melodica.Services.Downloaders;
 using Melodica.Services.Playback.Exceptions;

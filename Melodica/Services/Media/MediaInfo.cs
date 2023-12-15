@@ -18,9 +18,7 @@ public record DataInfo(string? Format, string? MediaPath)
 [Serializable]
 public record MediaInfo(string Id)
 {
-    private static readonly BinarySerializer bin = new();
-
-    public static Task<MediaInfo> LoadFromFile(string fullPath) => bin.DeserializeFileAsync<MediaInfo>(fullPath);
+    public static Task<MediaInfo> LoadFromFile(string fullPath) => Serializer.DeserializeFileAsync<MediaInfo>(fullPath);
 
     public const string MetaFileExtension = ".meta";
 

@@ -1,10 +1,9 @@
-﻿using Melodica.Config;
+﻿using System.Diagnostics;
+using Melodica.Config;
 using Melodica.Services.Downloaders.Exceptions;
 using Melodica.Services.Media;
 using Melodica.Services.Serialization;
 using Melodica.Utility;
-
-using System.Diagnostics;
 
 namespace Melodica.Services.Caching;
 
@@ -29,8 +28,6 @@ public sealed class MediaFileCache : IMediaCache
     record CachePair(PlayableMedia Media, long AccessCount);
 
     private static readonly List<MediaFileCache> cacheInstances = []; // Keep track of all instances so we can clear all cache.
-
-    private static readonly BinarySerializer serializer = new();
 
     public const int MaxClearAttempt = 5;
 
@@ -234,7 +231,7 @@ public sealed class MediaFileCache : IMediaCache
 
         // Serialize the metadata.
         var metaLocation = Path.Combine(cacheLocation, fileLegalId + MediaInfo.MetaFileExtension);
-        await serializer.SerializeToFileAsync(metaLocation, info);
+        await Serializer.SerializeToFileAsync(metaLocation, info);
 
         return dataInfo;
     }

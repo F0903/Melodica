@@ -1,5 +1,4 @@
 ﻿using Melodica.Config;
-
 using Serilog;
 using Serilog.Core;
 

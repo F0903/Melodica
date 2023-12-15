@@ -1,24 +1,20 @@
-﻿using AngleSharp;
+﻿using System.Text;
+using System.Text.Json;
+using System.Text.RegularExpressions;
+using AngleSharp;
 using AngleSharp.Dom;
-
 using Melodica.Config;
 using Melodica.Core.Exceptions;
 using Melodica.Utility;
 
-using System.Text;
-using System.Text.Json;
-using System.Text.RegularExpressions;
-
 namespace Melodica.Services.Lyrics;
 
-public class LyricsException : Exception
+public class LyricsException(string? msg = null, Exception? inner = null) : Exception(msg, inner)
 {
-    public LyricsException(string? msg = null, Exception? inner = null) : base(msg, inner) { }
 }
 
-public class LyricsNotFoundException : LyricsException
+public class LyricsNotFoundException(string query) : LyricsException($"No results found for lyrics search. Query was: ```{query}```", null)
 {
-    public LyricsNotFoundException(string query) : base($"No results found for lyrics search. Query was: ```{query}```", null) { }
 }
 
 public sealed partial class GeniusLyrics : ILyricsProvider

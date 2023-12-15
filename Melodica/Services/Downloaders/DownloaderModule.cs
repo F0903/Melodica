@@ -1,5 +1,4 @@
 ﻿using Melodica.Dependencies;
-
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Melodica.Services.Downloaders;

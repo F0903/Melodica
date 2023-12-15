@@ -1,4 +1,5 @@
 ﻿namespace Melodica.Services.Audio;
+
 internal record ProcessorStreams : IDisposable
 {
     public Stream? Input { init; get; }

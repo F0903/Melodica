@@ -1,16 +1,13 @@
-﻿
-using Melodica.Services.Media;
+﻿using Melodica.Services.Media;
 using Melodica.Utility;
 
 namespace Melodica.Services.Playback.Requests;
 
-public sealed class AttachmentMediaRequest : IMediaRequest
+public sealed class AttachmentMediaRequest(Discord.Attachment[] attachments) : IMediaRequest
 {
-    public AttachmentMediaRequest(Discord.Attachment[] attachments) => attachment = attachments[0];
-
     static readonly HttpClient http = new();
 
-    private readonly Discord.Attachment attachment;
+    private readonly Discord.Attachment attachment = attachments[0];
 
     private MediaInfo? info;
 
@@ -35,6 +32,6 @@ public sealed class AttachmentMediaRequest : IMediaRequest
             var format = remote.AsSpan().ExtractFormatFromFileUrl();
             return new DataPair(data, format);
         });
-        return new MediaCollection(media);
+        return MediaCollection.WithOne(media);
     }
 }

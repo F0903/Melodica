@@ -1,12 +1,9 @@
-﻿using AngleSharp.Text;
-
+﻿using System.Text.RegularExpressions;
+using AngleSharp.Text;
 using Melodica.Services.Caching;
 using Melodica.Services.Downloaders.Exceptions;
 using Melodica.Services.Media;
 using Melodica.Utility;
-
-using System.Text.RegularExpressions;
-
 using YoutubeExplode;
 using YoutubeExplode.Playlists;
 using YoutubeExplode.Videos;
@@ -129,7 +126,7 @@ public sealed partial class AsyncYoutubeDownloader : IAsyncDownloader
     {
         var streamUrl = await yt.Videos.Streams.GetHttpLiveStreamUrlAsync(info.Id ?? throw new NullReferenceException("Id was null."));
         StreamableMedia media = new(info, streamUrl, "hls");
-        return new MediaCollection(media);
+        return MediaCollection.WithOne(media);
     }
 
     static async Task<MediaCollection> DownloadPlaylist(MediaInfo info)
@@ -146,9 +143,7 @@ public sealed partial class AsyncYoutubeDownloader : IAsyncDownloader
             static async Task<DataPair> DataGetter(PlayableMedia self)
             {
                 var manifest = await yt.Videos.Streams.GetManifestAsync(self.Info.Id);
-                var streamInfo = manifest.GetAudioOnlyStreams().GetWithHighestBitrate();
-                if (streamInfo is null)
-                    throw new MediaUnavailableException("Media was unavailable.");
+                var streamInfo = manifest.GetAudioOnlyStreams().GetWithHighestBitrate() ?? throw new MediaUnavailableException("Media was unavailable.");
                 var format = streamInfo.Container.Name.ToLower();
 
                 try
@@ -190,6 +185,6 @@ public sealed partial class AsyncYoutubeDownloader : IAsyncDownloader
         }
 
         PlayableMedia? media = new(info, null, DataGetter, cache);
-        return new MediaCollection(media);
+        return MediaCollection.WithOne(media);
     }
 }

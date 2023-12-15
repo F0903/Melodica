@@ -1,22 +1,16 @@
-﻿using Discord;
+﻿using System.Reflection;
+using Discord;
 using Discord.Interactions;
 using Discord.WebSocket;
-
 using Melodica.Config;
 using Melodica.Dependencies;
-
 using Serilog;
-
-using System.Reflection;
 
 namespace Melodica.Core.CommandHandlers;
 
-public sealed class SocketCommandHandler : IAsyncCommandHandler
+public sealed class SocketCommandHandler(DiscordSocketClient client) : IAsyncCommandHandler
 {
-    public SocketCommandHandler(DiscordSocketClient client) => this.client = client;
-
     private readonly IServiceProvider ioc = Dependency.GetServiceProvider();
-    private readonly DiscordSocketClient client;
     private InteractionService? interactions;
 
     private async Task<InteractionService> InitializeSlashCommands(Assembly asm)

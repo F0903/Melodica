@@ -1,16 +1,12 @@
-﻿
-using Discord;
+﻿using Discord;
 using Discord.Interactions;
-
 using Melodica.Services.Playback;
 
 namespace Melodica.Services.Wiki;
 
-public sealed class WikiCommands : InteractionModuleBase<SocketInteractionContext>
+public sealed class WikiCommands(IWikiProvider wiki) : InteractionModuleBase<SocketInteractionContext>
 {
-    public WikiCommands(IWikiProvider wiki) => this.wiki = wiki;
-
-    private readonly IWikiProvider wiki;
+    private readonly IWikiProvider wiki = wiki;
 
     private Jukebox GetJukebox => JukeboxManager.GetJukebox(Context.Guild);
 

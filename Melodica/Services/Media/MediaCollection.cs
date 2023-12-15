@@ -2,19 +2,13 @@
 
 namespace Melodica.Services.Media;
 
-public sealed class MediaCollection : IEnumerable<LazyMedia>
+public sealed class MediaCollection(IEnumerable<LazyMedia> media, MediaInfo? collectionInfo) : IEnumerable<LazyMedia>
 {
-    public MediaCollection(IEnumerable<LazyMedia> media, MediaInfo collectionInfo)
-    {
-        this.media = media;
-        CollectionInfo = collectionInfo;
-    }
+    public MediaInfo? CollectionInfo { get; init; } = collectionInfo;
 
-    public MediaCollection(LazyMedia media) => this.media = new LazyMedia[] { new(media) };
+    readonly IEnumerable<LazyMedia> media = media;
 
-    public MediaInfo? CollectionInfo { get; init; }
-
-    readonly IEnumerable<LazyMedia> media;
+    public static MediaCollection WithOne(LazyMedia media) => new([media], null);
 
     public IEnumerator<LazyMedia> GetEnumerator()
     {

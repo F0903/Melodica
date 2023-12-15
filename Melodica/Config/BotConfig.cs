@@ -1,11 +1,8 @@
-﻿using Discord;
-
+﻿using System.Reflection;
+using Discord;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Primitives;
-
 using Serilog.Events;
-
-using System.Reflection;
 
 namespace Melodica.Config;
 

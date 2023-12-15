@@ -1,5 +1,4 @@
-﻿
-using Melodica.Services.Media;
+﻿using Melodica.Services.Media;
 using Melodica.Utility;
 
 namespace Melodica.Services.Playback.Requests;
@@ -25,7 +24,7 @@ public sealed class URLMediaRequest : IMediaRequest
             var format = remote.AsSpan().ExtractFormatFromFileUrl();
             return new(data, format);
         });
-        return Task.FromResult(new MediaCollection(media));
+        return Task.FromResult(MediaCollection.WithOne(media));
     }
 
     public Task<MediaInfo> GetInfoAsync() => Task.FromResult(info);

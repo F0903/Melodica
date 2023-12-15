@@ -13,16 +13,14 @@ public static class Downloader
 
     public static IAsyncDownloader SoundCloud { get; } = new SoundCloud.AsyncSoundcloudDownloader();
 
-
     public static IAsyncDownloader Default { get; } = YouTube;
 
-    // For convenience
     static readonly IAsyncDownloader[] downloaders =
-    {
+    [
         YouTube,
         Spotify,
         SoundCloud,
-    };
+    ];
 
     public static IAsyncDownloader GetFromQuery(string query)
     {
@@ -30,10 +28,9 @@ public static class Downloader
             return Default;
 
         foreach (var downloader in downloaders)
-        {
             if (downloader.IsUrlSupported(query))
                 return downloader;
-        }
+
         throw new UnrecognizedUrlException("URL is not supported!");
     }
 }

@@ -1,19 +1,17 @@
-﻿using Discord;
-using Discord.WebSocket;
-
-using Melodica.Dependencies;
-
-using System.Text;
+﻿using System.Text;
 using System.Text.RegularExpressions;
+using Discord;
+using Discord.WebSocket;
+using Melodica.Dependencies;
 
 namespace Melodica.Utility;
 
 public static partial class Extensions
 {
     private static readonly char[] customIllegalChars =
-    {
-            '<'
-        };
+    [
+        '<'
+    ];
 
     private static char[]? cachedIllegalChars;
 
@@ -37,7 +35,7 @@ public static partial class Extensions
 
     public static string SeperateStrings(this string[] strings, string seperator = ", ")
     {
-        StringBuilder? sb = new(strings.Length * 5);
+        var sb = new StringBuilder(strings.Length * 5);
         for (var i = 0; i < strings.Length; i++)
         {
             sb.Append(strings[i]);

@@ -18,8 +18,8 @@ insert_final_newline = false
 #### .NET Coding Conventions ####
 
 # Organize usings
-dotnet_separate_import_directive_groups = true
-dotnet_sort_system_directives_first = false
+dotnet_separate_import_directive_groups = false
+dotnet_sort_system_directives_first = true
 file_header_template = unset
 
 # this. and Me. preferences
@@ -50,6 +50,7 @@ dotnet_style_null_propagation = true
 dotnet_style_object_initializer = true
 dotnet_style_operator_placement_when_wrapping = beginning_of_line
 dotnet_style_prefer_auto_properties = true
+dotnet_style_prefer_collection_expression = true
 dotnet_style_prefer_compound_assignment = true
 dotnet_style_prefer_conditional_expression_over_assignment = true
 dotnet_style_prefer_conditional_expression_over_return = true
@@ -105,12 +106,14 @@ csharp_style_conditional_delegate_call = true
 csharp_prefer_static_local_function = true
 csharp_preferred_modifier_order = public,private,protected,internal,file,static,extern,new,virtual,abstract,sealed,override,readonly,unsafe,required,volatile,async
 csharp_style_prefer_readonly_struct = true
+csharp_style_prefer_readonly_struct_member = true
 
 # Code-block preferences
-csharp_prefer_braces = when_multiline
+csharp_prefer_braces = false
 csharp_prefer_simple_using_statement = true
 csharp_style_namespace_declarations = file_scoped
 csharp_style_prefer_method_group_conversion = true
+csharp_style_prefer_primary_constructors = true
 csharp_style_prefer_top_level_statements = true
 
 # Expression-level preferences
@@ -133,6 +136,8 @@ csharp_using_directive_placement = outside_namespace
 
 # New line preferences
 csharp_style_allow_blank_line_after_colon_in_constructor_initializer_experimental = true
+csharp_style_allow_blank_line_after_token_in_arrow_expression_clause_experimental = true
+csharp_style_allow_blank_line_after_token_in_conditional_expression_experimental = true
 csharp_style_allow_blank_lines_between_consecutive_braces_experimental = true
 csharp_style_allow_embedded_statements_on_same_line_experimental = true
 

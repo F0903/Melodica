@@ -1,10 +1,8 @@
 ﻿using Discord.Commands;
 using Discord.Interactions;
 using Discord.WebSocket;
-
 using Melodica.Config;
 using Melodica.Dependencies;
-
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Melodica.Core;

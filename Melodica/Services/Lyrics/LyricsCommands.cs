@@ -1,16 +1,11 @@
 ﻿using Discord;
 using Discord.Interactions;
-
 using Melodica.Services.Playback;
 
 namespace Melodica.Services.Lyrics;
 
-public sealed class LyricsCommands : InteractionModuleBase<SocketInteractionContext>
+public sealed class LyricsCommands(ILyricsProvider lyrics) : InteractionModuleBase<SocketInteractionContext>
 {
-    public LyricsCommands(ILyricsProvider lyrics) => this.lyrics = lyrics;
-
-    private readonly ILyricsProvider lyrics;
-
     [SlashCommand("lyrics", "Gets lyrics for a search term.")]
     public async Task GetLyrics(string? songName = null)
     {

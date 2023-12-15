@@ -1,9 +1,6 @@
-﻿
+﻿using System.Text;
 using Discord;
-
 using Melodica.Services.Media;
-
-using System.Text;
 
 namespace Melodica.Services.Playback;
 

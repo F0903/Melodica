@@ -1,11 +1,9 @@
-﻿using Melodica.Config;
+﻿using System.Text.RegularExpressions;
+using Melodica.Config;
 using Melodica.Services.Downloaders.Exceptions;
 using Melodica.Services.Media;
 using Melodica.Utility;
-
 using SpotifyAPI.Web;
-
-using System.Text.RegularExpressions;
 
 namespace Melodica.Services.Downloaders.Spotify;
 
@@ -16,7 +14,10 @@ public sealed partial class AsyncSpotifyDownloader : IAsyncDownloader
 
     static readonly SpotifyClient spotify = new(SpotifyClientConfig
         .CreateDefault()
-        .WithAuthenticator(new ClientCredentialsAuthenticator(BotConfig.Secrets.SpotifyClientID, BotConfig.Secrets.SpotifyClientSecret)));
+        .WithAuthenticator(
+            new ClientCredentialsAuthenticator(
+                BotConfig.Secrets.SpotifyClientID ?? throw new NullReferenceException("Spotify Client ID was null!"),
+                BotConfig.Secrets.SpotifyClientSecret ?? throw new NullReferenceException("Spotify Client Secret was null!"))));
 
     // Tie this to the default downloader (can't download directly from Spotify)
     static readonly IAsyncDownloader downloader = Downloader.Default;
@@ -223,7 +224,7 @@ public sealed partial class AsyncSpotifyDownloader : IAsyncDownloader
             return await DownloadPlaylistAsync(info);
 
         var media = await DownloadFromProviderAsync(info);
-        return new MediaCollection(media);
+        return MediaCollection.WithOne(media);
     }
 
     public async Task<MediaInfo> GetInfoAsync(ReadOnlyMemory<char> query)

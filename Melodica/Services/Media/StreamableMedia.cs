@@ -1,11 +1,9 @@
 ﻿namespace Melodica.Services.Media;
 
-public sealed class StreamableMedia : PlayableMedia
+public sealed class StreamableMedia(MediaInfo info, string url, string format)
+    : PlayableMedia(info, null, _ => Task.FromResult(new DataPair(null, new(format))), null)
 {
-    public StreamableMedia(MediaInfo info, string url, string format)
-        : base(info, null, _ => Task.FromResult(new DataPair(null, new(format))), null) => dataInfo = new(format, url);
-
-    private readonly DataInfo dataInfo;
+    private readonly DataInfo dataInfo = new(format, url);
 
     public override Task<DataInfo> GetDataAsync() => Task.FromResult(dataInfo);
 }

@@ -1,17 +1,14 @@
-﻿using Discord;
+﻿using System.Buffers;
+using Discord;
 using Discord.Audio;
 using Discord.Audio.Streams;
 using Discord.WebSocket;
-
 using Melodica.Core.Exceptions;
 using Melodica.Services.Audio;
 using Melodica.Services.Media;
 using Melodica.Services.Playback.Requests;
 using Melodica.Utility;
-
 using Serilog;
-
-using System.Buffers;
 
 namespace Melodica.Services.Playback;
 
