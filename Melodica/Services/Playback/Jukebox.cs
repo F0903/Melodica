@@ -213,8 +213,8 @@ public sealed class Jukebox
             SocketVoiceChannel svc => svc.ConnectedUsers, // Actually accurate.
             _ => (IReadOnlyCollection<IUser>)await audioChannel!.GetUsersAsync().FlattenAsync() // Will probably report wrong due to caching.
         };
-
-        if (!users.IsOverSize(1))
+        var currentUsers = users.Where(x => x.Id != id);
+        if (!currentUsers.IsOverSize(1))
         {
             await StopAsync();
         }
