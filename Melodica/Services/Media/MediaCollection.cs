@@ -10,10 +10,7 @@ public sealed class MediaCollection : IEnumerable<LazyMedia>
         CollectionInfo = collectionInfo;
     }
 
-    public MediaCollection(LazyMedia media)
-    {
-        this.media = new LazyMedia[] { new(media) };
-    }
+    public MediaCollection(LazyMedia media) => this.media = new LazyMedia[] { new(media) };
 
     public MediaInfo? CollectionInfo { get; init; }
 
@@ -27,8 +24,5 @@ public sealed class MediaCollection : IEnumerable<LazyMedia>
         }
     }
 
-    IEnumerator IEnumerable.GetEnumerator()
-    {
-        return GetEnumerator();
-    }
+    IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 }

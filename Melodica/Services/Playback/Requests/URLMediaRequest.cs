@@ -28,8 +28,5 @@ public sealed class URLMediaRequest : IMediaRequest
         return Task.FromResult(new MediaCollection(media));
     }
 
-    public Task<MediaInfo> GetInfoAsync()
-    {
-        return Task.FromResult(info);
-    }
+    public Task<MediaInfo> GetInfoAsync() => Task.FromResult(info);
 }

@@ -8,10 +8,7 @@ namespace Melodica.Utility;
 
 public static class Utils
 {
-    public static Task<IUser> GetAppOwnerAsync()
-    {
-        return Task.FromResult(Dependency.Get<DiscordSocketClient>().GetApplicationInfoAsync().Result.Owner);
-    }
+    public static Task<IUser> GetAppOwnerAsync() => Task.FromResult(Dependency.Get<DiscordSocketClient>().GetApplicationInfoAsync().Result.Owner);
 
     public static Task<string> GetURLArgumentAsync(Span<char> url, string argName)
     {

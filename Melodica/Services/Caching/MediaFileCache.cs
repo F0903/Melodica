@@ -28,7 +28,7 @@ public sealed class MediaFileCache : IMediaCache
 
     record CachePair(PlayableMedia Media, long AccessCount);
 
-    private static readonly List<MediaFileCache> cacheInstances = new(); // Keep track of all instances so we can clear all cache.
+    private static readonly List<MediaFileCache> cacheInstances = []; // Keep track of all instances so we can clear all cache.
 
     private static readonly BinarySerializer serializer = new();
 
@@ -36,7 +36,7 @@ public sealed class MediaFileCache : IMediaCache
 
     private readonly string cacheLocation;
 
-    private readonly Dictionary<string, CachePair> cache = new();
+    private readonly Dictionary<string, CachePair> cache = [];
 
     public static async Task<(int deletedFiles, int filesInUse, long msDuration)> ClearAllCachesAsync()
     {

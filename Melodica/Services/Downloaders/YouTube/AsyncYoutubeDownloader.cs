@@ -93,15 +93,9 @@ public sealed partial class AsyncYoutubeDownloader : IAsyncDownloader
                YoutubeExplode.Exceptions.VideoRequiresPurchaseException;
     }
 
-    static bool IsUrlPlaylist(ReadOnlySpan<char> url)
-    {
-        return url.Contains("playlist", StringComparison.Ordinal);
-    }
+    static bool IsUrlPlaylist(ReadOnlySpan<char> url) => url.Contains("playlist", StringComparison.Ordinal);
 
-    public bool IsUrlSupported(ReadOnlySpan<char> url)
-    {
-        return YoutubeUrlRegex().IsMatch(url.ToString());
-    }
+    public bool IsUrlSupported(ReadOnlySpan<char> url) => YoutubeUrlRegex().IsMatch(url.ToString());
 
     static async Task<MediaInfo> GetInfoFromPlaylistUrlAsync(ReadOnlyMemory<char> url)
     {

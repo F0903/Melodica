@@ -13,10 +13,7 @@ namespace Melodica.Core.CommandHandlers;
 
 public sealed class SocketCommandHandler : IAsyncCommandHandler
 {
-    public SocketCommandHandler(DiscordSocketClient client)
-    {
-        this.client = client;
-    }
+    public SocketCommandHandler(DiscordSocketClient client) => this.client = client;
 
     private readonly IServiceProvider ioc = Dependency.GetServiceProvider();
     private readonly DiscordSocketClient client;

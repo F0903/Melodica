@@ -36,10 +36,7 @@ public sealed class BotSettings
         SlashCommandDebugGuild = ulong.Parse(result);
     }
 
-    public void Reload()
-    {
-        ReadAndSetValues();
-    }
+    public void Reload() => ReadAndSetValues();
 
     public int CacheSizeMB { get; private set; }
 

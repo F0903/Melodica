@@ -6,8 +6,5 @@ namespace Melodica.Services.Downloaders;
 
 public sealed class DownloaderModule : DependencyModule
 {
-    public override IServiceCollection Load()
-    {
-        return new ServiceCollection();
-    }
+    public override IServiceCollection Load() => new ServiceCollection();
 }

@@ -10,10 +10,7 @@ public delegate Task<DataPair> DataGetter(PlayableMedia media);
 public class PlayableMedia
 {
     // Should be a seperate class.
-    private PlayableMedia(MediaInfo meta)
-    {
-        Info = meta;
-    }
+    private PlayableMedia(MediaInfo meta) => Info = meta;
 
     public PlayableMedia(MediaInfo info, MediaInfo? collectionInfo, DataGetter dataGetter, IMediaCache? cache)
     {

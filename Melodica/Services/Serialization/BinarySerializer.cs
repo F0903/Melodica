@@ -1,32 +1,19 @@
-﻿using System.Runtime.Serialization;
-using System.Runtime.Serialization.Formatters.Binary;
+﻿using System.Text.Json;
 
 namespace Melodica.Services.Serialization;
 
 public sealed class BinarySerializer : IAsyncSerializer
 {
-    // Disable redundant warning. These files are only stored locally and contain no sensitive info.
-#pragma warning disable SYSLIB0011
-
-    //TODO: Capitulate and use another serializer.
-    private static readonly BinaryFormatter bin = new(null, new StreamingContext(StreamingContextStates.File | StreamingContextStates.Persistence));
-
-    public Task SerializeToFileAsync(string path, object toSerialize)
+    public Task SerializeToFileAsync<T>(string path, T toSerialize)
     {
-        using FileStream? file = new(path, FileMode.OpenOrCreate, FileAccess.Write, FileShare.Write);
-
-
-        bin.Serialize(file, toSerialize);
-
-
-        return Task.CompletedTask;
+        using var file = new FileStream(path, FileMode.OpenOrCreate, FileAccess.Write, FileShare.Write);
+        return JsonSerializer.SerializeAsync(file, toSerialize);
     }
 
-    public Task<T> DeserializeFileAsync<T>(string path)
+    public async Task<T> DeserializeFileAsync<T>(string path)
     {
         using var file = File.Open(path, FileMode.Open, FileAccess.Read, FileShare.Read);
-        return Task.FromResult((T)bin.Deserialize(file));
+        var obj = await JsonSerializer.DeserializeAsync<T>(file);
+        return obj!;
     }
-
-#pragma warning restore SYSLIB0011
 }

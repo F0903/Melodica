@@ -24,17 +24,11 @@ public sealed class SocketBot
     }
 
     private readonly DiscordSocketClient client;
-    private readonly IAsyncCommandHandler commandHandler;
+    private readonly SocketCommandHandler commandHandler;
 
-    private async Task OnReady()
-    {
-        await commandHandler.InitializeCommands();
-    }
+    private async Task OnReady() => await commandHandler.InitializeCommands();
 
-    public async Task SetActivityAsync(string name, ActivityType type)
-    {
-        await client.SetActivityAsync(new Game(name, type));
-    }
+    public async Task SetActivityAsync(string name, ActivityType type) => await client.SetActivityAsync(new Game(name, type));
 
     public async Task ConnectAsync(string activityName, ActivityType type, bool startOnConnect = false)
     {
@@ -49,8 +43,5 @@ public sealed class SocketBot
             await client.StartAsync();
     }
 
-    public async Task StopAsync()
-    {
-        await client.StopAsync();
-    }
+    public async Task StopAsync() => await client.StopAsync();
 }

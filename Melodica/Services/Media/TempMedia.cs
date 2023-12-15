@@ -2,10 +2,7 @@
 
 public sealed class TempMedia : PlayableMedia
 {
-    public TempMedia(MediaInfo info, DataGetter data) : base(info, null, data, null)
-    {
-        this.data = data;
-    }
+    public TempMedia(MediaInfo info, DataGetter data) : base(info, null, data, null) => this.data = data;
 
     readonly DataGetter data;
     string? path;

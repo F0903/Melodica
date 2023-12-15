@@ -6,10 +6,7 @@ namespace Melodica.Dependencies;
 
 public class DependencyModule
 {
-    public virtual IServiceCollection Load()
-    {
-        return new ServiceCollection();
-    }
+    public virtual IServiceCollection Load() => new ServiceCollection();
 }
 
 public static class Dependency

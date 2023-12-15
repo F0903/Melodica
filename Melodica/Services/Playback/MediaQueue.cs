@@ -10,7 +10,7 @@ public sealed class MediaQueue
 
     private readonly object locker = new();
 
-    private readonly List<LazyMedia> list = new();
+    private readonly List<LazyMedia> list = [];
 
     // Returns same media over and over.
     public bool Loop { get; set; }
@@ -28,15 +28,9 @@ public sealed class MediaQueue
 
     public PlayableMedia this[int i] => list[i];
 
-    public Task<TimeSpan> GetTotalDurationAsync()
-    {
-        return Task.FromResult(list.Sum(x => ((PlayableMedia)x).Info.Duration));
-    }
+    public Task<TimeSpan> GetTotalDurationAsync() => Task.FromResult(list.Sum(x => ((PlayableMedia)x).Info.Duration));
 
-    public async ValueTask<(TimeSpan duration, string? imageUrl)> GetQueueInfo()
-    {
-        return (await GetTotalDurationAsync(), ((PlayableMedia)list[0]).Info.ImageUrl);
-    }
+    public async ValueTask<(TimeSpan duration, string? imageUrl)> GetQueueInfo() => (await GetTotalDurationAsync(), ((PlayableMedia)list[0]).Info.ImageUrl);
 
     public ValueTask EnqueueAsync(MediaCollection items)
     {

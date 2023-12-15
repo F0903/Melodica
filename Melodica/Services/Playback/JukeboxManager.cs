@@ -8,10 +8,7 @@ public static class JukeboxManager
 {
     static readonly ConcurrentDictionary<IGuild, Jukebox> jukeboxes = new();
 
-    public static Jukebox GetJukebox(IGuild guild)
-    {
-        return jukeboxes[guild];
-    }
+    public static Jukebox GetJukebox(IGuild guild) => jukeboxes[guild];
 
     public static Jukebox GetOrCreateJukebox(IGuild guild, Func<Jukebox> newFactory)
     {

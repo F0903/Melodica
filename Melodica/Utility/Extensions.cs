@@ -143,20 +143,11 @@ public static partial class Extensions
             yield return body(elem);
     }
 
-    public static bool CheckForUser(this SocketGuild guild, string user)
-    {
-        return guild.AutoGetUser(user) != null;
-    }
+    public static bool CheckForUser(this SocketGuild guild, string user) => guild.AutoGetUser(user) != null;
 
-    public static SocketGuildUser? AutoGetUser(this SocketGuild guild, string user)
-    {
-        return guild.Users.SingleOrDefault(x => x.Username == user || x.Nickname == user || x.Id.ToString() == user);
-    }
+    public static SocketGuildUser? AutoGetUser(this SocketGuild guild, string user) => guild.Users.SingleOrDefault(x => x.Username == user || x.Nickname == user || x.Id.ToString() == user);
 
-    public static bool IsOwnerOfApp(this IUser user)
-    {
-        return user.Id == Dependency.Get<DiscordSocketClient>().GetApplicationInfoAsync().Result.Owner.Id;
-    }
+    public static bool IsOwnerOfApp(this IUser user) => user.Id == Dependency.Get<DiscordSocketClient>().GetApplicationInfoAsync().Result.Owner.Id;
 
     public static string ReplaceIllegalCharacters(this string str, char replacer = '_')
     {
@@ -169,18 +160,9 @@ public static partial class Extensions
     [GeneratedRegex(@"((http)|(https)):\/\/.+", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.Singleline)]
     private static partial Regex UrlRegex();
 
-    public static bool IsUrl(this ReadOnlySpan<char> str)
-    {
-        return UrlRegex().IsMatch(str.ToString());
-    }
+    public static bool IsUrl(this ReadOnlySpan<char> str) => UrlRegex().IsMatch(str.ToString());
 
-    public static bool IsUrl(this ReadOnlyMemory<char> str)
-    {
-        return UrlRegex().IsMatch(str.ToString());
-    }
+    public static bool IsUrl(this ReadOnlyMemory<char> str) => UrlRegex().IsMatch(str.ToString());
 
-    public static bool IsUrl(this string str)
-    {
-        return UrlRegex().IsMatch(str);
-    }
+    public static bool IsUrl(this string str) => UrlRegex().IsMatch(str);
 }

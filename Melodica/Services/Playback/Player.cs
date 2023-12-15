@@ -6,10 +6,7 @@ namespace Melodica.Services.Playback;
 
 public sealed class JukeboxInterfaceButton
 {
-    private JukeboxInterfaceButton(string id)
-    {
-        this.id = id;
-    }
+    private JukeboxInterfaceButton(string id) => this.id = id;
 
     readonly string id;
 
@@ -26,10 +23,7 @@ public sealed class JukeboxInterfaceButton
 
 public sealed class JukeboxInterface
 {
-    public JukeboxInterface(IDiscordInteraction interaction)
-    {
-        this.interaction = interaction;
-    }
+    public JukeboxInterface(IDiscordInteraction interaction) => this.interaction = interaction;
 
     readonly IDiscordInteraction interaction;
     IUserMessage? interfaceMessage;
@@ -69,7 +63,7 @@ public sealed class JukeboxInterface
             }
             x.Components = compBuilder.Build();
         });
-    } 
+    }
 
     public async Task SetButtonStateAsync(JukeboxInterfaceButton button, bool pressed)
     {
@@ -84,7 +78,7 @@ public sealed class JukeboxInterface
 
     public async Task DisableAllButtonsAsync()
     {
-        if(AreButtonsDisabled) return;
+        if (AreButtonsDisabled) return;
         await ChangeButtonAsync(_ => true, x =>
         {
             return ((ButtonComponent)x)

@@ -7,10 +7,7 @@ namespace Melodica.Services.Lyrics;
 
 public sealed class LyricsCommands : InteractionModuleBase<SocketInteractionContext>
 {
-    public LyricsCommands(ILyricsProvider lyrics)
-    {
-        this.lyrics = lyrics;
-    }
+    public LyricsCommands(ILyricsProvider lyrics) => this.lyrics = lyrics;
 
     private readonly ILyricsProvider lyrics;
 

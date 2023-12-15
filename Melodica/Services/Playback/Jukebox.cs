@@ -11,17 +11,12 @@ using Melodica.Utility;
 
 using Serilog;
 
-using System.Buffers; 
+using System.Buffers;
 
 namespace Melodica.Services.Playback;
 
 public sealed class Jukebox
 {
-    public Jukebox(IMessageChannel callbackChannel)
-    {
-        this.callbackChannel = callbackChannel;
-    }
-
     public enum PlayResult
     {
         Occupied,
@@ -47,8 +42,6 @@ public sealed class Jukebox
 
     private IAudioClient? audioClient;
     private IAudioChannel? audioChannel;
-    private readonly IMessageChannel callbackChannel;
-
     private bool skipRequested = false;
     private bool downloading = false;
 
@@ -121,8 +114,8 @@ public sealed class Jukebox
         }
 
         const int frameBytes = 3840;
-        using var memHandle = memory.Rent(frameBytes);
-        Memory<byte> buffer = memHandle.Memory;
+        using var memHandle = memory.Rent(frameBytes * 2);
+        var buffer = memHandle.Memory;
         durationTimer.Start();
         try
         {
@@ -214,14 +207,11 @@ public sealed class Jukebox
         skipRequested = true;
     }
 
-    public ValueTask ClearAsync()
-    {
-        return Queue.ClearAsync();
-    }
+    public ValueTask ClearAsync() => Queue.ClearAsync();
 
     async Task OnClientDisconnect(ulong id)
     {
-        IReadOnlyCollection<IUser> users = audioChannel switch
+        var users = audioChannel switch
         {
             SocketVoiceChannel svc => svc.ConnectedUsers, // Actually accurate.
             _ => (IReadOnlyCollection<IUser>)await audioChannel!.GetUsersAsync().FlattenAsync() // Will probably report wrong due to caching.
@@ -263,6 +253,8 @@ public sealed class Jukebox
         }
 
         await currentPlayer!.SetSongEmbedAsync(media.Info, media.CollectionInfo);
+
+        var donePlaying = false;
         try
         {
             await SendDataAsync(dataInfo, output, token);
@@ -285,9 +277,12 @@ public sealed class Jukebox
                 if (Queue.IsEmpty || cancellation!.IsCancellationRequested)
                 {
                     await DisconnectAsync();
+                    donePlaying = true;
                 }
             }
         }
+        if (donePlaying)
+            return;
 
         await PlayNextAsync(channel, output, token);
     }
@@ -329,7 +324,7 @@ public sealed class Jukebox
             var bitrate = (channel as IVoiceChannel)?.Bitrate ?? 96000;
             await player.SpawnAsync(reqInfo, collection.CollectionInfo);
             currentPlayer = player;
-            using var output = (OpusEncodeStream)audioClient!.CreatePCMStream(AudioApplication.Music, bitrate, 200, 0);
+            using var output = (OpusEncodeStream)audioClient!.CreatePCMStream(AudioApplication.Music, bitrate, 1000, 0);
             await PlayNextAsync(channel, output, token);
         }
         finally

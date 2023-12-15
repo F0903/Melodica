@@ -40,8 +40,5 @@ public sealed class WikipediaWiki : IWikiProvider
         };
     }
 
-    public Task<WikiElement> GetInfoAsync(string query)
-    {
-        return GetSummary(query.Replace(' ', '_'));
-    }
+    public Task<WikiElement> GetInfoAsync(string query) => GetSummary(query.Replace(' ', '_'));
 }

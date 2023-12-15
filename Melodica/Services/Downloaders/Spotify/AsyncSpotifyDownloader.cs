@@ -33,10 +33,7 @@ public sealed partial class AsyncSpotifyDownloader : IAsyncDownloader
                url.StartsWith("albums");
     }
 
-    public bool IsUrlSupported(ReadOnlySpan<char> url)
-    {
-        return SpotifyUrlRegex().IsMatch(url.ToString());
-    }
+    public bool IsUrlSupported(ReadOnlySpan<char> url) => SpotifyUrlRegex().IsMatch(url.ToString());
 
     static string SeperateArtistNames(List<SimpleArtist> artists)
     {
@@ -70,15 +67,9 @@ public sealed partial class AsyncSpotifyDownloader : IAsyncDownloader
         return ValueTask.FromResult(tracklist);
     }
 
-    static ValueTask<List<SimpleTrack>> AlbumToTrackListAsync(FullAlbum album)
-    {
-        return ValueTask.FromResult(album.Tracks.Items ?? throw new NullReferenceException("No tracks were found in playlist."));
-    }
+    static ValueTask<List<SimpleTrack>> AlbumToTrackListAsync(FullAlbum album) => ValueTask.FromResult(album.Tracks.Items ?? throw new NullReferenceException("No tracks were found in playlist."));
 
-    static TimeSpan NormalizeTimeSpan(TimeSpan from)
-    {
-        return new(from.Hours, from.Minutes, from.Seconds);
-    }
+    static TimeSpan NormalizeTimeSpan(TimeSpan from) => new(from.Hours, from.Minutes, from.Seconds);
 
     static MediaInfo FullTrackToMediaInfo(FullTrack track)
     {

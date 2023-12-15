@@ -6,15 +6,8 @@ using Melodica.Utility;
 
 namespace Melodica.Core.Commands;
 
-public sealed class MiscCommands : ModuleBase<SocketCommandContext>
+public sealed class MiscCommands(CommandService commandService) : ModuleBase<SocketCommandContext>
 {
-    public MiscCommands(CommandService commandService)
-    {
-        this.commandService = commandService;
-    }
-
-    private readonly CommandService commandService;
-
     private static List<CommandInfo>? cachedCommandInfo;
 
     [Command("Help"), Summary("Prints out all available commands.")]
@@ -29,7 +22,7 @@ public sealed class MiscCommands : ModuleBase<SocketCommandContext>
         if (cachedCommandInfo == null)
         {
             var modules = commandService.Modules.ToArray().OrderBy(x => x.Group);
-            cachedCommandInfo = new List<CommandInfo>();
+            cachedCommandInfo = [];
             foreach (var module in modules)
                 cachedCommandInfo.AddRange(module.Commands);
         }
@@ -77,16 +70,10 @@ public sealed class MiscCommands : ModuleBase<SocketCommandContext>
     }
 
     [Command("Ping")]
-    public Task PingAsync()
-    {
-        return ReplyAsync("Pong!");
-    }
+    public Task PingAsync() => ReplyAsync("Pong!");
 
 #if DEBUG
     [Command("Except"), RequireOwner]
-    public Task ExceptAsync()
-    {
-        throw new Exception("Test exception.");
-    }
+    public Task ExceptAsync() => throw new Exception("Test exception.");
 #endif
 }

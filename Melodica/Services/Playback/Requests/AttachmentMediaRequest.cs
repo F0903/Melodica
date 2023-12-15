@@ -6,10 +6,7 @@ namespace Melodica.Services.Playback.Requests;
 
 public sealed class AttachmentMediaRequest : IMediaRequest
 {
-    public AttachmentMediaRequest(Discord.Attachment[] attachments)
-    {
-        attachment = attachments[0];
-    }
+    public AttachmentMediaRequest(Discord.Attachment[] attachments) => attachment = attachments[0];
 
     static readonly HttpClient http = new();
 
@@ -27,10 +24,7 @@ public sealed class AttachmentMediaRequest : IMediaRequest
         };
     }
 
-    public Task<MediaInfo> GetInfoAsync()
-    {
-        return Task.FromResult(info ??= SetInfo());
-    }
+    public Task<MediaInfo> GetInfoAsync() => Task.FromResult(info ??= SetInfo());
 
     public async Task<MediaCollection> GetMediaAsync()
     {

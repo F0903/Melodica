@@ -3,14 +3,11 @@
 namespace Melodica.Config;
 public sealed class BotSecrets
 {
-    //REASON: Redundant warning.
-#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
     public BotSecrets(IConfigurationRoot config)
     {
         this.config = config;
         ReadAndSetValues();
     }
-#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
 
     readonly IConfigurationRoot config;
 
@@ -45,18 +42,15 @@ public sealed class BotSecrets
         SoundcloudClientID = token;
     }
 
-    public void Reload()
-    {
-        ReadAndSetValues();
-    }
+    public void Reload() => ReadAndSetValues();
 
-    public string DiscordToken { get; private set; }
+    public string? DiscordToken { get; private set; }
 
-    public string SpotifyClientSecret { get; private set; }
+    public string? SpotifyClientSecret { get; private set; }
 
-    public string SpotifyClientID { get; private set; }
+    public string? SpotifyClientID { get; private set; }
 
-    public string GeniusToken { get; private set; }
+    public string? GeniusToken { get; private set; }
 
-    public string SoundcloudClientID { get; private set; }
+    public string? SoundcloudClientID { get; private set; }
 }

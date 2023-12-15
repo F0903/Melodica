@@ -18,10 +18,7 @@ public sealed class DownloadRequest : IMediaRequest
 
     MediaInfo? cachedInfo;
 
-    public async Task<MediaInfo> GetInfoAsync()
-    {
-        return cachedInfo ??= await downloader.GetInfoAsync(query);
-    }
+    public async Task<MediaInfo> GetInfoAsync() => cachedInfo ??= await downloader.GetInfoAsync(query);
 
     public async Task<MediaCollection> GetMediaAsync()
     {

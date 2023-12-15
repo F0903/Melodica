@@ -77,7 +77,7 @@ internal sealed partial class AsyncSoundcloudDownloader : IAsyncDownloader
             _ => throw new UnreachableException(),
         };
 
-        List<LazyMedia> tracks = new();
+        List<LazyMedia> tracks = [];
         foreach (var track in playlist.Tracks)
         {
             var trackInfo = TrackToMediaInfo(track);
@@ -126,8 +126,5 @@ internal sealed partial class AsyncSoundcloudDownloader : IAsyncDownloader
         return info is null ? throw new MediaUnavailableException($"No info was found for the specified query: {query}") : info;
     }
 
-    public bool IsUrlSupported(ReadOnlySpan<char> url)
-    {
-        return SoundcloudUrlRegex().IsMatch(url.ToString());
-    }
+    public bool IsUrlSupported(ReadOnlySpan<char> url) => SoundcloudUrlRegex().IsMatch(url.ToString());
 }

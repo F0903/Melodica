@@ -8,10 +8,7 @@ namespace Melodica.Services.Wiki;
 
 public sealed class WikiCommands : InteractionModuleBase<SocketInteractionContext>
 {
-    public WikiCommands(IWikiProvider wiki)
-    {
-        this.wiki = wiki;
-    }
+    public WikiCommands(IWikiProvider wiki) => this.wiki = wiki;
 
     private readonly IWikiProvider wiki;
 

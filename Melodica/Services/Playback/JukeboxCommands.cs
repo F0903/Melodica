@@ -20,7 +20,7 @@ public sealed class JukeboxCommands : InteractionModuleBase<SocketInteractionCon
 {
     Jukebox? cachedJukebox;
     private Jukebox Jukebox => cachedJukebox ??=
-        JukeboxManager.GetOrCreateJukebox(Context.Guild, () => new Jukebox(Context.Channel));
+        JukeboxManager.GetOrCreateJukebox(Context.Guild, static () => new Jukebox());
 
     [SlashCommand("clear-cache", "Clears the media cache.")]
     public async Task ClearCache()
@@ -32,8 +32,8 @@ public sealed class JukeboxCommands : InteractionModuleBase<SocketInteractionCon
         }
         catch (NoMediaFileCachesException e)
         {
-            await RespondAsync(e.Message, ephemeral: true); 
-        } 
+            await RespondAsync(e.Message, ephemeral: true);
+        }
     }
 
     [SlashCommand("duration", "Shows the remaining duration of the current song.")]
@@ -189,7 +189,7 @@ public sealed class JukeboxCommands : InteractionModuleBase<SocketInteractionCon
         {
             await RespondAsync("You need to be in a voice channel!", ephemeral: true);
             return;
-        } 
+        }
 
         var jukebox = Jukebox;
         if (jukebox.Playing)

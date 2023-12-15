@@ -15,15 +15,12 @@ internal class FFmpegProcessor : IAsyncAudioProcessor
 
     Process? proc;
 
-    public void Dispose()
-    {
-        proc?.Dispose();
-    }
+    public void Dispose() => proc?.Dispose();
 
     public Task<ProcessorStreams> ProcessAsync()
     {
         var isStream = inputFormat is not null and "hls";
-        var isInputPiped = input == "pipe:0" || input == "pipe:" || input == "-";
+        var isInputPiped = input is "pipe:0" or "pipe:" or "-";
 
         var inputFormatOption = inputFormat is not null ? $"-f {inputFormat}" : "";
         var formatSpecificInputOptions = !isStream ? "-flags +low_delay -fflags +discardcorrupt+fastseek+nobuffer -avioflags direct" : "";
