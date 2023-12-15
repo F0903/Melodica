@@ -7,7 +7,7 @@
     <NoWarn>NU1605</NoWarn>
 		<Nullable>enable</Nullable>
 		<OutputType>exe</OutputType>
-		<TargetFramework>net7.0</TargetFramework>
+		<TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <PublishReadyToRun>true</PublishReadyToRun>
     <PublishTrimmed>false</PublishTrimmed>

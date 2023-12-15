@@ -8,6 +8,7 @@ public sealed class BinarySerializer : IAsyncSerializer
     // Disable redundant warning. These files are only stored locally and contain no sensitive info.
 #pragma warning disable SYSLIB0011
 
+    //TODO: Capitulate and use another serializer.
     private static readonly BinaryFormatter bin = new(null, new StreamingContext(StreamingContextStates.File | StreamingContextStates.Persistence));
 
     public Task SerializeToFileAsync(string path, object toSerialize)
