@@ -114,6 +114,7 @@ public sealed class Jukebox
         using var memHandle = memory.Rent(frameBytes * 2);
         var buffer = memHandle.Memory;
         durationTimer.Start();
+        await output.WriteSilentFramesAsync();
         try
         {
             while (await input.ReadAsync(buffer[..frameBytes], CancellationToken.None) != 0)
