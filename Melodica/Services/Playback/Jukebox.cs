@@ -110,6 +110,7 @@ public sealed class Jukebox
             durationTimer.Start();
         }
 
+        //TODO: Figure out why noise plays right at the beginning.
         const int frameBytes = 3840;
         using var memHandle = memory.Rent(frameBytes * 2);
         var buffer = memHandle.Memory;
