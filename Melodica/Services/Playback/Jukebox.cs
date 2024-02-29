@@ -110,7 +110,6 @@ public sealed class Jukebox
             durationTimer.Start();
         }
 
-        //TODO: Figure out why noise plays right at the beginning.
         const int frameBytes = 3840;
         using var memHandle = memory.Rent(frameBytes * 2);
         var buffer = memHandle.Memory;
@@ -157,7 +156,7 @@ public sealed class Jukebox
                 using var procStreams = await audio.ProcessAsync();
                 await WriteData(procStreams.Output, output, token);
             }
-            catch (OperationCanceledException) { }
+            catch (OperationCanceledException ex) { }
             catch (Exception ex)
             {
                 Log.Error(ex, $"SendDataAsync encountered an exception:\n{ex.Message}");
