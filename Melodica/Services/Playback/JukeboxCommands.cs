@@ -63,18 +63,31 @@ public sealed class JukeboxCommands : InteractionModuleBase<SocketInteractionCon
     }
 
     [SlashCommand("remove", "Removes song from queue by index, or removes the last element if no parameter is given.")]
-    public async Task Remove(int? index = null)
+    public async Task Remove(int index = -1)
     {
         var queue = Jukebox.Queue;
-        var removed = index == null ? await queue.RemoveAtAsync(^0) : await queue.RemoveAtAsync(index.Value - 1);
-        var removedInfo = removed.Info;
-        await RespondAsync(embed: new EmbedBuilder()
+        if (queue.IsEmpty)
         {
-            Title = "**Removed**",
-            Description = removedInfo.Title
-        }.Build(),
-        ephemeral: true
-        );
+            await RespondAsync("Queue is empty.", ephemeral: true);
+            return;
+        }
+        try
+        {
+            var removed = index == -1 ? await queue.RemoveAtAsync(^0) : await queue.RemoveAtAsync(index - 1);
+            var removedInfo = removed.Info;
+            await RespondAsync(embed: new EmbedBuilder()
+            {
+                Title = "**Removed**",
+                Description = removedInfo.Title
+            }.Build(),
+                ephemeral: true
+            );
+        }
+        catch (IndexOutOfRangeException)
+        {
+            await RespondAsync($"The index was out of range. Accepted range: [1-{queue.Length}]", ephemeral: true);
+        }
+
     }
 
     [SlashCommand("queue", "Shows the current queue.")]

@@ -318,7 +318,7 @@ public sealed class Jukebox
             cancellation = new();
             var token = cancellation.Token;
 
-            await ConnectAsync(channel);
+            await ConnectAsync(channel); //TODO: will timeout if doesn't have proper permissions in channel, check first.
             var bitrate = (channel as IVoiceChannel)?.Bitrate ?? 96000;
             await player.SpawnAsync(reqInfo, collection.CollectionInfo);
             currentPlayer = player;
