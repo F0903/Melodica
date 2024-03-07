@@ -156,7 +156,7 @@ public sealed class Jukebox
                 using var procStreams = await audio.ProcessAsync();
                 await WriteData(procStreams.Output, output, token);
             }
-            catch (OperationCanceledException ex) { }
+            catch (OperationCanceledException) { }
             catch (Exception ex)
             {
                 Log.Error(ex, $"SendDataAsync encountered an exception:\n{ex.Message}");
