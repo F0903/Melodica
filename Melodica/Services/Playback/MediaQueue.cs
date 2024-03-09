@@ -9,7 +9,9 @@ public sealed class MediaQueue
 
     private readonly object locker = new();
 
-    private readonly List<LazyMedia> list = [];
+    private readonly List<PlayableMedia> list = [];
+
+    private PlayableMedia? lastDequeuedMedia = null;
 
     // Returns same media over and over.
     public bool Loop { get; set; }
@@ -23,28 +25,38 @@ public sealed class MediaQueue
 
     public int Length => list.Count;
 
-    LazyMedia? lastMedia;
-
     public PlayableMedia this[int i] => list[i];
 
-    public Task<TimeSpan> GetTotalDurationAsync() => Task.FromResult(list.Sum(x => ((PlayableMedia)x).Info.Duration));
+    public Task<TimeSpan> GetTotalDurationAsync() => Task.FromResult(list.Sum(x => ((CachingPlayableMedia)x).Info.Duration));
 
-    public async ValueTask<(TimeSpan duration, string? imageUrl)> GetQueueInfo() => (await GetTotalDurationAsync(), ((PlayableMedia)list[0]).Info.ImageUrl);
+    public async ValueTask<(TimeSpan duration, string? imageUrl)> GetQueueInfo() => (await GetTotalDurationAsync(), ((CachingPlayableMedia)list[0]).Info.ImageUrl);
 
-    public ValueTask EnqueueAsync(MediaCollection items)
+    public ValueTask EnqueueAsync(PlayableMedia media)
     {
         lock (locker)
         {
-            list.AddRange(items);
+            PlayableMedia? current = media;
+            while(current is not null)
+            {
+                list.Add(current);
+                current = current.Next;
+            }
         }
         return ValueTask.CompletedTask;
     }
 
-    public ValueTask PutFirstAsync(MediaCollection items)
+    public ValueTask PutFirstAsync(PlayableMedia media)
     {
         lock (locker)
         {
-            list.InsertRange(0, items);
+            PlayableMedia? current = media;
+            int i = 0;
+            while (current is not null)
+            {
+                list.Insert(i, current);
+                current = current.Next;
+                ++i;
+            }
         }
         return ValueTask.CompletedTask;
     }
@@ -55,16 +67,16 @@ public sealed class MediaQueue
         {
             var index = Shuffle ? rng.Next(0, list.Count) : 0;
             var item = list[index];
+            lastDequeuedMedia = item;
             list.RemoveAt(index);
-            lastMedia = item;
-            return ValueTask.FromResult((PlayableMedia)item);
+            return ValueTask.FromResult(item);
         }
     }
 
     public async ValueTask<PlayableMedia> DequeueAsync()
     {
-        if (Loop && lastMedia is not null)
-            return lastMedia;
+        if (Loop && lastDequeuedMedia is not null)
+            return lastDequeuedMedia;
         var next = await GetNextAsync();
         if (Repeat)
         {
@@ -92,13 +104,13 @@ public sealed class MediaQueue
         else if (index > list.Count)
             throw new Exception("Index cannot be larger than the queues size.");
 
-        LazyMedia item;
+        PlayableMedia item;
         lock (locker)
         {
             item = list[index];
             list.RemoveAt(index);
         }
-        return ValueTask.FromResult((PlayableMedia)item);
+        return ValueTask.FromResult(item);
     }
 
     public ValueTask<PlayableMedia> RemoveAtAsync(Index index)

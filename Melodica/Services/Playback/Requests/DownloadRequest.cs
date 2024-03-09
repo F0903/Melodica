@@ -9,7 +9,7 @@ public sealed class DownloadRequest(ReadOnlyMemory<char> query, IAsyncDownloader
 
     public async Task<MediaInfo> GetInfoAsync() => cachedInfo ??= await dl.GetInfoAsync(query);
 
-    public async Task<MediaCollection> GetMediaAsync()
+    public async Task<PlayableMedia> GetMediaAsync()
     {
         var info = await GetInfoAsync();
         return await dl.DownloadAsync(info);

@@ -2,24 +2,22 @@
 
 namespace Melodica.Services.Audio;
 
-internal class FFmpegProcessor(string input, string? inputFormat) : IAsyncAudioProcessor
+public class FFmpegProcessor : IAsyncAudioProcessor
 {
-    readonly string input = input;
-    readonly string? inputFormat = inputFormat;
-
     Process? proc;
 
-    public void Dispose() => proc?.Dispose();
+    Stream? inputStream;
+    Stream? outputStream;
 
-    public Task<ProcessorStreams> ProcessAsync()
+    public void Dispose()
     {
-        var isStream = inputFormat is not null and "hls";
-        var isInputPiped = input is "pipe:0" or "pipe:" or "-";
+        proc?.Dispose();
+        GC.SuppressFinalize(this);
+    }
 
-        var inputFormatOption = inputFormat is not null ? $"-f {inputFormat}" : "";
-        var formatSpecificInputOptions = !isStream ? "-flags +low_delay -fflags +discardcorrupt+fastseek+nobuffer -avioflags direct" : "";
-        var formatSpecificOutputOptions = !isStream ? "-fflags +flush_packets" : "";
-        var args = $"-y -hide_banner -loglevel panic -strict experimental -vn -protocol_whitelist pipe,file,http,https,tcp,tls,crypto {inputFormatOption} {formatSpecificInputOptions} -i {input} -f s16le {formatSpecificOutputOptions} -ac 2 -ar 48000 pipe:1";
+    void StartProcess()
+    {
+        var args = $"-y -hide_banner -loglevel debug -strict experimental -vn -protocol_whitelist pipe,file,http,https,tcp,tls,crypto -i pipe:0 -f s16le -ac 2 -ar 48000 pipe:1";
 
         proc = new()
         {
@@ -28,8 +26,8 @@ internal class FFmpegProcessor(string input, string? inputFormat) : IAsyncAudioP
                 FileName = "ffmpeg",
                 Arguments = args,
                 UseShellExecute = false,
-                RedirectStandardError = false,
-                RedirectStandardInput = isInputPiped,
+                RedirectStandardError = true,
+                RedirectStandardInput = true,
                 RedirectStandardOutput = true,
                 CreateNoWindow = true,
             }
@@ -37,7 +35,26 @@ internal class FFmpegProcessor(string input, string? inputFormat) : IAsyncAudioP
 
         proc.Start();
 
-        var streams = new ProcessorStreams { Input = isInputPiped ? proc.StandardInput.BaseStream : null, Output = proc.StandardOutput.BaseStream };
-        return Task.FromResult(streams);
+        //DEBUGGING
+        new Thread(() =>
+        {
+            Span<char> buf = new char[512];
+            var read = proc.StandardError.Read(buf);
+            Console.WriteLine(buf[..read].ToString());
+        }).Start();
+
+        inputStream = proc.StandardInput.BaseStream;
+        outputStream = proc.StandardOutput.BaseStream;
+    }
+
+    //TODO: just pass the damn url and let ffmpeg do the downloading and stream/cache through std out
+    public async ValueTask<int> ProcessStreamAsync(Memory<byte> memory)
+    {
+        if (proc is null) StartProcess();
+
+        await inputStream!.WriteAsync(memory);
+        await inputStream.FlushAsync();
+        var read = await outputStream!.ReadAsync(memory);
+        return read;
     }
 }

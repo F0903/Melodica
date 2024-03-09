@@ -6,5 +6,5 @@ public interface IMediaRequest
 {
     public Task<MediaInfo> GetInfoAsync();
 
-    public Task<MediaCollection> GetMediaAsync();
+    public Task<PlayableMedia> GetMediaAsync();
 }

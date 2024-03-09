@@ -1,6 +1,4 @@
-﻿using Melodica.Services.Serialization;
-
-namespace Melodica.Services.Media;
+﻿namespace Melodica.Services.Media;
 
 public enum MediaType
 {
@@ -18,10 +16,6 @@ public record DataInfo(string? Format, string? MediaPath)
 [Serializable]
 public record MediaInfo(string Id)
 {
-    public static Task<MediaInfo> LoadFromFile(string fullPath) => Serializer.DeserializeFileAsync<MediaInfo>(fullPath);
-
-    public const string MetaFileExtension = ".meta";
-
     public MediaType MediaType { get; init; }
 
     public TimeSpan Duration { get; set; }

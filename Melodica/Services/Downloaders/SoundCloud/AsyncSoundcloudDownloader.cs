@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using System.Text;
 using System.Text.RegularExpressions;
 using Melodica.Config;
 using Melodica.Services.Audio;
@@ -18,7 +19,7 @@ internal sealed partial class AsyncSoundcloudDownloader : IAsyncDownloader
 
     private static readonly SearchClient search = new(BotConfig.Secrets.SoundcloudClientID ?? throw new NullReferenceException("SoundCloud ID was null!"));
 
-    private static readonly IMediaCache cache = new MediaFileCache("Soundcloud");
+    private static readonly MediaFileCache cache = new("Soundcloud");
 
     private static MediaInfo PlaylistToMediaInfo(Playlist playlist)
     {
@@ -46,27 +47,20 @@ internal sealed partial class AsyncSoundcloudDownloader : IAsyncDownloader
         };
     }
 
-    static LazyMedia CreateLazyMedia(MediaInfo info, MediaInfo? collectionInfo = null)
+    static async Task<PlayableMedia> CreatePlayableMediaAsync(MediaInfo info, MediaInfo? collectionInfo = null)
     {
-        PlayableMedia media = new(info, collectionInfo, static async (x) =>
-        {
-            var tracks = await search.GetTracksAsync(x.Info.Id);
-            var track = tracks[0];
-            var streamUrl = await track.GetStreamURLAsync();
-            using FFmpegProcessor ffmpeg = new(streamUrl, "hls");
-            var procStreams = await ffmpeg.ProcessAsync();
-            return new DataPair(procStreams.Output, "s16le");
-        }, cache);
-        return new LazyMedia(media);
+        var tracks = await search.GetTracksAsync(info.Id);
+        var streamUrl = await tracks[0].GetStreamURLAsync();
+        var media = new PlayableMedia(new MemoryStream(Encoding.UTF8.GetBytes(streamUrl), false), info, null);
+        return media;
     }
 
-    static Task<MediaCollection> DownloadTrackAsync(MediaInfo info)
+    static Task<PlayableMedia> DownloadTrackAsync(MediaInfo info)
     {
-        var media = CreateLazyMedia(info);
-        return Task.FromResult(MediaCollection.WithOne(media));
+        return CreatePlayableMediaAsync(info);
     }
 
-    static async Task<MediaCollection> DownloadPlaylistAsync(MediaInfo info)
+    static async Task<PlayableMedia> DownloadPlaylistAsync(MediaInfo info)
     {
         var result = await search.ResolveAsync(info.Url ?? throw new NullReferenceException("Playlist url was null!"));
         var playlist = result switch
@@ -75,18 +69,24 @@ internal sealed partial class AsyncSoundcloudDownloader : IAsyncDownloader
             _ => throw new UnreachableException(),
         };
 
-        List<LazyMedia> tracks = [];
+        PlayableMedia? first = null;
+        PlayableMedia? current = null;
         foreach (var track in playlist.Tracks)
         {
             var trackInfo = TrackToMediaInfo(track);
-            var media = CreateLazyMedia(trackInfo, info);
-            tracks.Add(media);
+            var media = await CreatePlayableMediaAsync(trackInfo, info);
+            if (first is null)
+            {
+                first = media;
+                current = first;
+                continue;
+            }
+            current!.Next = media;
         }
-        MediaCollection collection = new(tracks, info);
-        return collection;
+        return first!;
     }
 
-    public Task<MediaCollection> DownloadAsync(MediaInfo info)
+    public Task<PlayableMedia> DownloadAsync(MediaInfo info)
     {
         return info.MediaType switch
         {

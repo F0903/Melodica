@@ -1,4 +1,5 @@
-﻿using Melodica.Services.Media;
+﻿using System.Text;
+using Melodica.Services.Media;
 using Melodica.Utility;
 
 namespace Melodica.Services.Playback.Requests;
@@ -23,15 +24,11 @@ public sealed class AttachmentMediaRequest(Discord.Attachment[] attachments) : I
 
     public Task<MediaInfo> GetInfoAsync() => Task.FromResult(info ??= SetInfo());
 
-    public async Task<MediaCollection> GetMediaAsync()
+    public async Task<PlayableMedia> GetMediaAsync()
     {
-        TempMedia? media = new(await GetInfoAsync(), async (_) =>
-        {
-            var remote = attachment.Url;
-            var data = await http.GetStreamAsync(remote);
-            var format = remote.AsSpan().ExtractFormatFromFileUrl();
-            return new DataPair(data, format);
-        });
-        return MediaCollection.WithOne(media);
+        var remote = attachment.Url;
+        var data = await http.GetStreamAsync(remote);
+        var media = new PlayableMedia(data, await GetInfoAsync(), null);
+        return media;
     }
 }

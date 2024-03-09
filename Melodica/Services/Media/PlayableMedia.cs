@@ -1,59 +1,48 @@
-﻿using Melodica.Services.Caching;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using Melodica.Services.Audio;
 
 namespace Melodica.Services.Media;
 
-// Format string just gets passed along raw to FFmpeg.
-public record DataPair(Stream? Data, string Format);
-
-public delegate Task<DataPair> DataGetter(PlayableMedia media);
-
-// Perhaps seperate into different classes.
-public class PlayableMedia(MediaInfo info, DataGetter? dataGetter)
+public class PlayableMedia(Stream data, MediaInfo info, PlayableMedia? next) : Stream
 {
-    public PlayableMedia(MediaInfo info, MediaInfo? collectionInfo, DataGetter dataGetter, IMediaCache? cache) : this(info, dataGetter)
-    {
-        CollectionInfo = collectionInfo;
-        this.cache = cache;
-    }
-
-    protected DataGetter? DataGetter { get; init; } = dataGetter;
-
-    [NonSerialized]
-    private readonly IMediaCache? cache;
-
-    [NonSerialized]
-    MediaInfo? collectionInfo;
-    public MediaInfo? CollectionInfo { get => collectionInfo; set => collectionInfo = value; }
+    protected readonly Stream data = data;
 
     public MediaInfo Info { get; set; } = info;
 
-    public static ValueTask<PlayableMedia> FromExisting(MediaInfo info)
+    public PlayableMedia? Next { get; set; } = next;
+
+    IAsyncAudioProcessor? audioProcessor;
+
+    public void AddAudioProcessor(IAsyncAudioProcessor audioProcessor)
     {
-        PlayableMedia media = new(info, null);
-        return ValueTask.FromResult(media);
+        this.audioProcessor = audioProcessor;
     }
 
-    public virtual async Task<DataInfo> GetDataAsync()
+    public override bool CanRead { get; } = true;
+    public override bool CanSeek { get; } = false;
+    public override bool CanWrite { get; } = false;
+    public override long Length => data.Length;
+    public override long Position { get => data.Position; set => data.Position = value; }
+
+    public override async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = default)
     {
-        if (cache is null)
-            throw new NullReferenceException("Cache was null.");
-
-        if (cache.TryGet(Info.Id, out var cachedMedia))
+        var read = await data.ReadAsync(buffer, cancellationToken);
+        if (audioProcessor is not null)
         {
-            var info = cachedMedia!.Info.DataInfo;
-            if (info is not null)
-                return info;
+            read = await audioProcessor.ProcessStreamAsync(buffer[..read]);
         }
-
-        if (DataGetter is null)
-            throw new NullReferenceException("DataGetter was null.");
-
-        // Write the media data to file.
-        if (Info.DataInfo is null)
-        {
-            var dataPair = await DataGetter(this);
-            return Info.DataInfo = await cache.CacheAsync(this, dataPair);
-        }
-        return Info.DataInfo;
+        return read;
     }
+
+    public override void Flush() => data.Flush();
+    public override int Read(byte[] buffer, int offset, int count) => throw new NotImplementedException("Use async read.");
+    public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+    public override void SetLength(long value) => throw new NotSupportedException();
+    public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+
+    public override void Close() => data.Close();
 }

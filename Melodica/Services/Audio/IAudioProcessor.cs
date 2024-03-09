@@ -1,6 +1,6 @@
 ﻿namespace Melodica.Services.Audio;
 
-internal interface IAsyncAudioProcessor : IDisposable
+public interface IAsyncAudioProcessor : IDisposable
 {
-    public Task<ProcessorStreams> ProcessAsync();
+    public ValueTask<int> ProcessStreamAsync(Memory<byte> memory);
 }

@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Diagnostics;
 using Melodica.Config;
 using Melodica.Services.Downloaders.Exceptions;
 using Melodica.Services.Media;
@@ -12,7 +13,7 @@ public sealed class NoMediaFileCachesException : Exception
     public NoMediaFileCachesException() : base("No cache instances have been instanciated. Please play a song first to create the caches.") { }
 }
 
-public sealed class MediaFileCache : IMediaCache
+public sealed class MediaFileCache
 {
     public MediaFileCache(string dirName)
     {
@@ -25,7 +26,7 @@ public sealed class MediaFileCache : IMediaCache
         cacheInstances.Add(this);
     }
 
-    record CachePair(PlayableMedia Media, long AccessCount);
+    record struct CacheInfo(CachedMediaInfo CachedMediaInfo, long AccessCount);
 
     private static readonly List<MediaFileCache> cacheInstances = []; // Keep track of all instances so we can clear all cache.
 
@@ -33,7 +34,7 @@ public sealed class MediaFileCache : IMediaCache
 
     private readonly string cacheLocation;
 
-    private readonly Dictionary<string, CachePair> cache = [];
+    private readonly Dictionary<string, CacheInfo> cache = [];
 
     public static async Task<(int deletedFiles, int filesInUse, long msDuration)> ClearAllCachesAsync()
     {
@@ -53,14 +54,13 @@ public sealed class MediaFileCache : IMediaCache
 
     private async Task LoadPreexistingFilesAsync()
     {
-        foreach (var metaFile in Directory.EnumerateFileSystemEntries(cacheLocation, $"*{MediaInfo.MetaFileExtension}", SearchOption.AllDirectories).Convert(x => new FileInfo(x)))
+        foreach (var metaFile in Directory.EnumerateFileSystemEntries(cacheLocation, $"*{CachedMediaInfo.MetaFileExtension}", SearchOption.AllDirectories).Convert(x => new FileInfo(x)))
         {
             try
             {
-                var info = await MediaInfo.LoadFromFile(metaFile.FullName);
-                var med = await PlayableMedia.FromExisting(info);
+                var info = await CachedMediaInfo.LoadFromDisk(metaFile.FullName);
                 var id = info.Id ?? throw new Exception("Id was null.");
-                cache.Add(id, new(med, 0));
+                cache.Add(id, new(info, 0));
             }
             catch (Exception)
             {
@@ -72,7 +72,7 @@ public sealed class MediaFileCache : IMediaCache
     private static void DeleteMediaFile(FileInfo file)
     {
         // If the file specified is a metadata file.
-        if (file.Extension == MediaInfo.MetaFileExtension)
+        if (file.Extension == CachedMediaInfo.MetaFileExtension)
         {
             file.Delete();
             if (file.DirectoryName != null)
@@ -85,7 +85,7 @@ public sealed class MediaFileCache : IMediaCache
         }
 
         file.Delete();
-        File.Delete(Path.ChangeExtension(file.FullName, MediaInfo.MetaFileExtension));
+        File.Delete(Path.ChangeExtension(file.FullName, CachedMediaInfo.MetaFileExtension));
     }
 
     public Task<long> GetCacheSizeAsync()
@@ -104,15 +104,21 @@ public sealed class MediaFileCache : IMediaCache
         sw.Start();
         Parallel.ForEach<FileInfo>(files, (file, loop) =>
         {
-            if (file.Extension == MediaInfo.MetaFileExtension)
+            if (file.Extension == CachedMediaInfo.MetaFileExtension)
                 return;
             try
             {
-                DeleteMediaFile(file);
                 var name = Path.ChangeExtension(file.Name, null);
-                (var media, var accessCount) = cache[name];
-                if (media != null)
-                    cache.Remove(name);
+                (var cachedInfo, var accessCount) = cache[name];
+
+                if (cachedInfo.IsMediaInUse)
+                {
+                    ++filesInUse;
+                    return;
+                }
+
+                DeleteMediaFile(file);
+                cache.Remove(name);
                 ++deletedFiles;
             }
             catch
@@ -147,10 +153,15 @@ public sealed class MediaFileCache : IMediaCache
 
             try
             {
-                var pair = x.Value;
-                var media = pair.Media;
-                var dataInfo = media.Info.DataInfo;
-                var file = dataInfo!.MediaPath ?? throw new Exception("MediaPath or DataInfo was null when trying to delete media file in PruneCache.");
+                var cacheInfo = x.Value;
+                
+                if (cacheInfo.CachedMediaInfo.IsMediaInUse)
+                {
+                    ++filesInUse;
+                    return;
+                }
+
+                var file = cacheInfo.CachedMediaInfo.MediaFilePath ?? throw new Exception("MediaPath or DataInfo was null when trying to delete media file in PruneCache.");
                 DeleteMediaFile(new(file));
                 cache.Remove(x.Key);
                 ++deletedFiles;
@@ -172,14 +183,15 @@ public sealed class MediaFileCache : IMediaCache
         return (deletedFiles, filesInUse, msDuration);
     }
 
-    async Task<PlayableMedia> InternalGetAsync(string id)
+    ValueTask<PlayableMedia> InternalGetAsync(string id)
     {
         var pair = cache[id];
         cache[id] = pair with { AccessCount = pair.AccessCount + 1 };
-        return await PlayableMedia.FromExisting(pair.Media.Info);
+        var info = pair.CachedMediaInfo;
+        return ValueTask.FromResult(new PlayableMedia(File.OpenRead(info.MediaFilePath), info, null));
     }
 
-    public async Task<PlayableMedia> GetAsync(string id)
+    public async ValueTask<PlayableMedia> GetAsync(string id)
     {
         try
         {
@@ -193,46 +205,31 @@ public sealed class MediaFileCache : IMediaCache
         }
     }
 
-    public bool TryGet(string id, out PlayableMedia? media)
+    public void TryEditCacheInfo(string id, Action<CachedMediaInfo> editor)
     {
-        try
+        if (cache.TryGetValue(id, out var info))
         {
-            media = InternalGetAsync(id).GetAwaiter().GetResult();
-            return true;
-        }
-        catch
-        {
-            media = null;
-            return false;
+           editor(info.CachedMediaInfo);
         }
     }
 
-    public async Task<DataInfo> CacheAsync(PlayableMedia med, DataPair data, bool pruneCache = true)
+    public async ValueTask<Stream> InitStreamableCache(MediaInfo info, bool pruneCache = true)
     {
         if (pruneCache)
             await PruneCacheAsync();
 
-        var info = med.Info;
         var id = info.Id ?? throw new NullReferenceException("Media ID was null.");
-        try { cache.Add(id, new(med, 1)); }
-        catch (ArgumentException) { }
 
         var fileLegalId = id.ReplaceIllegalCharacters();
+        var mediaLocation = Path.Combine(cacheLocation, fileLegalId);
+        var file = File.OpenWrite(mediaLocation);
 
-        // Write to file.
-        using var dataStream = data.Data ?? throw new NullReferenceException("Data stream was null.");
-        var format = data.Format;
-        var fileExt = $".{format}";
-        var mediaLocation = Path.Combine(cacheLocation, fileLegalId + fileExt);
-        using var file = File.OpenWrite(mediaLocation);
-        if (dataStream.CanSeek) dataStream.Position = 0;
-        await dataStream.CopyToAsync(file);
-        var dataInfo = info.DataInfo = new(format, mediaLocation);
+        var cachedMediaInfo = new CachedMediaInfo(mediaLocation, info, true, cacheLocation);
+        await cachedMediaInfo.WriteToDisk();
 
-        // Serialize the metadata.
-        var metaLocation = Path.Combine(cacheLocation, fileLegalId + MediaInfo.MetaFileExtension);
-        await Serializer.SerializeToFileAsync(metaLocation, info);
+        try { cache.Add(id, new(cachedMediaInfo, 0)); }
+        catch (ArgumentException) { }
 
-        return dataInfo;
+        return file;
     }
 }

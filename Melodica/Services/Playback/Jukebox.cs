@@ -111,13 +111,14 @@ public sealed class Jukebox
         }
 
         const int frameBytes = 3840;
-        using var memHandle = memory.Rent(frameBytes * 2);
+        using var memHandle = memory.Rent(frameBytes);
         var buffer = memHandle.Memory;
         durationTimer.Start();
         await output.WriteSilentFramesAsync();
         try
         {
-            while (await input.ReadAsync(buffer[..frameBytes], CancellationToken.None) != 0)
+            int read = 0;
+            while ((read = await input.ReadAsync(buffer[..frameBytes], CancellationToken.None)) != 0)
             {
                 if (Paused)
                 {
@@ -131,7 +132,7 @@ public sealed class Jukebox
                     break;
                 }
 
-                await output.WriteAsync(buffer[..frameBytes], CancellationToken.None);
+                await output.WriteAsync(buffer[..read], CancellationToken.None);
             }
         }
         catch (Exception ex)
@@ -145,16 +146,13 @@ public sealed class Jukebox
         }
     }
 
-    private async Task SendDataAsync(DataInfo data, OpusEncodeStream output, CancellationToken token)
+    private async Task SendDataAsync(Stream stream, OpusEncodeStream output, CancellationToken token)
     {
         async Task StartWrite()
         {
             try
             {
-                var mediaPath = data.MediaPath ?? throw new NullReferenceException("MediaPath was not specified. (internal error)");
-                using IAsyncAudioProcessor audio = data.Format == "s16le" ? new RawProcessor(mediaPath) : new FFmpegProcessor(mediaPath, data.Format);
-                using var procStreams = await audio.ProcessAsync();
-                await WriteData(procStreams.Output, output, token);
+                await WriteData(stream, output, token);
             }
             catch (OperationCanceledException) { }
             catch (Exception ex)
@@ -238,24 +236,13 @@ public sealed class Jukebox
         var media = await Queue.DequeueAsync() ?? throw new CriticalException("Song from queue was null.");
         Song = media;
 
-        DataInfo dataInfo;
-        try
-        {
-            dataInfo = await media.GetDataAsync();
-        }
-        catch
-        {
-            if (!Queue.IsEmpty) await PlayNextAsync(channel, output, token);
-            else await DisconnectAsync();
-            return;
-        }
-
-        await currentPlayer!.SetSongEmbedAsync(media.Info, media.CollectionInfo);
+        await currentPlayer!.SetSongEmbedAsync(media.Info, null); //TODO: prob reimplement collection info in some form.
 
         var donePlaying = false;
         try
         {
-            await SendDataAsync(dataInfo, output, token);
+            media.AddAudioProcessor(new FFmpegProcessor());
+            await SendDataAsync(media, output, token);
         }
         catch (Exception ex)
         {
@@ -266,12 +253,6 @@ public sealed class Jukebox
         {
             if (!Loop)
             {
-                // If media is temporary (3rd party download) then delete the file.
-                if (media is TempMedia temp)
-                {
-                    temp.DiscardTempMedia();
-                }
-
                 if (Queue.IsEmpty || cancellation!.IsCancellationRequested)
                 {
                     await DisconnectAsync();
@@ -291,12 +272,12 @@ public sealed class Jukebox
             return PlayResult.Occupied;
 
         MediaInfo reqInfo;
-        MediaCollection collection;
+        PlayableMedia media;
         try
         {
             downloading = true;
             reqInfo = await request.GetInfoAsync();
-            collection = await request.GetMediaAsync();
+            media = await request.GetMediaAsync();
             downloading = false;
         }
         catch
@@ -305,7 +286,8 @@ public sealed class Jukebox
             throw;
         }
 
-        await Queue.EnqueueAsync(collection);
+        await Queue.EnqueueAsync(media);
+
         if (Playing)
         {
             return PlayResult.Queued;
@@ -320,7 +302,7 @@ public sealed class Jukebox
 
             await ConnectAsync(channel); //TODO: will timeout if doesn't have proper permissions in channel, check first.
             var bitrate = (channel as IVoiceChannel)?.Bitrate ?? 96000;
-            await player.SpawnAsync(reqInfo, collection.CollectionInfo);
+            await player.SpawnAsync(reqInfo, null);
             currentPlayer = player;
             using var output = (OpusEncodeStream)audioClient!.CreatePCMStream(AudioApplication.Music, bitrate, 1000, 0);
             await PlayNextAsync(channel, output, token);

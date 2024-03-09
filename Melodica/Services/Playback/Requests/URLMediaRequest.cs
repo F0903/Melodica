@@ -16,15 +16,11 @@ public sealed class URLMediaRequest : IMediaRequest
     private readonly MediaInfo info;
     private readonly string remote;
 
-    public Task<MediaCollection> GetMediaAsync()
+    public async Task<PlayableMedia> GetMediaAsync()
     {
-        TempMedia? media = new(info, async (_) =>
-        {
-            var data = await http.GetStreamAsync(remote);
-            var format = remote.AsSpan().ExtractFormatFromFileUrl();
-            return new(data, format);
-        });
-        return Task.FromResult(MediaCollection.WithOne(media));
+        var data = await http.GetStreamAsync(remote);
+        var media = new PlayableMedia(data, info, null);
+        return media;
     }
 
     public Task<MediaInfo> GetInfoAsync() => Task.FromResult(info);
