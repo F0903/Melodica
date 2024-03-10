@@ -33,6 +33,9 @@ public sealed class Jukebox
 
     public TimeSpan Elapsed => new(durationTimer.Elapsed.Hours, durationTimer.Elapsed.Minutes, durationTimer.Elapsed.Seconds);
 
+    Action<bool>? OnPauseChanged;
+    Action? OnSkipRequested;
+
     private readonly PlaybackStopwatch durationTimer = new();
     private readonly ManualResetEventSlim playLock = new(true);
     private CancellationTokenSource? cancellation;
@@ -46,6 +49,8 @@ public sealed class Jukebox
 
     private static readonly MemoryPool<byte> memory = MemoryPool<byte>.Shared;
 
+    private FFmpegProcessor audioProcessor = new();
+
     public MediaQueue Queue { get; } = new();
     public PlayableMedia? Song { get; private set; }
 
@@ -53,6 +58,7 @@ public sealed class Jukebox
     {
         if (!Playing) return;
         Paused = value;
+        OnPauseChanged?.Invoke(value);
         if (currentPlayer is not null)
         {
             await currentPlayer.SetButtonStateAsync(JukeboxInterfaceButton.PlayPause, !value);
@@ -93,48 +99,26 @@ public sealed class Jukebox
             SetLoopAsync(false),
             SetRepeatAsync(false),
             SetShuffleAsync(false)
-            );
+        );
     }
 
-    async Task WriteData(Stream input, OpusEncodeStream output, CancellationToken token)
+    async Task WriteData(PlayableMedia media, OpusEncodeStream output, CancellationToken token)
     {
-        bool BreakConditions() => token.IsCancellationRequested || skipRequested;
-
-        void Pause()
-        {
-            durationTimer.Stop();
-            while (Paused && !BreakConditions())
-            {
-                Thread.Sleep(2000);
-            }
-            durationTimer.Start();
-        }
-
         const int frameBytes = 3840;
         using var memHandle = memory.Rent(frameBytes);
         var buffer = memHandle.Memory;
         durationTimer.Start();
-        await output.WriteSilentFramesAsync();
         try
         {
-            int read = 0;
-            while ((read = await input.ReadAsync(buffer[..frameBytes], CancellationToken.None)) != 0)
+            OnPauseChanged = status => audioProcessor.SetPause(status);
+            OnSkipRequested = () => audioProcessor.StopRequested();
+            await audioProcessor.ProcessStreamAsync(media, output, async () =>
             {
-                if (Paused)
-                {
-                    await output.WriteSilentFramesAsync();
-                    Pause();
-                    await output.WriteSilentFramesAsync();
-                }
-
-                if (BreakConditions())
-                {
-                    break;
-                }
-
-                await output.WriteAsync(buffer[..read], CancellationToken.None);
-            }
+                await output.WriteSilentFramesAsync();
+                await output.FlushAsync();
+            }, token, media.ExplicitDataFormat);
         }
+        catch (OperationCanceledException) { }
         catch (Exception ex)
         {
             Log.Error(ex, $"Got exception when trying to write audio:\n{ex.Message}");
@@ -142,23 +126,18 @@ public sealed class Jukebox
         finally
         {
             await output.WriteSilentFramesAsync();
-            await output.FlushAsync(CancellationToken.None);
+            await output.FlushAsync(token);
+            OnPauseChanged = null;
         }
     }
 
-    private async Task SendDataAsync(Stream stream, OpusEncodeStream output, CancellationToken token)
+    private async Task SendDataAsync(PlayableMedia media, OpusEncodeStream output, CancellationToken token)
     {
         async Task StartWrite()
         {
             try
             {
-                await WriteData(stream, output, token);
-            }
-            catch (OperationCanceledException) { }
-            catch (Exception ex)
-            {
-                Log.Error(ex, $"SendDataAsync encountered an exception:\n{ex.Message}");
-                throw;
+                await WriteData(media, output, token);
             }
             finally
             {
@@ -241,9 +220,9 @@ public sealed class Jukebox
         var donePlaying = false;
         try
         {
-            media.AddAudioProcessor(new FFmpegProcessor());
             await SendDataAsync(media, output, token);
         }
+        catch (OperationCanceledException) { }
         catch (Exception ex)
         {
             await DisconnectAsync();
@@ -280,7 +259,7 @@ public sealed class Jukebox
             media = await request.GetMediaAsync();
             downloading = false;
         }
-        catch
+        catch(Exception ex)
         {
             downloading = false;
             throw;
