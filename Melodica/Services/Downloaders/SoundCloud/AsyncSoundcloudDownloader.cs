@@ -47,20 +47,27 @@ internal sealed partial class AsyncSoundcloudDownloader : IAsyncDownloader
         };
     }
 
-    static async Task<PlayableMedia> CreatePlayableMediaAsync(MediaInfo info, MediaInfo? collectionInfo = null)
+    static async Task<PlayableMediaStream> CreatePlayableMediaAsync(MediaInfo info, MediaInfo? collectionInfo = null)
     {
         var tracks = await search.GetTracksAsync(info.Id);
         var streamUrl = await tracks[0].GetStreamURLAsync();
-        var media = new PlayableMedia(new MemoryStream(Encoding.UTF8.GetBytes(streamUrl), false), info, null);
+        using var http = new HttpClient();
+        var stream = await http.GetStreamAsync(streamUrl);
+        info.ExplicitDataFormat = "hls";
+        var media = new PlayableMediaStream(stream, info, null, cache);
         return media;
     }
 
-    static Task<PlayableMedia> DownloadTrackAsync(MediaInfo info)
+    static async Task<PlayableMediaStream> DownloadTrackAsync(MediaInfo info)
     {
-        return CreatePlayableMediaAsync(info);
+        if (await cache.TryGetAsync(info.Id) is var cachedMedia && cachedMedia is not null)
+        {
+            return cachedMedia;
+        }
+        return await CreatePlayableMediaAsync(info);
     }
 
-    static async Task<PlayableMedia> DownloadPlaylistAsync(MediaInfo info)
+    static async Task<PlayableMediaStream> DownloadPlaylistAsync(MediaInfo info)
     {
         var result = await search.ResolveAsync(info.Url ?? throw new NullReferenceException("Playlist url was null!"));
         var playlist = result switch
@@ -69,8 +76,8 @@ internal sealed partial class AsyncSoundcloudDownloader : IAsyncDownloader
             _ => throw new UnreachableException(),
         };
 
-        PlayableMedia? first = null;
-        PlayableMedia? current = null;
+        PlayableMediaStream? first = null;
+        PlayableMediaStream? current = null;
         foreach (var track in playlist.Tracks)
         {
             var trackInfo = TrackToMediaInfo(track);
@@ -82,11 +89,12 @@ internal sealed partial class AsyncSoundcloudDownloader : IAsyncDownloader
                 continue;
             }
             current!.Next = media;
+            current = current.Next;
         }
         return first!;
     }
 
-    public Task<PlayableMedia> DownloadAsync(MediaInfo info)
+    public Task<PlayableMediaStream> DownloadAsync(MediaInfo info)
     {
         return info.MediaType switch
         {

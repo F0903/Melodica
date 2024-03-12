@@ -1,4 +1,5 @@
-﻿using Melodica.Services.Media;
+﻿using Melodica.Services.Caching;
+using Melodica.Services.Media;
 using Melodica.Utility;
 
 namespace Melodica.Services.Playback.Requests;
@@ -16,12 +17,12 @@ public sealed class URLMediaRequest : IMediaRequest
     private readonly MediaInfo info;
     private readonly string remote;
 
-    public async Task<PlayableMedia> GetMediaAsync()
+    public async Task<PlayableMediaStream> GetMediaAsync()
     {
         var data = await http.GetStreamAsync(remote);
-        var media = new PlayableMedia(data, info, null);
+        var media = new PlayableMediaStream(data, info, null, null);
         return media;
     }
 
-    public Task<MediaInfo> GetInfoAsync() => Task.FromResult(info);
+    public Task<MediaInfo> GetInfoAsync() => info.WrapTask();
 }

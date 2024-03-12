@@ -1,4 +1,5 @@
 ﻿using Melodica.Services.Media;
+using Melodica.Services.Playback.Requests;
 using Melodica.Utility;
 
 namespace Melodica.Services.Playback;
@@ -9,9 +10,9 @@ public sealed class MediaQueue
 
     private readonly object locker = new();
 
-    private readonly List<PlayableMedia> list = [];
+    private PlayableMediaStream? start;
 
-    private PlayableMedia? lastDequeuedMedia = null;
+    private PlayableMediaStream? lastDequeued = null;
 
     // Returns same media over and over.
     public bool Loop { get; set; }
@@ -21,103 +22,149 @@ public sealed class MediaQueue
 
     public bool Shuffle { get; set; }
 
-    public bool IsEmpty => list.Count == 0;
+    public int Length { get; private set; }
 
-    public int Length => list.Count;
+    public bool IsEmpty => Length == 0;
 
-    public PlayableMedia this[int i] => list[i];
+    public async ValueTask<(TimeSpan duration, string? imageUrl)> GetQueueInfo() => (await GetTotalDurationAsync(), (await start!.GetInfoAsync()).ImageUrl);
 
-    public Task<TimeSpan> GetTotalDurationAsync() => Task.FromResult(list.Sum(x => ((CachingPlayableMedia)x).Info.Duration));
+    public async ValueTask<TimeSpan> GetTotalDurationAsync()
+    {
+        if (start is null) return TimeSpan.Zero;
+        TimeSpan time = TimeSpan.Zero;
+        var current = start;
+        while (current is not null)
+        {
+            var info = await current.GetInfoAsync();
+            time += info.Duration;
+            current = current.Next;
+        }
+        return time;
+    }
 
-    public async ValueTask<(TimeSpan duration, string? imageUrl)> GetQueueInfo() => (await GetTotalDurationAsync(), ((CachingPlayableMedia)list[0]).Info.ImageUrl);
+    static (PlayableMediaStream, int) GetLastNodeOf(PlayableMediaStream node)
+    {
+        int count = 0;
+        var lastNode = node;
+        while (true)
+        {
+            ++count;
+            var nextNode = lastNode.Next;
+            if (nextNode is not null) lastNode = nextNode;
+            else break;
+        }
+        return (lastNode, count);
+    }
 
-    public ValueTask EnqueueAsync(PlayableMedia media)
+    public PlayableMediaStream GetAt(int index)
+    {
+        var current = start ?? throw new NullReferenceException("Start node was null.");
+        for (var i = 0; i < index; i++)
+        {
+            current = current.Next ?? throw new NullReferenceException("Node at or before index was null.");
+        }
+        return current;
+    }
+
+    void InsertAt(PlayableMediaStream media, int index)
+    {
+        if (index == 0)
+        {
+            var original = start;
+            start = media;
+            var (lastNodeStart, countStart) = GetLastNodeOf(media);
+            lastNodeStart.Next = original;
+            Length += countStart;
+            return;
+        }
+
+        var beforeIndex = GetAt(index - 1);
+        var prevIndexNode = beforeIndex.Next;
+        beforeIndex.Next = media;
+
+        var (lastNode, count) = GetLastNodeOf(media);
+        lastNode.Next = prevIndexNode;
+        Length += count;
+    }
+
+    PlayableMediaStream RemoveAt(int index)
+    {
+        if (index == 0)
+        {
+            var original = start ?? throw new NullReferenceException("Start node was null.");
+            var next = original.Next;
+            Length -= 1;
+            if (next is null)
+            {
+                start = null;
+                return original;
+            }
+            start = next;
+            return original;
+        }
+
+        var beforeIndex = GetAt(index - 1);
+        var indexNode = beforeIndex.Next ?? throw new NullReferenceException("Index node was null.");
+        var afterIndex = indexNode.Next;
+
+        beforeIndex.Next = afterIndex;
+        Length -= 1;
+        return indexNode;
+    }
+
+    public ValueTask EnqueueAsync(PlayableMediaStream media)
     {
         lock (locker)
         {
-            PlayableMedia? current = media;
-            while(current is not null)
-            {
-                list.Add(current);
-                current = current.Next;
-            }
+            InsertAt(media, Length);
         }
         return ValueTask.CompletedTask;
     }
 
-    public ValueTask PutFirstAsync(PlayableMedia media)
+    public ValueTask PutFirstAsync(PlayableMediaStream media)
     {
         lock (locker)
         {
-            PlayableMedia? current = media;
-            int i = 0;
-            while (current is not null)
-            {
-                list.Insert(i, current);
-                current = current.Next;
-                ++i;
-            }
+            InsertAt(media, 0);
         }
         return ValueTask.CompletedTask;
     }
 
-    ValueTask<PlayableMedia> GetNextAsync()
+    public ValueTask<PlayableMediaStream> DequeueAsync()
     {
+        if (Loop && lastDequeued is not null)
+            return lastDequeued.WrapValueTask();
         lock (locker)
         {
-            var index = Shuffle ? rng.Next(0, list.Count) : 0;
-            var item = list[index];
-            lastDequeuedMedia = item;
-            list.RemoveAt(index);
-            return ValueTask.FromResult(item);
+            var index = Shuffle ? rng.Next(0, Length) : 0;
+            return (Repeat ? GetAt(index) : RemoveAt(index)).WrapValueTask();
         }
     }
 
-    public async ValueTask<PlayableMedia> DequeueAsync()
+    /// <returns>The starting node.</returns>
+    public ValueTask<PlayableMediaStream?> ClearAsync()
     {
-        if (Loop && lastDequeuedMedia is not null)
-            return lastDequeuedMedia;
-        var next = await GetNextAsync();
-        if (Repeat)
+        if (start is null) return default;
+        var original = start;
+        lock (locker)
         {
-            lock (locker)
-            {
-                list.Add(next);
-            }
+            //Note: unsure if this is enough to garbage collect the nodes.
+            start = null;
+            Length = 0;
         }
-        return next;
+        return original.WrapValueTask<PlayableMediaStream?>();
     }
 
-    public ValueTask ClearAsync()
+    public ValueTask<PlayableMediaStream> RemoveAtAsync(int index)
+    {
+        return RemoveAt(index).WrapValueTask();
+    }
+
+    public ValueTask<PlayableMediaStream> RemoveAtAsync(Index index)
     {
         lock (locker)
         {
-            list.Clear();
-        }
-        return ValueTask.CompletedTask;
-    }
-
-    public ValueTask<PlayableMedia> RemoveAtAsync(int index)
-    {
-        if (index < 0)
-            throw new Exception("Index cannot be under 0.");
-        else if (index > list.Count)
-            throw new Exception("Index cannot be larger than the queues size.");
-
-        PlayableMedia item;
-        lock (locker)
-        {
-            item = list[index];
-            list.RemoveAt(index);
-        }
-        return ValueTask.FromResult(item);
-    }
-
-    public ValueTask<PlayableMedia> RemoveAtAsync(Index index)
-    {
-        lock (locker)
-        {
-            return RemoveAtAsync(index.GetOffset(list.Count));
+            return RemoveAtAsync(index.GetOffset(Length));
         }
     }
 }

@@ -24,7 +24,7 @@ public static class Downloader
 
     public static IAsyncDownloader GetFromQuery(string query)
     {
-        if (!query.IsUrl())
+        if (!query.AsSpan().IsUrl())
             return Default;
 
         foreach (var downloader in downloaders)

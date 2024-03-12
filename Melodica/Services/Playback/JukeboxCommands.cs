@@ -5,6 +5,7 @@ using Melodica.Services.Caching;
 using Melodica.Services.Downloaders;
 using Melodica.Services.Playback.Exceptions;
 using Melodica.Services.Playback.Requests;
+using Melodica.Utility;
 
 namespace Melodica.Services.Playback;
 
@@ -21,7 +22,7 @@ public sealed class JukeboxCommands : InteractionModuleBase<SocketInteractionCon
     private Jukebox Jukebox => cachedJukebox ??=
         JukeboxManager.GetOrCreateJukebox(Context.Guild, static () => new Jukebox());
 
-    [SlashCommand("clear-cache", "Clears the media cache.")]
+    [SlashCommand("clear-cache", "Clears the media cache."), RequireOwner]
     public async Task ClearCache()
     {
         try
@@ -29,9 +30,9 @@ public sealed class JukeboxCommands : InteractionModuleBase<SocketInteractionCon
             (var deletedFiles, var filesInUse, var ms) = await MediaFileCache.ClearAllCachesAsync();
             await RespondAsync($"Deleted {deletedFiles} files. ({filesInUse} files in use) [{ms}ms]", ephemeral: true);
         }
-        catch (NoMediaFileCachesException e)
+        catch (Exception e)
         {
-            await RespondAsync(e.Message, ephemeral: true);
+            await RespondAsync($"Error occurred while clearing cache: {e.Message}", ephemeral: true);
         }
     }
 
@@ -45,20 +46,20 @@ public sealed class JukeboxCommands : InteractionModuleBase<SocketInteractionCon
         }
 
         var dur = Jukebox.Elapsed;
-        var song = Jukebox.Song;
-        if (song is null)
+        var info = Jukebox.CurrentSong;
+        if (info is null)
         {
             await RespondAsync("Could not get song from jukebox. Contact developer.", ephemeral: true);
             return;
         }
-        var songDur = song.Info.Duration;
+        var songDur = info.Duration;
         await RespondAsync((songDur != TimeSpan.Zero ? $"__{songDur}__\n" : "") + $"{dur}", ephemeral: true);
     }
 
     [SlashCommand("clear", "Clears queue.")]
     public async Task Clear()
     {
-        await Jukebox.ClearAsync();
+        await Jukebox.Queue.ClearAsync();
         await RespondAsync("Cleared queue.", ephemeral: true);
     }
 
@@ -74,7 +75,7 @@ public sealed class JukeboxCommands : InteractionModuleBase<SocketInteractionCon
         try
         {
             var removed = index == -1 ? await queue.RemoveAtAsync(^0) : await queue.RemoveAtAsync(index - 1);
-            var removedInfo = removed.Info;
+            var removedInfo = await removed.GetInfoAsync();
             await RespondAsync(embed: new EmbedBuilder()
             {
                 Title = "**Removed**",
@@ -114,8 +115,8 @@ public sealed class JukeboxCommands : InteractionModuleBase<SocketInteractionCon
             {
                 if (i > queue.Length)
                     break;
-                var song = queue[i - 1];
-                var songInfo = song.Info;
+                var song = queue.GetAt(i - 1);
+                var songInfo = await song.GetInfoAsync();
                 eb.AddField(
                     i == 1 ? "Next:" : i == maxElems ? "And more" : i.ToString(),
                     i == 1 ? $"**{songInfo.Artist} - {songInfo.Title}**" : i == maxElems ? $"Plus {queue.Length - (i - 1)} other songs!" : $"{songInfo.Artist} - {songInfo.Title}",
@@ -130,7 +131,7 @@ public sealed class JukeboxCommands : InteractionModuleBase<SocketInteractionCon
     public async Task Next(string query)
     {
         var downloader = Downloader.GetFromQuery(query);
-        DownloadRequest request = new(query.AsMemory(), downloader);
+        DownloaderRequest request = new(query.AsMemory(), downloader);
 
         // Get info to see if the request is actually valid.
         var info = await request.GetInfoAsync();
@@ -156,8 +157,8 @@ public sealed class JukeboxCommands : InteractionModuleBase<SocketInteractionCon
     {
         var voice = (Context.User as SocketGuildUser)?.VoiceChannel;
         var downloader = provider is null ? Downloader.GetFromQuery(query) : GetDownloaderFromManualProvider(provider);
-        DownloadRequest request = new(query.AsMemory(), downloader);
-        return Task.FromResult(((IVoiceChannel?)voice, (IMediaRequest)request));
+        DownloaderRequest request = new(query.AsMemory(), downloader);
+        return ((IVoiceChannel?)voice, (IMediaRequest)request).WrapTask();
     }
 
     [SlashCommand("switch", "Switches the current song to the one specified.")]

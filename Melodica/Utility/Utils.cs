@@ -6,7 +6,7 @@ namespace Melodica.Utility;
 
 public static class Utils
 {
-    public static Task<IUser> GetAppOwnerAsync() => Task.FromResult(Dependency.Get<DiscordSocketClient>().GetApplicationInfoAsync().Result.Owner);
+    public static async Task<IUser> GetAppOwnerAsync() => (await Dependency.Get<DiscordSocketClient>().GetApplicationInfoAsync()).Owner;
 
     public static Task<string> GetURLArgumentAsync(Span<char> url, string argName)
     {
@@ -39,7 +39,7 @@ public static class Utils
                 }
             }
         }
-        return Task.FromResult(url[startPos..endPos].ToString());
+        return url[startPos..endPos].ToString().WrapTask();
     }
 
     public static string GetUrlResourceFormat(ReadOnlySpan<char> url)

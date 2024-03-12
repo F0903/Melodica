@@ -23,8 +23,7 @@ public sealed class LyricsCommands(ILyricsProvider lyrics) : InteractionModuleBa
 
         if (songName is null)
         {
-            var song = juke!.Song ?? throw new NullReferenceException("Song was null. (dbg-err)");
-            var songInfo = song.Info;
+            var songInfo = juke!.CurrentSong ?? throw new NullReferenceException("Song was null. (dbg-err)");
             songName = $"{songInfo.Artist} {songInfo.Title}";
         }
 

@@ -8,12 +8,6 @@ public enum MediaType
 }
 
 [Serializable]
-public record DataInfo(string? Format, string? MediaPath)
-{
-    public string FileExtension => Format is not null ? Format.Insert(0, ".") : "";
-}
-
-[Serializable]
 public record MediaInfo(string Id)
 {
     public MediaType MediaType { get; init; }
@@ -28,5 +22,5 @@ public record MediaInfo(string Id)
 
     public string? ImageUrl { get; init; }
 
-    public DataInfo? DataInfo { get; set; }
+    public string? ExplicitDataFormat { get; set; }
 }

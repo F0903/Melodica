@@ -25,8 +25,8 @@ public sealed class WikiCommands(IWikiProvider wiki) : InteractionModuleBase<Soc
             return null;
         }
 
-        var song = juke.Song ?? throw new NullReferenceException("Song was null.");
-        var artist = song.Info.Artist;
+        var info = juke.CurrentSong ?? throw new NullReferenceException("Song was null.");;
+        var artist = info.Artist;
 
         return await wiki.GetInfoAsync(artist);
     }

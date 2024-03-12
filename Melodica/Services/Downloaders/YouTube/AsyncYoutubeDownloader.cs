@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System.Net;
+using System.Text;
 using System.Text.RegularExpressions;
 using AngleSharp.Text;
 using Melodica.Services.Caching;
@@ -18,6 +19,7 @@ public sealed partial class AsyncYoutubeDownloader : IAsyncDownloader
     private static partial Regex YoutubeUrlRegex();
 
     private static readonly YoutubeClient yt = new();
+
     private static readonly MediaFileCache cache = new("YouTube");
 
     static async Task<TimeSpan> GetTotalDurationAsync(Playlist pl)
@@ -102,14 +104,24 @@ public sealed partial class AsyncYoutubeDownloader : IAsyncDownloader
         return await PlaylistToMetadataAsync(playlist);
     }
 
+    static async Task<MediaInfo> GetInfoFromIdAsync(ReadOnlyMemory<char> id)
+    {
+        if (await cache.TryGetInfoAsync(id.ToString()) is var cachedInfo && cachedInfo is not null)
+        {
+            return cachedInfo;
+        }
+
+        var video = await yt.Videos.GetAsync(id.ToString());
+        return VideoToMetadata(video);
+    }
+
     static async Task<MediaInfo> GetInfoFromUrlAsync(ReadOnlyMemory<char> url)
     {
         if (IsUrlPlaylist(url.Span))
             return await GetInfoFromPlaylistUrlAsync(url);
 
         var id = VideoId.Parse(url.ToString());
-        var video = await yt.Videos.GetAsync(id);
-        return VideoToMetadata(video);
+        return await GetInfoFromIdAsync(id.Value.AsMemory());
     }
 
     public async Task<MediaInfo> GetInfoAsync(ReadOnlyMemory<char> query)
@@ -119,62 +131,91 @@ public sealed partial class AsyncYoutubeDownloader : IAsyncDownloader
 
         var videos = yt.Search.GetVideosAsync(query.ToString());
         var result = await videos.FirstAsync();
-        var video = await yt.Videos.GetAsync(result.Id);
-        return VideoToMetadata(video);
+        return await GetInfoFromIdAsync(result.Id.Value.AsMemory());
     }
 
-    static async Task<PlayableMedia> DownloadLivestream(MediaInfo info)
+    static async Task<PlayableMediaStream> DownloadLivestream(MediaInfo info)
     {
-        var streamUrl = await yt.Videos.Streams.GetHttpLiveStreamUrlAsync(info.Id ?? throw new NullReferenceException("Id was null."));
-        var media = new PlayableMedia(new MemoryStream(Encoding.UTF8.GetBytes(streamUrl), false), info, null);
+        var streamUrl = await yt.Videos.Streams.GetHttpLiveStreamUrlAsync(info.Id);
+        using var http = new HttpClient();
+        var bytes = await http.GetByteArrayAsync(streamUrl);
+        var stream = new MemoryStream(bytes, false);
+        info.ExplicitDataFormat = "hls";
+        var media = new PlayableMediaStream(stream, info, null, cache);
         return media;
     }
 
-    static async Task<PlayableMedia> GetPlayableMediaFromInfoAsync(MediaInfo info)
+    static async Task<PlayableMediaStream> GetPlayableMediaFromInfoAsync(MediaInfo info)
     {
-        var manifest = await yt.Videos.Streams.GetManifestAsync(info.Id ?? throw new NullReferenceException("Id was null"));
-        var streamInfo = manifest.GetAudioOnlyStreams().GetWithHighestBitrate() ?? throw new NullReferenceException("Could not get stream from YouTube.");
-        var stream = await yt.Videos.Streams.GetAsync(streamInfo);
-        return new CachingPlayableMedia(stream, info, cache, null);
+        if (await cache.TryGetAsync(info.Id) is var cachedMedia && cachedMedia is not null)
+        {
+            return cachedMedia;
+        }
+
+        Stream stream;
+        try
+        {
+            var manifest = await yt.Videos.Streams.GetManifestAsync(info.Id);
+            var streamInfo = manifest.GetAudioOnlyStreams().GetWithHighestBitrate() ?? throw new NullReferenceException("Could not get stream from YouTube.");
+            stream = await yt.Videos.Streams.GetAsync(streamInfo);
+        }
+        catch (Exception ex) when (IsUnavailable(ex))
+        {
+            throw new MediaUnavailableException("Video was unavailable.", ex);
+        }
+        return new PlayableMediaStream(stream, info, null, cache);
     }
 
-    static async Task<PlayableMedia> DownloadPlaylist(MediaInfo info)
+    static async Task<PlayableMediaStream> DownloadPlaylist(MediaInfo info)
     {
-        if (info.Id is null)
-            throw new NullReferenceException("Id was null.");
-
         var videos = yt.Playlists.GetVideosAsync(info.Id);
-        PlayableMedia? first = null;
-        PlayableMedia? current = null;
+        PlayableMediaStream? first = null;
+        PlayableMediaStream? current = null;
         await foreach (var video in videos)
         {
             if (video is null)
                 continue;
 
+            static async Task<Stream> DataGetter(MediaInfo info)
+            {
+                try
+                {
+                    var manifest = await yt.Videos.Streams.GetManifestAsync(info.Id);
+                    var streamInfo = manifest.GetAudioOnlyStreams().GetWithHighestBitrate() ?? throw new NullReferenceException("Could not get stream from YouTube.");
+                    return await yt.Videos.Streams.GetAsync(streamInfo);
+                }
+                catch (Exception ex) when (IsUnavailable(ex))
+                {
+                    throw new MediaUnavailableException("Video was unavailable.", ex);
+                }
+            }
 
-            var vidInfo = VideoToMetadata(video);
-            var media = await GetPlayableMediaFromInfoAsync(vidInfo);
+            var media = new PlayableMediaStream(
+                (Func<MediaInfo,Task<Stream>>)DataGetter,
+                (Func<Task<MediaInfo>>)(() => VideoToMetadata(video).WrapTask()),
+                null,
+                cache
+            );
             if (first is null)
             {
                 first = media;
                 current = first;
                 continue;
             }
+
             current!.Next = media;
+            current = current.Next;
         }
         return first!;
     }
 
-    public async Task<PlayableMedia> DownloadAsync(MediaInfo info)
+    public async Task<PlayableMediaStream> DownloadAsync(MediaInfo info)
     {
         if (info.MediaType == MediaType.Playlist)
             return await DownloadPlaylist(info);
 
         if (info.MediaType == MediaType.Livestream)
             return await DownloadLivestream(info);
-
-        if (info.Id is null)
-            throw new NullReferenceException("Id was null.");
 
         return await GetPlayableMediaFromInfoAsync(info);
     }

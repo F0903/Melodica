@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System.Runtime.CompilerServices;
+using System.Text;
 using System.Text.RegularExpressions;
 using Discord;
 using Discord.WebSocket;
@@ -158,9 +159,19 @@ public static partial class Extensions
     [GeneratedRegex(@"((http)|(https)):\/\/.+", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.Singleline)]
     private static partial Regex UrlRegex();
 
-    public static bool IsUrl(this ReadOnlySpan<char> str) => UrlRegex().IsMatch(str.ToString());
+    public static bool IsUrl(this ReadOnlySpan<char> str) => UrlRegex().IsMatch(str);
 
-    public static bool IsUrl(this ReadOnlyMemory<char> str) => UrlRegex().IsMatch(str.ToString());
+    public static bool IsUrl(this ReadOnlyMemory<char> str) => UrlRegex().IsMatch(str.Span);
 
-    public static bool IsUrl(this string str) => UrlRegex().IsMatch(str);
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Task<T> WrapTask<T>(this T value) => Task.FromResult(value);
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static ValueTask<T> WrapValueTask<T>(this T value) => ValueTask.FromResult(value);
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static async Task<Y> Chain<T, Y>(this Task<T> me, Func<T, Task<Y>> chain)
+    {
+        return await chain(await me);
+    }
 }

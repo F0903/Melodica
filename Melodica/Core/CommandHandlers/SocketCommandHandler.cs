@@ -4,6 +4,7 @@ using Discord.Interactions;
 using Discord.WebSocket;
 using Melodica.Config;
 using Melodica.Dependencies;
+using Melodica.Utility;
 using Serilog;
 
 namespace Melodica.Core.CommandHandlers;
@@ -67,7 +68,7 @@ public sealed class SocketCommandHandler(DiscordSocketClient client) : IAsyncCom
             Title = "Error!",
             Description = $"A command threw an error:\n```{errorDesc}```",
         }.Build();
-        return ValueTask.FromResult(embed);
+        return embed.WrapValueTask();
     }
 
     private Task OnSlashCommandExecuted(SlashCommandInfo info, IInteractionContext context, IResult result)

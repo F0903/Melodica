@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Melodica.Services.Media;
+﻿using Melodica.Services.Media;
 using Melodica.Services.Serialization;
 
 namespace Melodica.Services.Caching;
@@ -11,18 +6,33 @@ namespace Melodica.Services.Caching;
 [Serializable]
 public sealed record CachedMediaInfo : MediaInfo
 {
-    public CachedMediaInfo(string mediaFilePath, MediaInfo info, bool isMediaPartial, string cacheRoot) : base(info)
+    public CachedMediaInfo(string mediaPath, string cacheRoot, MediaInfo original) : base(original)
     {
-        this.MediaFilePath = mediaFilePath;
-        this.isMediaPartial = isMediaPartial;
+        MediaPath = mediaPath;
         this.cacheRoot = cacheRoot;
     }
-    public CachedMediaInfo(string mediaFilePath, string id, bool isMediaPartial, string cacheRoot) : base(id)
+
+    // For deserialization purposes.
+    public CachedMediaInfo() : base("")
     {
-        MediaFilePath = mediaFilePath;
-        this.isMediaPartial = isMediaPartial;
-        this.cacheRoot = cacheRoot;
+        cacheRoot = "";
+        MediaPath = "";
     }
+
+    [NonSerialized]
+    private string cacheRoot;
+
+    [NonSerialized]
+    public const string MetaFileExtension = ".meta";
+
+    [NonSerialized]
+    public const uint CurrentMetaVersion = 1;
+
+    public uint MetaVersion { get; init; } = CurrentMetaVersion;
+
+    public string MediaPath { get; init; }
+
+    public bool IsMediaComplete { get; set; }
 
     public static async ValueTask<CachedMediaInfo> LoadFromDisk(string path)
     {
@@ -36,46 +46,7 @@ public sealed record CachedMediaInfo : MediaInfo
 
     public async ValueTask WriteToDisk()
     {
-        var metaLocation = Path.Combine(cacheRoot, Path.ChangeExtension(Path.GetFileName(MediaFilePath), CachedMediaInfo.MetaFileExtension));
+        var metaLocation = Path.Combine(cacheRoot, Path.ChangeExtension(Path.GetFileName(MediaPath), MetaFileExtension));
         await Serializer.SerializeToFileAsync(metaLocation, this);
-    }
-
-    async void OnValueChanged()
-    {
-        await WriteToDisk();
-    }
-
-    [NonSerialized]
-    readonly string cacheRoot;
-
-    [NonSerialized]
-    public const string MetaFileExtension = ".meta";
-
-    [NonSerialized]
-    public const uint CurrentMetaVersion = 1;
-
-    public readonly uint MetaVersion = CurrentMetaVersion;
-
-    public readonly string MediaFilePath;
-
-    bool isMediaPartial;
-    public bool IsMediaPartial {
-        get => isMediaPartial; 
-        set
-        {
-            isMediaPartial = value;
-            OnValueChanged();
-        }
-    }
-
-    bool isMediaInUse;
-    public bool IsMediaInUse 
-    {
-        get => isMediaInUse;
-        set
-        {
-            isMediaInUse = value;
-            OnValueChanged();
-        } 
     }
 }

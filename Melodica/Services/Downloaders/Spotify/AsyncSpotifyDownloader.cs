@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using Melodica.Config;
+using Melodica.Services.Caching;
 using Melodica.Services.Downloaders.Exceptions;
 using Melodica.Services.Media;
 using Melodica.Utility;
@@ -22,6 +23,8 @@ public sealed partial class AsyncSpotifyDownloader : IAsyncDownloader
 
     // Tie this to the default downloader (can't download directly from Spotify)
     static readonly IAsyncDownloader downloader = Downloader.Default;
+
+    private static readonly MediaFileCache cache = new("Spotify");
 
     static bool IsUrlPlaylist(ReadOnlySpan<char> url)
     {
@@ -46,12 +49,12 @@ public sealed partial class AsyncSpotifyDownloader : IAsyncDownloader
     static ValueTask<string> ParseURLToIdAsyncAsync(ReadOnlySpan<char> url)
     {
         if (!(url.StartsWith("https://") || url.StartsWith("http://")))
-            return ValueTask.FromResult(url.ToString()); // Just return, cause the url is probably already an id.
+            return url.ToString().WrapValueTask(); // Just return, cause the url is probably already an id.
         var startIndex = url.LastIndexOf('/') + 1;
         var qIndx = url.IndexOf('?');
         var stopIndex = qIndx == -1 ? url.Length : qIndx;
         var id = url[startIndex..stopIndex].ToString();
-        return ValueTask.FromResult(id);
+        return id.WrapValueTask();
     }
 
     static ValueTask<FullTrack[]> PlaylistToTrackListAsync(FullPlaylist playlist)
@@ -66,10 +69,10 @@ public sealed partial class AsyncSpotifyDownloader : IAsyncDownloader
                 throw new UrlNotSupportedException("Episodes are not supported. :(");
             tracklist[i] = (FullTrack)track;
         }
-        return ValueTask.FromResult(tracklist);
+        return tracklist.WrapValueTask();
     }
 
-    static ValueTask<List<SimpleTrack>> AlbumToTrackListAsync(FullAlbum album) => ValueTask.FromResult(album.Tracks.Items ?? throw new NullReferenceException("No tracks were found in playlist."));
+    static ValueTask<List<SimpleTrack>> AlbumToTrackListAsync(FullAlbum album) => (album.Tracks.Items ?? throw new NullReferenceException("No tracks were found in playlist.")).WrapValueTask();
 
     static TimeSpan NormalizeTimeSpan(TimeSpan from) => new(from.Hours, from.Minutes, from.Seconds);
 
@@ -140,22 +143,28 @@ public sealed partial class AsyncSpotifyDownloader : IAsyncDownloader
         return await PlaylistToMediaInfoAsync(playlist);
     }
 
-    static async ValueTask<PlayableMedia> DownloadFromProviderAsync(MediaInfo info)
+    static async ValueTask<PlayableMediaStream> DownloadFromProviderAsync(MediaInfo info)
     {
+        if (await cache.TryGetAsync(info.Id) is var cachedMedia && cachedMedia is not null)
+        {
+            return cachedMedia;
+        }
+
         var extInfo = await downloader.GetInfoAsync($"{info.Artist} {info.Title}".AsMemory());
         var extMedia = await downloader.DownloadAsync(extInfo);
-        extMedia.Info = info with { Id = extMedia.Info.Id, Url = extMedia.Info.Url };
+
+        extMedia.SetInfo(info with { Id = extInfo.Id, Url = extInfo.Url });
         return extMedia;
     }
 
-    static async ValueTask<PlayableMedia> DownloadSpotifyAlbumAsync(FullAlbum album)
+    static async ValueTask<PlayableMediaStream> DownloadSpotifyAlbumAsync(FullAlbum album)
     {
         var albumInfo = AlbumToMediaInfo(album);
         var tracks = await AlbumToTrackListAsync(album);
         var trackLength = tracks.Count;
 
-        PlayableMedia? first = null;
-        PlayableMedia? current = null;
+        PlayableMediaStream? first = null;
+        PlayableMediaStream? current = null;
         foreach (var track in tracks)
         {
             var info = SimpleTrackToMediaInfo(track, album);
@@ -172,14 +181,15 @@ public sealed partial class AsyncSpotifyDownloader : IAsyncDownloader
         return first!;
     }
 
-    static async ValueTask<PlayableMedia> DownloadSpotifyPlaylistAsync(FullPlaylist playlist)
+    static async ValueTask<PlayableMediaStream> DownloadSpotifyPlaylistAsync(FullPlaylist playlist)
     {
+        //TODO
         var playlistInfo = await PlaylistToMediaInfoAsync(playlist);
         var tracks = await PlaylistToTrackListAsync(playlist);
         var trackLength = tracks.Length;
 
-        PlayableMedia? first = null;
-        PlayableMedia? current = null;
+        PlayableMediaStream? first = null;
+        PlayableMediaStream? current = null;
         foreach (var track in tracks)
         {
             var info = FullTrackToMediaInfo(track);
@@ -196,7 +206,7 @@ public sealed partial class AsyncSpotifyDownloader : IAsyncDownloader
         return first!;
     }
 
-    static async Task<PlayableMedia> DownloadPlaylistAsync(MediaInfo info)
+    static async Task<PlayableMediaStream> DownloadPlaylistAsync(MediaInfo info)
     {
         try
         {
@@ -215,7 +225,7 @@ public sealed partial class AsyncSpotifyDownloader : IAsyncDownloader
         throw new UrlNotSupportedException("Could not find matching playlist or album.");
     }
 
-    public async Task<PlayableMedia> DownloadAsync(MediaInfo info)
+    public async Task<PlayableMediaStream> DownloadAsync(MediaInfo info)
     {
         if (info.MediaType == MediaType.Livestream)
             throw new UrlNotSupportedException("Spotify does not support livestreams.");
@@ -239,6 +249,11 @@ public sealed partial class AsyncSpotifyDownloader : IAsyncDownloader
             return await GetAlbumInfoAsync(query);
 
         var id = await ParseURLToIdAsyncAsync(query.Span);
+        if (await cache.TryGetInfoAsync(id) is var cachedInfo && cachedInfo is not null)
+        {
+            return cachedInfo;
+        }
+
         var track = await spotify.Tracks.Get(id);
         return FullTrackToMediaInfo(track);
     }
