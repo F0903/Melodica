@@ -10,13 +10,14 @@
 		<TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <PublishReadyToRun>true</PublishReadyToRun>
-    <PublishTrimmed>false</PublishTrimmed>
+    <PublishTrimmed>False</PublishTrimmed>
     <ServerGarbageCollection>true</ServerGarbageCollection>
 		<Platforms>x64</Platforms>
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
     <UserSecretsId>2d5cd8ab-c9e8-49d8-aba9-de43cdf59238</UserSecretsId>
     <PlatformTarget>AnyCPU</PlatformTarget>
     <AllowUnsafeBlocks>False</AllowUnsafeBlocks>
+    <PublishAot>False</PublishAot>
 	</PropertyGroup>
 
 	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">

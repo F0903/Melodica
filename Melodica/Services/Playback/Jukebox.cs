@@ -5,6 +5,7 @@ using Discord.Audio.Streams;
 using Discord.WebSocket;
 using Melodica.Core.Exceptions;
 using Melodica.Services.Audio;
+using Melodica.Services.Caching;
 using Melodica.Services.Media;
 using Melodica.Services.Playback.Requests;
 using Melodica.Utility;
@@ -33,32 +34,28 @@ public sealed class Jukebox
 
     public TimeSpan Elapsed => new(durationTimer.Elapsed.Hours, durationTimer.Elapsed.Minutes, durationTimer.Elapsed.Seconds);
 
-    Action<bool>? OnPauseChanged;
-    Action? OnSkipRequested;
-
     private readonly PlaybackStopwatch durationTimer = new();
     private readonly ManualResetEventSlim playLock = new(true);
-    private CancellationTokenSource? cancellation;
+    private CancellationTokenSource? stopper;
 
     private IAudioClient? audioClient;
     private IAudioChannel? audioChannel;
-    private bool skipRequested = false;
-    private bool downloading = false;
 
     private JukeboxInterface? currentPlayer;
 
     private static readonly MemoryPool<byte> memory = MemoryPool<byte>.Shared;
 
-    private FFmpegProcessor audioProcessor = new();
+    private readonly FFmpegProcessor mediaProcessor = new FFmpegProcessor();
 
     public MediaQueue Queue { get; } = new();
-    public PlayableMedia? Song { get; private set; }
+
+    public MediaInfo? CurrentSong { get; set; }
 
     public async Task SetPausedAsync(bool value)
     {
         if (!Playing) return;
         Paused = value;
-        OnPauseChanged?.Invoke(value);
+        mediaProcessor.SetPause(value);
         if (currentPlayer is not null)
         {
             await currentPlayer.SetButtonStateAsync(JukeboxInterfaceButton.PlayPause, !value);
@@ -102,24 +99,23 @@ public sealed class Jukebox
         );
     }
 
-    async Task WriteData(PlayableMedia media, OpusEncodeStream output, CancellationToken token)
+    async Task SendDataAsync(PlayableMediaStream media, OpusEncodeStream output, CancellationToken token)
     {
         const int frameBytes = 3840;
-        using var memHandle = memory.Rent(frameBytes);
-        var buffer = memHandle.Memory;
-        durationTimer.Start();
+        
         try
         {
-            OnPauseChanged = status => audioProcessor.SetPause(status);
-            OnSkipRequested = () => audioProcessor.StopRequested();
-            await audioProcessor.ProcessStreamAsync(media, output, async () =>
+            using var memHandle = memory.Rent(frameBytes);
+            var buffer = memHandle.Memory;
+            durationTimer.Start();
+
+            await mediaProcessor.ProcessMediaAsync(media, output, async () =>
             {
                 await output.WriteSilentFramesAsync();
                 await output.FlushAsync();
-            }, token, media.ExplicitDataFormat);
+            }, token);
         }
-        catch (OperationCanceledException) { }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             Log.Error(ex, $"Got exception when trying to write audio:\n{ex.Message}");
         }
@@ -127,32 +123,15 @@ public sealed class Jukebox
         {
             await output.WriteSilentFramesAsync();
             await output.FlushAsync(token);
-            OnPauseChanged = null;
+
+            media.Close();
+
+            durationTimer.Reset();
         }
-    }
-
-    private async Task SendDataAsync(PlayableMedia media, OpusEncodeStream output, CancellationToken token)
-    {
-        async Task StartWrite()
-        {
-            try
-            {
-                await WriteData(media, output, token);
-            }
-            finally
-            {
-                durationTimer.Reset();
-            }
-        }
-
-        await StartWrite();
-
-        if (skipRequested) skipRequested = false;
     }
 
     async Task DisconnectAsync()
     {
-        await StopAsync();
         if (audioChannel is not null)
         {
             await audioChannel.DisconnectAsync();
@@ -166,12 +145,20 @@ public sealed class Jukebox
         }
     }
 
-    public async Task StopAsync()
+    public async Task StopAsync(bool completeStop = true)
     {
-        if (cancellation is null || cancellation.IsCancellationRequested) return;
+        if (stopper is null || stopper.IsCancellationRequested) return;
 
-        await ClearAsync();
-        cancellation.Cancel();
+        if (completeStop)
+        {
+            var node = await Queue.ClearAsync();
+            await stopper.CancelAsync();
+            playLock.Wait();
+            node?.CloseAll();
+            return;
+        }
+
+        await stopper.CancelAsync();
     }
 
     public async Task SkipAsync()
@@ -179,17 +166,15 @@ public sealed class Jukebox
         if (Queue.IsEmpty)
             return;
         await SetLoopAsync(false);
-        skipRequested = true;
+        await StopAsync(false);
     }
-
-    public ValueTask ClearAsync() => Queue.ClearAsync();
 
     async Task OnClientDisconnect(ulong id)
     {
         var users = audioChannel switch
         {
-            SocketVoiceChannel svc => svc.ConnectedUsers, // Actually accurate.
-            _ => (IReadOnlyCollection<IUser>)await audioChannel!.GetUsersAsync().FlattenAsync() // Will probably report wrong due to caching.
+            SocketVoiceChannel svc => svc.ConnectedUsers, // Seems more accurate
+            _ => (IReadOnlyCollection<IUser>)await audioChannel!.GetUsersAsync().FlattenAsync()
         };
         var currentUsers = users.Where(x => x.Id != id);
         if (!currentUsers.IsOverSize(1))
@@ -210,19 +195,22 @@ public sealed class Jukebox
         audioClient.ClientDisconnected += OnClientDisconnect;
     }
 
-    async Task PlayNextAsync(IAudioChannel channel, OpusEncodeStream output, CancellationToken token)
+    async Task PlayNextAsync(IAudioChannel channel, OpusEncodeStream output)
     {
-        var media = await Queue.DequeueAsync() ?? throw new CriticalException("Song from queue was null.");
-        Song = media;
+        var media = await Queue.DequeueAsync();
+        CurrentSong = await media.GetInfoAsync();
 
-        await currentPlayer!.SetSongEmbedAsync(media.Info, null); //TODO: prob reimplement collection info in some form.
+        await currentPlayer!.SetSongEmbedAsync(CurrentSong, null); //TODO: prob reimplement collection info in some form.
 
         var donePlaying = false;
         try
         {
-            await SendDataAsync(media, output, token);
+            stopper = new();
+            var stopToken = stopper.Token;
+            await SendDataAsync(media, output, stopToken);
         }
-        catch (OperationCanceledException) { }
+        catch (OperationCanceledException) 
+        { }
         catch (Exception ex)
         {
             await DisconnectAsync();
@@ -230,9 +218,12 @@ public sealed class Jukebox
         }
         finally
         {
+            stopper?.Dispose();
+            stopper = null;
             if (!Loop)
             {
-                if (Queue.IsEmpty || cancellation!.IsCancellationRequested)
+                await media.DisposeAsync();
+                if (Queue.IsEmpty)
                 {
                     await DisconnectAsync();
                     donePlaying = true;
@@ -242,28 +233,16 @@ public sealed class Jukebox
         if (donePlaying)
             return;
 
-        await PlayNextAsync(channel, output, token);
+        await PlayNextAsync(channel, output);
     }
 
-    public async Task<PlayResult> PlayAsync(IMediaRequest request, IAudioChannel channel, JukeboxInterface player)
+    public async Task<PlayResult> PlayAsync(IMediaRequest request, IAudioChannel channel, JukeboxInterface playerInterface)
     {
-        if (downloading)
-            return PlayResult.Occupied;
-
         MediaInfo reqInfo;
-        PlayableMedia media;
-        try
-        {
-            downloading = true;
-            reqInfo = await request.GetInfoAsync();
-            media = await request.GetMediaAsync();
-            downloading = false;
-        }
-        catch(Exception ex)
-        {
-            downloading = false;
-            throw;
-        }
+        PlayableMediaStream media;
+
+        reqInfo = await request.GetInfoAsync();
+        media = await request.GetMediaAsync();
 
         await Queue.EnqueueAsync(media);
 
@@ -274,25 +253,26 @@ public sealed class Jukebox
 
         playLock.Wait();
         playLock.Reset();
+
         try
         {
-            cancellation = new();
-            var token = cancellation.Token;
-
             await ConnectAsync(channel); //TODO: will timeout if doesn't have proper permissions in channel, check first.
             var bitrate = (channel as IVoiceChannel)?.Bitrate ?? 96000;
-            await player.SpawnAsync(reqInfo, null);
-            currentPlayer = player;
+            await playerInterface.SpawnAsync(reqInfo, null);
+            currentPlayer = playerInterface;
             using var output = (OpusEncodeStream)audioClient!.CreatePCMStream(AudioApplication.Music, bitrate, 1000, 0);
-            await PlayNextAsync(channel, output, token);
+            await PlayNextAsync(channel, output);
         }
         finally
         {
             playLock.Set();
-            await player.DisableAllButtonsAsync();
+            await playerInterface.DisableAllButtonsAsync();
             await ResetState();
             if (audioClient is not null)
+            {
                 audioClient.ClientDisconnected -= OnClientDisconnect;
+                audioClient = null;
+            }
         }
         return PlayResult.Done;
     }
@@ -307,7 +287,6 @@ public sealed class Jukebox
 
     public async Task SetNextAsync(IMediaRequest request)
     {
-        var media = await request.GetMediaAsync();
-        await Queue.PutFirstAsync(media);
+        await Queue.PutFirstAsync(await request.GetMediaAsync());
     }
 }
