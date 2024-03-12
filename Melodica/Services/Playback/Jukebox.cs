@@ -200,7 +200,7 @@ public sealed class Jukebox
         var media = await Queue.DequeueAsync();
         CurrentSong = await media.GetInfoAsync();
 
-        await currentPlayer!.SetSongEmbedAsync(CurrentSong, null); //TODO: prob reimplement collection info in some form.
+        await currentPlayer!.SetSongEmbedAsync(CurrentSong, null); //TODO: Consider reimplementing collectionInfo / playlist info again.
 
         var donePlaying = false;
         try

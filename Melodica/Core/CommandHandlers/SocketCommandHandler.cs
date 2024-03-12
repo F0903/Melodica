@@ -14,7 +14,7 @@ public sealed class SocketCommandHandler(DiscordSocketClient client) : IAsyncCom
     private readonly IServiceProvider ioc = Dependency.GetServiceProvider();
     private InteractionService? interactions;
 
-    private async Task<InteractionService> InitializeSlashCommands(Assembly asm)
+    private async Task<InteractionService> InitializeSlashCommandsAsync(Assembly asm)
     {
         var interactionService = Dependency.Get<InteractionService>();
         var modules = await interactionService.AddModulesAsync(asm, ioc);
@@ -22,11 +22,11 @@ public sealed class SocketCommandHandler(DiscordSocketClient client) : IAsyncCom
         {
             Log.Debug($"Added interaction module: {mod.Name}");
         }
-        interactionService.SlashCommandExecuted += OnSlashCommandExecuted;
+        interactionService.SlashCommandExecuted += OnSlashCommandExecutedAsync;
 
         try
         {
-            await RegisterSlashCommands(interactionService);
+            await RegisterSlashCommandsAsync(interactionService);
         }
         catch (Exception ex)
         {
@@ -38,7 +38,7 @@ public sealed class SocketCommandHandler(DiscordSocketClient client) : IAsyncCom
         return interactionService;
     }
 
-    private static async Task RegisterSlashCommands(InteractionService i)
+    private static async Task RegisterSlashCommandsAsync(InteractionService i)
     {
         IReadOnlyCollection<IApplicationCommand> registeredCommands;
 #if DEBUG
@@ -54,13 +54,13 @@ public sealed class SocketCommandHandler(DiscordSocketClient client) : IAsyncCom
         }
     }
 
-    public async Task InitializeCommands()
+    public async Task InitializeCommandsAsync()
     {
         var asm = Assembly.GetExecutingAssembly();
-        interactions = await InitializeSlashCommands(asm);
+        interactions = await InitializeSlashCommandsAsync(asm);
     }
 
-    private static ValueTask<Embed> BuildErrorEmbed(string errorDesc)
+    private static ValueTask<Embed> BuildErrorEmbedAsync(string errorDesc)
     {
         var embed = new EmbedBuilder
         {
@@ -71,7 +71,7 @@ public sealed class SocketCommandHandler(DiscordSocketClient client) : IAsyncCom
         return embed.WrapValueTask();
     }
 
-    private Task OnSlashCommandExecuted(SlashCommandInfo info, IInteractionContext context, IResult result)
+    private async Task OnSlashCommandExecutedAsync(SlashCommandInfo info, IInteractionContext context, IResult result)
     {
         if (!result.IsSuccess)
         {
@@ -80,15 +80,21 @@ public sealed class SocketCommandHandler(DiscordSocketClient client) : IAsyncCom
             .ForContext("Guild", context.Guild)
             .Error("Command threw an exception {Error}", $"{info.Name} => {result.ErrorReason}");
 
-            context.Interaction.ModifyOriginalResponseAsync(async x => x.Embed = await BuildErrorEmbed(result.ErrorReason));
-            return Task.CompletedTask;
+            var errorEmbed = await BuildErrorEmbedAsync(result.ErrorReason);
+            if (context.Interaction.HasResponded)
+            {
+                await context.Interaction.ModifyOriginalResponseAsync(x => x.Embed = errorEmbed);
+                return;
+            }
+
+            await context.Interaction.RespondAsync(embed: errorEmbed);
+            return;
         }
 
         Log.ForContext("CmdModule", info.Module)
             .ForContext("CmdName", info.Name)
             .ForContext("Guild", context.Guild)
             .Information("Successfully executed command");
-        return Task.CompletedTask;
     }
 
     private async Task OnInteractionReceived(SocketInteraction command)

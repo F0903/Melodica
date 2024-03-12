@@ -2,5 +2,5 @@
 
 public interface IAsyncCommandHandler
 {
-    Task InitializeCommands();
+    Task InitializeCommandsAsync();
 }

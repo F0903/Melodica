@@ -49,6 +49,7 @@ internal sealed partial class AsyncSoundcloudDownloader : IAsyncDownloader
 
     static async Task<PlayableMediaStream> CreatePlayableMediaAsync(MediaInfo info, MediaInfo? collectionInfo = null)
     {
+        //TODO: Consider reimplementing collectionInfo / playlist info again.
         var tracks = await search.GetTracksAsync(info.Id);
         var streamUrl = await tracks[0].GetStreamURLAsync();
         using var http = new HttpClient();

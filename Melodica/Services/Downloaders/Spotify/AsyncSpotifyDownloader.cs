@@ -183,7 +183,7 @@ public sealed partial class AsyncSpotifyDownloader : IAsyncDownloader
 
     static async ValueTask<PlayableMediaStream> DownloadSpotifyPlaylistAsync(FullPlaylist playlist)
     {
-        //TODO
+        //TODO: Consider reimplementing collectionInfo / playlist info again.
         var playlistInfo = await PlaylistToMediaInfoAsync(playlist);
         var tracks = await PlaylistToTrackListAsync(playlist);
         var trackLength = tracks.Length;

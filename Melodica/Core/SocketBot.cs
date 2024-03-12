@@ -24,7 +24,7 @@ public sealed class SocketBot
     private readonly DiscordSocketClient client;
     private readonly SocketCommandHandler commandHandler;
 
-    private async Task OnReady() => await commandHandler.InitializeCommands();
+    private async Task OnReady() => await commandHandler.InitializeCommandsAsync();
 
     public async Task SetActivityAsync(string name, ActivityType type) => await client.SetActivityAsync(new Game(name, type));
 

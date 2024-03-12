@@ -19,8 +19,7 @@ public enum ManualProviderOptions
 public sealed class JukeboxCommands : InteractionModuleBase<SocketInteractionContext>
 {
     Jukebox? cachedJukebox;
-    private Jukebox Jukebox => cachedJukebox ??=
-        JukeboxManager.GetOrCreateJukebox(Context.Guild, static () => new Jukebox());
+    private Jukebox Jukebox => cachedJukebox ??= JukeboxManager.GetOrCreateJukebox(Context.Guild);
 
     [SlashCommand("clear-cache", "Clears the media cache."), RequireOwner]
     public async Task ClearCache()
@@ -94,7 +93,7 @@ public sealed class JukeboxCommands : InteractionModuleBase<SocketInteractionCon
     [SlashCommand("queue", "Shows the current queue.")]
     public async Task Queue()
     {
-        await DeferAsync(true);
+        await DeferAsync(ephemeral: true);
         var queue = Jukebox.Queue;
         EmbedBuilder eb = new();
         if (queue.IsEmpty)
@@ -105,7 +104,7 @@ public sealed class JukeboxCommands : InteractionModuleBase<SocketInteractionCon
         }
         else
         {
-            (var queueDuration, var imageUrl) = await queue.GetQueueInfo();
+            var (queueDuration, imageUrl) = await queue.GetQueueInfo();
             eb.WithTitle("**Queue**")
               .WithThumbnailUrl(imageUrl)
               .WithFooter($"{(queueDuration == TimeSpan.Zero ? '\u221E'.ToString() : queueDuration.ToString())}{(Jukebox.Shuffle ? " | Shuffle" : "")}");
@@ -130,16 +129,23 @@ public sealed class JukeboxCommands : InteractionModuleBase<SocketInteractionCon
     [SlashCommand("next", "Sets the next song to play.")]
     public async Task Next(string query)
     {
+        if(!Jukebox.Playing)
+        {
+            await RespondAsync("No song is playing! Did you mean to use /play ?", ephemeral: true);
+            return;
+        }
+
+        await DeferAsync(ephemeral: true);
+
         var downloader = Downloader.GetFromQuery(query);
         DownloaderRequest request = new(query.AsMemory(), downloader);
 
         // Get info to see if the request is actually valid.
         var info = await request.GetInfoAsync();
 
-        var jukebox = Jukebox;
-        await jukebox.SetShuffleAsync(false);
-        await jukebox.SetNextAsync(request);
-        await RespondAsync(embed: EmbedUtils.CreateMediaEmbed(info, null), ephemeral: true);
+        await Jukebox.SetShuffleAsync(false);
+        await Jukebox.SetNextAsync(request);
+        await ModifyOriginalResponseAsync(x => x.Embed = EmbedUtils.CreateMediaEmbed(info, null));
     }
 
     static IAsyncDownloader GetDownloaderFromManualProvider(ManualProviderOptions? provider)
@@ -155,7 +161,8 @@ public sealed class JukeboxCommands : InteractionModuleBase<SocketInteractionCon
 
     Task<(IVoiceChannel?, IMediaRequest)> GetPlaybackContext(string query, ManualProviderOptions? provider)
     {
-        var voice = (Context.User as SocketGuildUser)?.VoiceChannel;
+        var user = (Context.User as IGuildUser) ?? throw new NullReferenceException("Guild user cast failed. Could not get voice channel.");
+        var voice = user.VoiceChannel;
         var downloader = provider is null ? Downloader.GetFromQuery(query) : GetDownloaderFromManualProvider(provider);
         DownloaderRequest request = new(query.AsMemory(), downloader);
         return ((IVoiceChannel?)voice, (IMediaRequest)request).WrapTask();
@@ -164,8 +171,7 @@ public sealed class JukeboxCommands : InteractionModuleBase<SocketInteractionCon
     [SlashCommand("switch", "Switches the current song to the one specified.")]
     public async Task Switch(string query, ManualProviderOptions? provider = null)
     {
-        var jukebox = Jukebox;
-        if (!jukebox.Playing)
+        if (!Jukebox.Playing)
         {
             await RespondAsync("Switch only works when a song is playing!", ephemeral: true);
             return;
@@ -183,13 +189,13 @@ public sealed class JukeboxCommands : InteractionModuleBase<SocketInteractionCon
         try
         {
             //TODO: Switch doesn't seem to work correctly when playing a playlist
-            await jukebox.SwitchAsync(request);
+            await Jukebox.SwitchAsync(request);
             await DeleteOriginalResponseAsync();
         }
         catch (EmptyChannelException) { await ModifyOriginalResponseAsync(x => x.Content = "All users have left the channel. Disconnecting..."); }
     }
 
-    [SlashCommand("play", "Plays or queues a song."), RequireBotPermission(ChannelPermission.Connect | ChannelPermission.Speak)]
+    [SlashCommand("play", "Plays or queues a song."), RequireBotVoiceChannelPermission(ChannelPermission.Connect | ChannelPermission.Speak)]
     public async Task Play(string query, ManualProviderOptions? provider = null)
     {
         if (query is null)
@@ -197,15 +203,14 @@ public sealed class JukeboxCommands : InteractionModuleBase<SocketInteractionCon
             await RespondAsync("You need to specify a url or a search query!", ephemeral: true);
             return;
         }
-        (var voice, var request) = await GetPlaybackContext(query, provider);
+        var (voice, request) = await GetPlaybackContext(query, provider);
         if (voice is null)
         {
             await RespondAsync("You need to be in a voice channel!", ephemeral: true);
             return;
         }
 
-        var jukebox = Jukebox;
-        if (jukebox.Playing)
+        if (Jukebox.Playing)
         {
             try
             {
@@ -227,7 +232,7 @@ public sealed class JukeboxCommands : InteractionModuleBase<SocketInteractionCon
         try
         {
             JukeboxInterface player = new(Context.Interaction);
-            await jukebox.PlayAsync(request, voice, player);
+            await Jukebox.PlayAsync(request, voice, player);
         }
         catch (EmptyChannelException)
         {
@@ -238,8 +243,8 @@ public sealed class JukeboxCommands : InteractionModuleBase<SocketInteractionCon
     [SlashCommand("abort", "Force the player to stop if the buttons aren't working.")]
     public async Task Abort()
     {
-        await RespondAsync("Stopping...", ephemeral: true);
         await Jukebox.StopAsync();
+        await RespondAsync("Stopped", ephemeral: true);
     }
 
     [ComponentInteraction("player_stop")]
@@ -252,40 +257,35 @@ public sealed class JukeboxCommands : InteractionModuleBase<SocketInteractionCon
         }
 
         await DeferAsync();
-        var jukebox = Jukebox;
-        await jukebox.StopAsync();
+        await Jukebox.StopAsync();
     }
 
     [ComponentInteraction("player_shuffle")]
     public async Task Shuffle()
     {
         await DeferAsync();
-        var jukebox = Jukebox;
-        await jukebox.SetShuffleAsync(!jukebox.Shuffle);
+        await Jukebox.SetShuffleAsync(!Jukebox.Shuffle);
     }
 
     [ComponentInteraction("player_repeat")]
     public async Task Repeat()
     {
         await DeferAsync();
-        var jukebox = Jukebox;
-        await jukebox.SetRepeatAsync(!jukebox.Repeat);
+        await Jukebox.SetRepeatAsync(!Jukebox.Repeat);
     }
 
     [ComponentInteraction("player_loop")]
     public async Task Loop()
     {
         await DeferAsync();
-        var jukebox = Jukebox;
-        await jukebox.SetLoopAsync(!jukebox.Loop);
+        await Jukebox.SetLoopAsync(!Jukebox.Loop);
     }
 
     [ComponentInteraction("player_togglepause")]
     public async Task TogglePause()
     {
         await DeferAsync();
-        var jukebox = Jukebox;
-        await jukebox.SetPausedAsync(!jukebox.Paused);
+        await Jukebox.SetPausedAsync(!Jukebox.Paused);
     }
 
     [ComponentInteraction("player_skip")]

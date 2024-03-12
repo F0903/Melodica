@@ -9,9 +9,5 @@ public static class JukeboxManager
 
     public static Jukebox GetJukebox(IGuild guild) => jukeboxes[guild];
 
-    public static Jukebox GetOrCreateJukebox(IGuild guild, Func<Jukebox> newFactory)
-    {
-        var juke = jukeboxes.GetOrAdd(guild, newFactory());
-        return juke;
-    }
+    public static Jukebox GetOrCreateJukebox(IGuild guild) => jukeboxes.GetOrAdd(guild, new Jukebox());
 }
