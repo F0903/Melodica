@@ -29,7 +29,7 @@ public class FFmpegProcessor : IAsyncMediaProcessor
 
     Task StartProcess(string? explicitDataFormat)
     {
-        var args = $"-nostdin -y -hide_banner -loglevel debug -strict experimental -vn -protocol_whitelist pipe,file,http,https,tcp,tls,crypto {(explicitDataFormat is not null ? $"-f {explicitDataFormat}" : "")} -i pipe: -f s16le -ac 2 -ar 48000 pipe:";
+        var args = $"-nostdin -y -hide_banner -loglevel panic -strict experimental -vn -protocol_whitelist pipe,file,http,https,tcp,tls,crypto {(explicitDataFormat is not null ? $"-f {explicitDataFormat}" : "")} -i pipe: -f s16le -ac 2 -ar 48000 pipe:";
 
         proc = new()
         {
@@ -38,7 +38,7 @@ public class FFmpegProcessor : IAsyncMediaProcessor
                 FileName = "ffmpeg",
                 Arguments = args,
                 UseShellExecute = false,
-                RedirectStandardError = true,
+                RedirectStandardError = false,
                 RedirectStandardInput = true,
                 RedirectStandardOutput = true,
                 CreateNoWindow = true,
@@ -46,18 +46,6 @@ public class FFmpegProcessor : IAsyncMediaProcessor
         };
 
         proc.Start();
-
-        //DEBUGGING
-        new Thread(() =>
-        {
-            Span<char> buf = stackalloc char[256];
-            while (!proc.HasExited && proc is not null)
-            {
-                var read = proc.StandardError.Read(buf);
-                if (read == 0) continue;
-                Console.WriteLine(buf[..read].ToString());
-            }
-        }).Start();
 
         processInput = proc.StandardInput.BaseStream;
         processOutput = proc.StandardOutput.BaseStream;
