@@ -121,6 +121,7 @@ public sealed class Jukebox
         }
         finally
         {
+            Log.Debug("Finished sending data... Flushing...");
             await output.WriteSilentFramesAsync();
             await output.FlushAsync(token);
 
@@ -179,6 +180,7 @@ public sealed class Jukebox
         var currentUsers = users.Where(x => x.Id != id);
         if (!currentUsers.IsOverSize(1))
         {
+            Log.Debug("Users in VC was under 1. Disconnecting...");
             await StopAsync();
         }
     }
@@ -207,12 +209,16 @@ public sealed class Jukebox
         {
             stopper = new();
             var stopToken = stopper.Token;
+            Log.Debug("Starting sending data..");
             await SendDataAsync(media, output, stopToken);
         }
         catch (OperationCanceledException) 
-        { }
+        {
+            Log.Debug("Caught operation cancelled exception in PlayNext.");
+        }
         catch (Exception ex)
         {
+            Log.Debug($"Caught critical {ex} exception in PlayNext. Disconnecting...");
             await DisconnectAsync();
             throw new CriticalException($"SendDataAsync encountered a fatal error. (please report)\n```{ex.Message}```");
         }
@@ -265,6 +271,7 @@ public sealed class Jukebox
         }
         finally
         {
+            Log.Debug("Finished playing. Resetting state...");
             playLock.Set();
             await playerInterface.DisableAllButtonsAsync();
             await ResetState();
