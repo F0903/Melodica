@@ -8,6 +8,7 @@ using Melodica.Utility;
 
 namespace Melodica.Services.Caching;
 
+//TODO: Also support storing cache for media info without actual data.
 public sealed class MediaFileCache : IMediaCache
 {
     public MediaFileCache(string dirName)

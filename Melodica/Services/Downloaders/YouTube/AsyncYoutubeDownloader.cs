@@ -1,6 +1,4 @@
-﻿using System.Net;
-using System.Text;
-using System.Text.RegularExpressions;
+﻿using System.Text.RegularExpressions;
 using AngleSharp.Text;
 using Melodica.Services.Caching;
 using Melodica.Services.Downloaders.Exceptions;
@@ -145,7 +143,14 @@ public sealed partial class AsyncYoutubeDownloader : IAsyncDownloader
         return media;
     }
 
-    static async Task<PlayableMediaStream> GetPlayableMediaFromInfoAsync(MediaInfo info)
+    internal async Task<Stream> GetMediaHttpStreamAsync(MediaInfo info)
+    {
+        var manifest = await yt.Videos.Streams.GetManifestAsync(info.Id);
+        var streamInfo = manifest.GetAudioOnlyStreams().GetWithHighestBitrate() ?? throw new NullReferenceException("Could not get stream from YouTube.");
+        return await yt.Videos.Streams.GetAsync(streamInfo);
+    }
+
+    async Task<PlayableMediaStream> GetPlayableMediaFromInfoAsync(MediaInfo info)
     {
         if (await cache.TryGetAsync(info.Id) is var cachedMedia && cachedMedia is not null)
         {
@@ -155,9 +160,7 @@ public sealed partial class AsyncYoutubeDownloader : IAsyncDownloader
         Stream stream;
         try
         {
-            var manifest = await yt.Videos.Streams.GetManifestAsync(info.Id);
-            var streamInfo = manifest.GetAudioOnlyStreams().GetWithHighestBitrate() ?? throw new NullReferenceException("Could not get stream from YouTube.");
-            stream = await yt.Videos.Streams.GetAsync(streamInfo);
+            stream = await GetMediaHttpStreamAsync(info);
         }
         catch (Exception ex) when (IsUnavailable(ex))
         {

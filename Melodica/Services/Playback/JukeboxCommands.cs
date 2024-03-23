@@ -129,7 +129,7 @@ public sealed class JukeboxCommands : InteractionModuleBase<SocketInteractionCon
     [SlashCommand("next", "Sets the next song to play.")]
     public async Task Next(string query)
     {
-        if(!Jukebox.Playing)
+        if (!Jukebox.Playing)
         {
             await RespondAsync("No song is playing! Did you mean to use /play ?", ephemeral: true);
             return;
@@ -210,29 +210,24 @@ public sealed class JukeboxCommands : InteractionModuleBase<SocketInteractionCon
             return;
         }
 
-        if (Jukebox.Playing)
-        {
-            try
-            {
-                var info = await request.GetInfoAsync();
-                var embed = EmbedUtils.CreateMediaEmbed(info, null);
-                await RespondAsync("The following media will be queued:", embed: embed, ephemeral: true);
-            }
-            catch (Exception ex)
-            {
-                await RespondAsync($"Error occured getting media info: {ex}");
-                return;
-            }
-        }
-        else
-        {
-            await DeferAsync(); // Command can take a long time.
-        }
+
+        if (Jukebox.Playing) await DeferAsync(true);
+        else await DeferAsync();
 
         try
         {
             JukeboxInterface player = new(Context.Interaction);
-            await Jukebox.PlayAsync(request, voice, player);
+            var result = await Jukebox.PlayAsync(request, voice, player);
+            if (result == Jukebox.PlayResult.Queued)
+            {
+                var info = await request.GetInfoAsync();
+                var embed = EmbedUtils.CreateMediaEmbed(info, null);
+                await ModifyOriginalResponseAsync(x =>
+                {
+                    x.Content = "The following media was queued:";
+                    x.Embed = embed;
+                });
+            }
         }
         catch (EmptyChannelException)
         {

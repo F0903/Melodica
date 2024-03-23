@@ -81,6 +81,7 @@ internal sealed partial class AsyncSoundcloudDownloader : IAsyncDownloader
         PlayableMediaStream? current = null;
         foreach (var track in playlist.Tracks)
         {
+            //TODO: Convert to lazy getter?
             var trackInfo = TrackToMediaInfo(track);
             var media = await CreatePlayableMediaAsync(trackInfo, info);
             if (first is null)

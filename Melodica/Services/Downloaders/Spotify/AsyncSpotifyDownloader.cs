@@ -1,8 +1,8 @@
-﻿using System.Collections.Generic;
-using System.Text.RegularExpressions;
+﻿using System.Text.RegularExpressions;
 using Melodica.Config;
 using Melodica.Services.Caching;
 using Melodica.Services.Downloaders.Exceptions;
+using Melodica.Services.Downloaders.YouTube;
 using Melodica.Services.Media;
 using Melodica.Utility;
 using SpotifyAPI.Web;
@@ -146,15 +146,32 @@ public sealed partial class AsyncSpotifyDownloader : IAsyncDownloader
     static async ValueTask<PlayableMediaStream> DownloadFromProviderAsync(MediaInfo info)
     {
         if (await cache.TryGetAsync(info.Id) is var cachedMedia && cachedMedia is not null)
-        {
             return cachedMedia;
+
+        static async Task<Stream> DataGetter(MediaInfo info)
+        {
+            try
+            {
+                if (downloader is AsyncYoutubeDownloader yt)
+                {
+                    var extInfo = await downloader.GetInfoAsync($"{info.Artist} {info.Title}".AsMemory());
+                    return await yt.GetMediaHttpStreamAsync(extInfo);
+                }
+                throw new NotSupportedException("Only YouTube fallback downloader is supported for this operation with Spotify.");
+            }
+            catch (Exception ex)
+            {
+                throw new MediaUnavailableException("Video was unavailable.", ex);
+            }
         }
 
-        var extInfo = await downloader.GetInfoAsync($"{info.Artist} {info.Title}".AsMemory());
-        var extMedia = await downloader.DownloadAsync(extInfo);
-
-        extMedia.SetInfo(info with { Id = extInfo.Id, Url = extInfo.Url });
-        return extMedia;
+        var media = new PlayableMediaStream(
+            (Func<MediaInfo, Task<Stream>>)DataGetter,
+            (Func<Task<MediaInfo>>)(() => info.WrapTask()),
+            null,
+            cache
+        );
+        return media;
     }
 
     static async ValueTask<PlayableMediaStream> DownloadSpotifyAlbumAsync(FullAlbum album)
@@ -194,6 +211,7 @@ public sealed partial class AsyncSpotifyDownloader : IAsyncDownloader
         {
             var info = FullTrackToMediaInfo(track);
             var media = await DownloadFromProviderAsync(info);
+
             if (first is null)
             {
                 first = media;
@@ -201,6 +219,7 @@ public sealed partial class AsyncSpotifyDownloader : IAsyncDownloader
                 continue;
             }
             current!.Next = media;
+            current = current.Next;
         }
 
         return first!;

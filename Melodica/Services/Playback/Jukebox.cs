@@ -125,17 +125,12 @@ public sealed class Jukebox
                 token
             );
         }
-        catch (Exception ex) when (ex is not OperationCanceledException)
-        {
-            Log.Error(ex, $"Got exception when trying to write audio:\n{ex.Message}");
-        }
-        finally
-        {
-            Log.Debug("Finished sending data... Flushing...");
-            await output.WriteSilentFramesAsync();
-            await output.FlushAsync(token);
-            durationTimer.Reset();
-        }
+        catch (OperationCanceledException) { }
+
+        Log.Debug("Finished sending data... Flushing...");
+        await output.WriteSilentFramesAsync();
+        await output.FlushAsync(token);
+        durationTimer.Reset();
     }
 
     async Task DisconnectAsync()
