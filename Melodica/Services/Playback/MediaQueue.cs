@@ -12,11 +12,6 @@ public sealed class MediaQueue
 
     private PlayableMediaStream? start;
 
-    private PlayableMediaStream? lastDequeued = null;
-
-    // Returns same media over and over.
-    public bool Loop { get; set; }
-
     // Returns next media, putting the last at the end of the queue.
     public bool Repeat { get; set; }
 
@@ -132,12 +127,11 @@ public sealed class MediaQueue
 
     public ValueTask<PlayableMediaStream> DequeueAsync()
     {
-        if (Loop && lastDequeued is not null)
-            return lastDequeued.WrapValueTask();
         lock (locker)
         {
             var index = Shuffle ? rng.Next(0, Length) : 0;
-            return (Repeat ? GetAt(index) : RemoveAt(index)).WrapValueTask();
+            var dequeued = Repeat ? GetAt(index) : RemoveAt(index);
+            return dequeued.WrapValueTask();
         }
     }
 

@@ -20,7 +20,7 @@ public sealed record CachedMediaInfo : MediaInfo
     }
 
     [NonSerialized]
-    private string cacheRoot;
+    private readonly string cacheRoot;
 
     [NonSerialized]
     public const string MetaFileExtension = ".meta";
@@ -32,7 +32,9 @@ public sealed record CachedMediaInfo : MediaInfo
 
     public string MediaPath { get; init; }
 
-    public bool IsMediaComplete { get; set; }
+    public bool IsComplete { get; set; }
+
+    public bool IsWriting { get; set; }
 
     public static async ValueTask<CachedMediaInfo> LoadFromDisk(string path)
     {

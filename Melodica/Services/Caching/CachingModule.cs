@@ -7,5 +7,5 @@ public sealed class CachingModule : DependencyModule
 {
     public override IServiceCollection Load() =>
         new ServiceCollection()
-        .AddSingleton<MediaFileCache>();
+        .AddSingleton<IMediaCache, MediaFileCache>();
 }

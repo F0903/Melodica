@@ -49,11 +49,18 @@ public sealed class MediaFileCache : IMediaCache
 
     private async Task LoadPreexistingFilesAsync()
     {
-        foreach (var metaFile in Directory.EnumerateFileSystemEntries(cacheLocation, $"*{CachedMediaInfo.MetaFileExtension}", SearchOption.AllDirectories).Convert(x => new FileInfo(x)))
+        var dirEnumerator = Directory.EnumerateFileSystemEntries(cacheLocation, $"*{CachedMediaInfo.MetaFileExtension}", SearchOption.AllDirectories).Convert(x => new FileInfo(x));
+        await Parallel.ForEachAsync(dirEnumerator, async (metaFile, cancel) =>
         {
             try
             {
                 var info = await CachedMediaInfo.LoadFromDisk(metaFile.FullName);
+                if (!info.IsComplete)
+                {
+                    DeleteMedia(metaFile);
+                    return;
+                }
+                info.IsWriting = false;
                 var id = info.Id ?? throw new Exception("Id was null.");
                 cache.Add(id, new(info, 0));
             }
@@ -61,7 +68,7 @@ public sealed class MediaFileCache : IMediaCache
             {
                 DeleteMedia(metaFile);
             }
-        }
+        });
     }
 
     static bool DeleteMedia(FileInfo file)
@@ -187,7 +194,7 @@ public sealed class MediaFileCache : IMediaCache
         {
             var mediaInfo = cacheInfo.CachedMediaInfo;
 
-            if (!mediaInfo.IsMediaComplete)
+            if (!mediaInfo.IsComplete && !mediaInfo.IsWriting)
             {
                 try
                 {
@@ -198,11 +205,15 @@ public sealed class MediaFileCache : IMediaCache
                 return default;
             }
 
-            cache[id] = cacheInfo with { AccessCount = cacheInfo.AccessCount + 1 };
-            var media = new PlayableMediaStream(File.OpenRead(mediaInfo.MediaPath), mediaInfo, null, null);
-            return media.WrapValueTask<PlayableMediaStream?>();
+            try
+            {
+                cache[id] = cacheInfo with { AccessCount = cacheInfo.AccessCount + 1 };
+                var fs = File.Open(mediaInfo.MediaPath, FileMode.Open, FileAccess.Read, FileShare.Read); // Stream closing will be handled later.
+                var media = new PlayableMediaStream(fs, mediaInfo, null, null);
+                return media.WrapValueTask<PlayableMediaStream?>();
+            }
+            catch { }
         }
-
         return default;
     }
 
@@ -224,11 +235,12 @@ public sealed class MediaFileCache : IMediaCache
 
         var fileLegalId = id.ReplaceIllegalCharacters();
         var mediaLocation = Path.Combine(cacheLocation, fileLegalId);
-        var file = File.OpenWrite(mediaLocation);
+        var file = File.Open(mediaLocation, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.Read);
 
         var cachedMediaInfo = new CachedMediaInfo(mediaLocation, cacheLocation, info)
         {
-            IsMediaComplete = false,
+            IsComplete = false,
+            IsWriting = true,
         };
         await cachedMediaInfo.WriteToDisk();
 

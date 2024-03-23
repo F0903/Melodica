@@ -6,5 +6,5 @@ namespace Melodica.Services.Audio;
 public interface IAsyncMediaProcessor : IDisposable
 {
     public void SetPause(bool value);
-    public Task ProcessMediaAsync(PlayableMediaStream media, Stream output, Action? beforeInterruptionCallback, CancellationToken token);
+    public Task ProcessMediaAsync(PlayableMediaStream media, Stream output, Action? onHalt, Action? onResume, CancellationToken token);
 }

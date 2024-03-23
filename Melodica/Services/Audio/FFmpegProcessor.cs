@@ -1,12 +1,13 @@
-﻿using System.Diagnostics;
-using System.Reflection.Metadata.Ecma335;
-using Melodica.Services.Caching;
+﻿using System.Buffers;
+using System.Diagnostics;
 using Melodica.Services.Media;
 
 namespace Melodica.Services.Audio;
 
 public class FFmpegProcessor : IAsyncMediaProcessor
 {
+    readonly static MemoryPool<byte> memory = MemoryPool<byte>.Shared;
+
     Process? proc;
 
     Stream? processInput;
@@ -60,7 +61,7 @@ public class FFmpegProcessor : IAsyncMediaProcessor
         else pauseWaiter.Set();
     }
 
-    public async Task ProcessMediaAsync(PlayableMediaStream media, Stream output, Action? beforeInterruptionCallback, CancellationToken token)
+    public async Task ProcessMediaAsync(PlayableMediaStream media, Stream output, Action? onHalt, Action? onResume, CancellationToken token)
     {
         if (proc is null || proc.HasExited)
         {
@@ -73,8 +74,9 @@ public class FFmpegProcessor : IAsyncMediaProcessor
         void HandlePause()
         {
             if (!paused) return;
-            beforeInterruptionCallback?.Invoke();
+            onHalt?.Invoke();
             pauseWaiter.WaitOne();
+            onResume?.Invoke();
         }
 
         const int bufferSize = 8 * 1024;
@@ -84,7 +86,8 @@ public class FFmpegProcessor : IAsyncMediaProcessor
             var inputTask = Task.Run(async () =>
             {
                 int read = 0;
-                Memory<byte> buf = new byte[bufferSize];
+                using var mem = memory.Rent(bufferSize);
+                var buf = mem.Memory;
                 try
                 {
                     while ((read = await media.ReadAsync(buf, token)) != 0)
@@ -92,19 +95,20 @@ public class FFmpegProcessor : IAsyncMediaProcessor
                         HandlePause();
                         await processInput!.WriteAsync(buf[..read], token);
                     }
-                } 
+                }
                 finally
                 {
                     await processInput!.FlushAsync(token);
                     processInput!.Close();
                 }
-                
+
             }, token);
 
             var outputTask = Task.Run(async () =>
             {
                 int read = 0;
-                Memory<byte> buf = new byte[bufferSize];
+                using var mem = memory.Rent(bufferSize);
+                var buf = mem.Memory;
                 while ((read = await processOutput!.ReadAsync(buf, token)) != 0)
                 {
                     HandlePause();

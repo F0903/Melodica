@@ -26,7 +26,7 @@ public sealed class Jukebox
 
     public bool Playing => !playLock.IsSet;
 
-    public bool Loop => Queue.Loop;
+    public bool Loop { get; private set; }
 
     public bool Shuffle => Queue.Shuffle;
 
@@ -64,7 +64,7 @@ public sealed class Jukebox
 
     public async Task SetLoopAsync(bool value)
     {
-        Queue.Loop = value;
+        Loop = value;
         if (currentPlayer is not null)
         {
             await currentPlayer.SetButtonStateAsync(JukeboxInterfaceButton.Loop, value);
@@ -102,18 +102,28 @@ public sealed class Jukebox
     async Task SendDataAsync(PlayableMediaStream media, OpusEncodeStream output, CancellationToken token)
     {
         const int frameBytes = 3840;
-        
+
         try
         {
             using var memHandle = memory.Rent(frameBytes);
             var buffer = memHandle.Memory;
             durationTimer.Start();
 
-            await mediaProcessor.ProcessMediaAsync(media, output, async () =>
-            {
-                await output.WriteSilentFramesAsync();
-                await output.FlushAsync();
-            }, token);
+            await mediaProcessor.ProcessMediaAsync(
+                media,
+                output,
+                async () =>
+                {
+                    durationTimer.Stop();
+                    await output.WriteSilentFramesAsync();
+                    await output.FlushAsync();
+                },
+                () =>
+                {
+                    durationTimer.Start();
+                },
+                token
+            );
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
@@ -124,9 +134,6 @@ public sealed class Jukebox
             Log.Debug("Finished sending data... Flushing...");
             await output.WriteSilentFramesAsync();
             await output.FlushAsync(token);
-
-            media.Close();
-
             durationTimer.Reset();
         }
     }
@@ -199,20 +206,29 @@ public sealed class Jukebox
 
     async Task PlayNextAsync(IAudioChannel channel, OpusEncodeStream output)
     {
+        if (Queue.IsEmpty)
+        {
+            await DisconnectAsync();
+            return;
+        }
+
         var media = await Queue.DequeueAsync();
         CurrentSong = await media.GetInfoAsync();
 
         await currentPlayer!.SetSongEmbedAsync(CurrentSong, null); //TODO: Consider reimplementing collectionInfo / playlist info again.
 
-        var donePlaying = false;
         try
         {
             stopper = new();
             var stopToken = stopper.Token;
             Log.Debug("Starting sending data..");
-            await SendDataAsync(media, output, stopToken);
+            do
+            {
+                await SendDataAsync(media, output, stopToken);
+                if (Loop && media.CanSeek) media.Seek(0, SeekOrigin.Begin);
+            } while (Loop);
         }
-        catch (OperationCanceledException) 
+        catch (OperationCanceledException)
         {
             Log.Debug("Caught operation cancelled exception in PlayNext.");
         }
@@ -226,18 +242,8 @@ public sealed class Jukebox
         {
             stopper?.Dispose();
             stopper = null;
-            if (!Loop)
-            {
-                await media.DisposeAsync();
-                if (Queue.IsEmpty)
-                {
-                    await DisconnectAsync();
-                    donePlaying = true;
-                }
-            }
+            await media.DisposeAsync();
         }
-        if (donePlaying)
-            return;
 
         await PlayNextAsync(channel, output);
     }
