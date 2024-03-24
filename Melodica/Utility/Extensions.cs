@@ -16,12 +16,6 @@ public static partial class Extensions
 
     private static char[]? cachedIllegalChars;
 
-    public static string ExtractFormatFromFileUrl(this ReadOnlySpan<char> url)
-    {
-        var dotIndex = url.LastIndexOf('.') + 1;
-        return url[dotIndex..].ToString();
-    }
-
     public static bool IsOverSize<T>(this IEnumerable<T> list, int exclusiveLimit)
     {
         var i = 0;
@@ -49,24 +43,16 @@ public static partial class Extensions
 
     public static (string artist, string newTitle) SeperateArtistName(this ReadOnlySpan<char> songTitle, string backupArtistName = "Unknown Artist")
     {
-        var charIndx = songTitle.IndexOf('-');
+        var seperatorIndex = songTitle.IndexOf(" - ");
         int spaceIndx;
-        var containsSeperator = charIndx != -1;
-        var endIndx = containsSeperator ? charIndx - 1 : (spaceIndx = songTitle.IndexOf(' ')) != -1 ? spaceIndx : songTitle.Length;
+        var containsSeperator = seperatorIndex != -1;
+        var endIndx = containsSeperator ? seperatorIndex - 1 : (spaceIndx = songTitle.IndexOf(' ')) != -1 ? spaceIndx : songTitle.Length;
 
         var useBackup = endIndx == songTitle.Length;
         var artist = useBackup ? backupArtistName : songTitle[0..endIndx].ToString();
         var titleOffset = endIndx + (containsSeperator ? 3 : 1);
         var title = useBackup ? songTitle.ToString() : songTitle[titleOffset..songTitle.Length].ToString();
         return (artist, title);
-    }
-
-    public static string ExtractArtistName(this ReadOnlySpan<char> songTitle)
-    {
-        var charIndx = songTitle.IndexOf('-');
-        int spaceIndx;
-        var endIndx = charIndx != -1 ? charIndx - 1 : (spaceIndx = songTitle.IndexOf(' ')) != -1 ? spaceIndx : songTitle.Length;
-        return songTitle[0..endIndx].ToString();
     }
 
     public static string UrlFriendlyfy(this string input)
@@ -142,12 +128,6 @@ public static partial class Extensions
             yield return body(elem);
     }
 
-    public static bool CheckForUser(this SocketGuild guild, string user) => guild.AutoGetUser(user) != null;
-
-    public static SocketGuildUser? AutoGetUser(this SocketGuild guild, string user) => guild.Users.SingleOrDefault(x => x.Username == user || x.Nickname == user || x.Id.ToString() == user);
-
-    public static bool IsOwnerOfApp(this IUser user) => user.Id == Dependency.Get<DiscordSocketClient>().GetApplicationInfoAsync().Result.Owner.Id;
-
     public static string ReplaceIllegalCharacters(this string str, char replacer = '_')
     {
         cachedIllegalChars ??= Path.GetInvalidFileNameChars().Union(customIllegalChars).ToArray();
@@ -159,8 +139,10 @@ public static partial class Extensions
     [GeneratedRegex(@"((http)|(https)):\/\/.+", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.Singleline)]
     private static partial Regex UrlRegex();
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool IsUrl(this ReadOnlySpan<char> str) => UrlRegex().IsMatch(str);
-
+    
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool IsUrl(this ReadOnlyMemory<char> str) => UrlRegex().IsMatch(str.Span);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
