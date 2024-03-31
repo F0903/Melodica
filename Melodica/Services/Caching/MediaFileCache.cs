@@ -1,9 +1,6 @@
-﻿using System;
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using Melodica.Config;
-using Melodica.Services.Downloaders.Exceptions;
 using Melodica.Services.Media;
-using Melodica.Services.Serialization;
 using Melodica.Utility;
 
 namespace Melodica.Services.Caching;
@@ -209,7 +206,7 @@ public sealed class MediaFileCache : IMediaCache
             try
             {
                 cache[id] = cacheInfo with { AccessCount = cacheInfo.AccessCount + 1 };
-                var fs = File.Open(mediaInfo.MediaPath, FileMode.Open, FileAccess.Read, FileShare.Read); // Stream closing will be handled later.
+                var fs = new ReopeningFileStream(mediaInfo.MediaPath, FileMode.Open, FileAccess.Read, FileShare.Read);
                 var media = new PlayableMediaStream(fs, mediaInfo, null, null);
                 return media.WrapValueTask<PlayableMediaStream?>();
             }
@@ -236,7 +233,7 @@ public sealed class MediaFileCache : IMediaCache
 
         var fileLegalId = id.ReplaceIllegalCharacters();
         var mediaLocation = Path.Combine(cacheLocation, fileLegalId);
-        var file = File.Open(mediaLocation, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.Read);
+        var file = new ReopeningFileStream(mediaLocation, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.Read);
 
         var cachedMediaInfo = new CachedMediaInfo(mediaLocation, cacheLocation, info)
         {

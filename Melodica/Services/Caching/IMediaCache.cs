@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Melodica.Services.Media;
+﻿using Melodica.Services.Media;
 
 namespace Melodica.Services.Caching;
 public interface IMediaCache
