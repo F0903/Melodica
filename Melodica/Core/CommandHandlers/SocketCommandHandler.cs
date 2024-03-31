@@ -78,7 +78,7 @@ public sealed class SocketCommandHandler(DiscordSocketClient client) : IAsyncCom
             Log.ForContext("CmdModule", info.Module)
             .ForContext("CmdName", info.Name)
             .ForContext("Guild", context.Guild)
-            .Error("Command threw an exception {Error}", $"{info.Name} => {result.ErrorReason}");
+            .Error("Command threw an exception {Error}", $"{info.Name} ({result.Error?.ToString()}) => {result.ErrorReason}");
 
             var errorEmbed = await BuildErrorEmbedAsync(result.ErrorReason);
             if (context.Interaction.HasResponded)

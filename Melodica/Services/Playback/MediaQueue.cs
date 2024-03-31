@@ -1,5 +1,4 @@
 ﻿using Melodica.Services.Media;
-using Melodica.Services.Playback.Requests;
 using Melodica.Utility;
 
 namespace Melodica.Services.Playback;

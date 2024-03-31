@@ -220,7 +220,6 @@ public sealed class Jukebox
             do
             {
                 await SendDataAsync(media, output, stopToken);
-                if (Loop && media.CanSeek) media.Seek(0, SeekOrigin.Begin);
             } while (Loop);
         }
         catch (OperationCanceledException)

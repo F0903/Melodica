@@ -1,9 +1,6 @@
 ﻿using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.RegularExpressions;
-using Discord;
-using Discord.WebSocket;
-using Melodica.Dependencies;
 
 namespace Melodica.Utility;
 
@@ -46,7 +43,7 @@ public static partial class Extensions
         var seperatorIndex = songTitle.IndexOf(" - ");
         int spaceIndx;
         var containsSeperator = seperatorIndex != -1;
-        var endIndx = containsSeperator ? seperatorIndex - 1 : (spaceIndx = songTitle.IndexOf(' ')) != -1 ? spaceIndx : songTitle.Length;
+        var endIndx = containsSeperator ? seperatorIndex : (spaceIndx = songTitle.IndexOf(' ')) != -1 ? spaceIndx : songTitle.Length;
 
         var useBackup = endIndx == songTitle.Length;
         var artist = useBackup ? backupArtistName : songTitle[0..endIndx].ToString();
