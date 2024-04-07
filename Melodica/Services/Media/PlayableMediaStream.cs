@@ -45,6 +45,7 @@ public class PlayableMediaStream(AsyncParameterizedLazyGetter<Stream, MediaInfo>
         var info = await GetInfoAsync();
         var read = await data.ReadAsync(buffer, cancellationToken);
 
+        //TODO: possible bug that the same cached stream can't be played on repeat twice.
         if (read == 0) // No more input; we are done
         {
             if (cachingProvider is not null)
@@ -52,7 +53,6 @@ public class PlayableMediaStream(AsyncParameterizedLazyGetter<Stream, MediaInfo>
                 await cachingProvider.TryEditCacheInfo(info.Id, x =>
                 {
                     x.IsComplete = true;
-                    x.IsWriting = false;
                     return x;
                 });
                 SwitchToCacheStream();

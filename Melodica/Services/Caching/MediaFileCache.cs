@@ -58,7 +58,6 @@ public sealed class MediaFileCache : IMediaCache
                     DeleteMedia(metaFile);
                     return;
                 }
-                info.IsWriting = false;
                 var id = info.Id ?? throw new Exception("Id was null.");
                 cache.Add(id, new(info, 0));
             }
@@ -192,7 +191,7 @@ public sealed class MediaFileCache : IMediaCache
         {
             var mediaInfo = cacheInfo.CachedMediaInfo;
 
-            if (!mediaInfo.IsComplete && !mediaInfo.IsWriting)
+            if (!mediaInfo.IsComplete)
             {
                 try
                 {
@@ -238,7 +237,6 @@ public sealed class MediaFileCache : IMediaCache
         var cachedMediaInfo = new CachedMediaInfo(mediaLocation, cacheLocation, info)
         {
             IsComplete = false,
-            IsWriting = true,
         };
         await cachedMediaInfo.WriteToDisk();
 

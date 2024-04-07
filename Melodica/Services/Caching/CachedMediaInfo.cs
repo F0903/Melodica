@@ -34,8 +34,6 @@ public sealed record CachedMediaInfo : MediaInfo
 
     public bool IsComplete { get; set; }
 
-    public bool IsWriting { get; set; }
-
     public static async ValueTask<CachedMediaInfo> LoadFromDisk(string path)
     {
         var onDisk = await Serializer.DeserializeFileAsync<CachedMediaInfo>(Path.ChangeExtension(path, MetaFileExtension));
