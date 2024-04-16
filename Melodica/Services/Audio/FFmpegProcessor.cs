@@ -28,9 +28,10 @@ public class FFmpegProcessor : IAsyncMediaProcessor
         GC.SuppressFinalize(this);
     }
 
-    Task StartProcess(string? explicitDataFormat)
+    Task StartProcessAsync(string? explicitDataFormat)
     {
-        var args = $"-nostdin -y -hide_banner -loglevel panic -strict experimental -vn -protocol_whitelist pipe,file,http,https,tcp,tls,crypto {(explicitDataFormat is not null ? $"-f {explicitDataFormat}" : "")} -i pipe: -f s16le -ac 2 -ar 48000 pipe:";
+        //TODO: remove debug logging
+        var args = $"-nostdin -y -hide_banner -loglevel debug -strict experimental -vn -protocol_whitelist pipe,file,http,https,tcp,tls,crypto {(explicitDataFormat is not null ? $"-f {explicitDataFormat}" : "")} -i pipe: -f s16le -ac 2 -ar 48000 pipe:";
 
         proc = new()
         {
@@ -39,7 +40,7 @@ public class FFmpegProcessor : IAsyncMediaProcessor
                 FileName = "ffmpeg",
                 Arguments = args,
                 UseShellExecute = false,
-                RedirectStandardError = false,
+                RedirectStandardError = true,
                 RedirectStandardInput = true,
                 RedirectStandardOutput = true,
                 CreateNoWindow = true,
@@ -51,6 +52,19 @@ public class FFmpegProcessor : IAsyncMediaProcessor
         processInput = proc.StandardInput.BaseStream;
         processOutput = proc.StandardOutput.BaseStream;
 
+        //TODO: remove debug logging
+        //DEBUGGING
+        Task.Run(() =>
+        {
+            var err = proc.StandardError;
+            while (true)
+            {
+                var line = err.ReadLine();
+                if (line is null) break;
+                Console.WriteLine(line);
+            }
+        });
+
         return Task.CompletedTask;
     }
 
@@ -61,15 +75,15 @@ public class FFmpegProcessor : IAsyncMediaProcessor
         else pauseWaiter.Set();
     }
 
-    public async Task ProcessMediaAsync(PlayableMediaStream media, Stream output, Action? onHalt, Action? onResume, CancellationToken token)
+    public async Task ProcessMediaAsync(PlayableMedia media, Stream output, Action? onHalt, Action? onResume, int bufferSize = 3840, CancellationToken cancellationToken = default)
     {
         if (proc is null || proc.HasExited)
         {
-            var info = await media.GetInfoAsync();
-            await StartProcess(info.ExplicitDataFormat);
+            var info = await media.GetInfoAsync(cancellationToken);
+            await StartProcessAsync(info.ExplicitDataFormat);
         }
 
-        var tokenCallback = token.Register(() => SetPause(false)); // Make sure we are not blocking by waiting when requesting cancel.
+        var tokenCallback = cancellationToken.Register(() => SetPause(false)); // Make sure we are not blocking by waiting when requesting cancel.
 
         void HandlePause()
         {
@@ -78,8 +92,6 @@ public class FFmpegProcessor : IAsyncMediaProcessor
             pauseWaiter.WaitOne();
             onResume?.Invoke();
         }
-
-        const int bufferSize = 8 * 1024;
 
         try
         {
@@ -90,38 +102,43 @@ public class FFmpegProcessor : IAsyncMediaProcessor
                 var buf = mem.Memory;
                 try
                 {
-                    while ((read = await media.ReadAsync(buf, token)) != 0)
+                    while ((read = await media.ReadAsync(buf, cancellationToken)) != 0)
                     {
                         HandlePause();
-                        await processInput!.WriteAsync(buf[..read], token);
+                        await processInput!.WriteAsync(buf[..read], cancellationToken);
                     }
                 }
                 finally
                 {
-                    await processInput!.FlushAsync(token);
+                    await processInput!.FlushAsync(cancellationToken);
                     processInput!.Close();
                 }
 
-            }, token);
+            }, cancellationToken);
 
             var outputTask = Task.Run(async () =>
             {
                 int read = 0;
                 using var mem = memory.Rent(bufferSize);
                 var buf = mem.Memory;
-                while ((read = await processOutput!.ReadAsync(buf, token)) != 0)
+                while ((read = await processOutput!.ReadAsync(buf, cancellationToken)) != 0)
                 {
                     HandlePause();
-                    await output.WriteAsync(buf[..read], token);
+                    await output.WriteAsync(buf[..read], cancellationToken);
                 }
-            }, token);
+            }, cancellationToken);
 
             await Task.WhenAll(inputTask, outputTask);
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"Caught error in FFmpegProcessor!\n{ex}");
         }
         finally
         {
             tokenCallback.Unregister();
-            proc!.Kill();
+            proc!.Close();
+            proc = null;
         }
     }
 }

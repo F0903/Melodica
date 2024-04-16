@@ -14,13 +14,19 @@ public class AsyncLazyGetter<T>
         this.valueSource = valueSource;
         this.value = null;
     }
-    readonly T? value;
+
+    T? value;
 
     readonly Func<Task<T>>? valueSource;
 
     public async Task<T> GetAsync()
     {
-        return value ?? await valueSource!();
+        return value ??= await valueSource!();
+    }
+
+    public void SetValue(T? value)
+    {
+        this.value = value;
     }
 
     public static implicit operator AsyncLazyGetter<T>(Func<Task<T>> valueSource)
@@ -49,13 +55,19 @@ public class AsyncParameterizedLazyGetter<T, A>
         this.valueSource = valueSource;
         this.value = null;
     }
-    readonly T? value;
+
+    T? value;
 
     readonly Func<A, Task<T>>? valueSource;
 
     public async Task<T> GetAsync(A arg)
     {
-        return value ?? await valueSource!(arg);
+        return value ??= await valueSource!(arg);
+    }
+
+    public void SetValue(T? value)
+    {
+        this.value = value;
     }
 
     public static implicit operator AsyncParameterizedLazyGetter<T, A>(Func<A, Task<T>> valueSource)

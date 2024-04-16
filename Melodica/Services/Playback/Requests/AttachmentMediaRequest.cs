@@ -1,7 +1,7 @@
 ﻿using System.Text;
 using Melodica.Services.Caching;
 using Melodica.Services.Media;
-using Melodica.Utility;
+using Melodica.Utility.Extensions;
 
 namespace Melodica.Services.Playback.Requests;
 
@@ -25,11 +25,11 @@ public sealed class AttachmentMediaRequest(Discord.Attachment[] attachments) : I
 
     public Task<MediaInfo> GetInfoAsync() => (info ??= SetInfo()).WrapTask();
 
-    public async Task<PlayableMediaStream> GetMediaAsync()
+    public async Task<PlayableMedia> GetMediaAsync()
     {
         var remote = attachment.Url;
         var data = await http.GetStreamAsync(remote);
-        var media = new PlayableMediaStream(data, await GetInfoAsync(), null, null);
+        var media = new PlayableMedia(data, await GetInfoAsync(), null);
         return media;
     }
 }

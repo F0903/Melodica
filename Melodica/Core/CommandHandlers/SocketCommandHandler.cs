@@ -4,7 +4,7 @@ using Discord.Interactions;
 using Discord.WebSocket;
 using Melodica.Config;
 using Melodica.Dependencies;
-using Melodica.Utility;
+using Melodica.Utility.Extensions;
 using Serilog;
 
 namespace Melodica.Core.CommandHandlers;

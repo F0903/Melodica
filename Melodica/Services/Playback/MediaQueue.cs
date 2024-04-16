@@ -1,5 +1,5 @@
 ﻿using Melodica.Services.Media;
-using Melodica.Utility;
+using Melodica.Utility.Extensions;
 
 namespace Melodica.Services.Playback;
 
@@ -9,7 +9,7 @@ public sealed class MediaQueue
 
     private readonly object locker = new();
 
-    private PlayableMediaStream? start;
+    private PlayableMedia? start;
 
     // Returns next media, putting the last at the end of the queue.
     public bool Repeat { get; set; }
@@ -36,7 +36,7 @@ public sealed class MediaQueue
         return time;
     }
 
-    static (PlayableMediaStream, int) GetLastNodeOf(PlayableMediaStream node)
+    static (PlayableMedia, int) GetLastNodeOf(PlayableMedia node)
     {
         int count = 0;
         var lastNode = node;
@@ -50,7 +50,7 @@ public sealed class MediaQueue
         return (lastNode, count);
     }
 
-    public PlayableMediaStream GetAt(int index)
+    public PlayableMedia GetAt(int index)
     {
         var current = start ?? throw new NullReferenceException("Start node was null.");
         for (var i = 0; i < index; i++)
@@ -60,7 +60,7 @@ public sealed class MediaQueue
         return current;
     }
 
-    void InsertAt(PlayableMediaStream media, int index)
+    void InsertAt(PlayableMedia media, int index)
     {
         if (index == 0)
         {
@@ -81,7 +81,7 @@ public sealed class MediaQueue
         Length += count;
     }
 
-    PlayableMediaStream RemoveAt(int index)
+    PlayableMedia RemoveAt(int index)
     {
         if (index == 0)
         {
@@ -106,7 +106,7 @@ public sealed class MediaQueue
         return indexNode;
     }
 
-    public ValueTask EnqueueAsync(PlayableMediaStream media)
+    public ValueTask EnqueueAsync(PlayableMedia media)
     {
         lock (locker)
         {
@@ -115,7 +115,7 @@ public sealed class MediaQueue
         return ValueTask.CompletedTask;
     }
 
-    public ValueTask PutFirstAsync(PlayableMediaStream media)
+    public ValueTask PutFirstAsync(PlayableMedia media)
     {
         lock (locker)
         {
@@ -124,7 +124,7 @@ public sealed class MediaQueue
         return ValueTask.CompletedTask;
     }
 
-    public ValueTask<PlayableMediaStream> DequeueAsync()
+    public ValueTask<PlayableMedia> DequeueAsync()
     {
         lock (locker)
         {
@@ -135,7 +135,7 @@ public sealed class MediaQueue
     }
 
     /// <returns>The starting node.</returns>
-    public ValueTask<PlayableMediaStream?> ClearAsync()
+    public ValueTask<PlayableMedia?> ClearAsync()
     {
         if (start is null) return default;
         var original = start;
@@ -145,15 +145,15 @@ public sealed class MediaQueue
             start = null;
             Length = 0;
         }
-        return original.WrapValueTask<PlayableMediaStream?>();
+        return original.WrapValueTask<PlayableMedia?>();
     }
 
-    public ValueTask<PlayableMediaStream> RemoveAtAsync(int index)
+    public ValueTask<PlayableMedia> RemoveAtAsync(int index)
     {
         return RemoveAt(index).WrapValueTask();
     }
 
-    public ValueTask<PlayableMediaStream> RemoveAtAsync(Index index)
+    public ValueTask<PlayableMedia> RemoveAtAsync(Index index)
     {
         lock (locker)
         {

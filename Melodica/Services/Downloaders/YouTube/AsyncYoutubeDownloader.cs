@@ -1,9 +1,11 @@
-﻿using System.Text.RegularExpressions;
+﻿using System.IO;
+using System.Text.RegularExpressions;
 using AngleSharp.Text;
 using Melodica.Services.Caching;
 using Melodica.Services.Downloaders.Exceptions;
 using Melodica.Services.Media;
 using Melodica.Utility;
+using Melodica.Utility.Extensions;
 using YoutubeExplode;
 using YoutubeExplode.Playlists;
 using YoutubeExplode.Videos;
@@ -132,15 +134,20 @@ public sealed partial class AsyncYoutubeDownloader : IAsyncDownloader
         return await GetInfoFromIdAsync(result.Id.Value.AsMemory());
     }
 
-    static async Task<PlayableMediaStream> DownloadLivestream(MediaInfo info)
+    static Task<PlayableMedia> DownloadLivestream(MediaInfo info)
     {
-        var streamUrl = await yt.Videos.Streams.GetHttpLiveStreamUrlAsync(info.Id);
-        using var http = new HttpClient();
-        var bytes = await http.GetByteArrayAsync(streamUrl);
-        var stream = new MemoryStream(bytes, false);
-        info.ExplicitDataFormat = "hls";
-        var media = new PlayableMediaStream(stream, info, null, cache);
-        return media;
+        static async Task<Stream> DataGetter(MediaInfo info)
+        {
+            var streamUrl = await yt.Videos.Streams.GetHttpLiveStreamUrlAsync(info.Id);
+            using var http = new HttpClient();
+            var bytes = await http.GetByteArrayAsync(streamUrl);
+            var stream = new MemoryStream(bytes, false);
+            info.ExplicitDataFormat = "hls";
+            return stream;
+        }
+
+        var media = new CachingPlayableMedia((Func<MediaInfo, Task<Stream>>)DataGetter, info, null, cache);
+        return media.WrapTask<PlayableMedia>();
     }
 
     internal async Task<Stream> GetMediaHttpStreamAsync(MediaInfo info)
@@ -150,30 +157,21 @@ public sealed partial class AsyncYoutubeDownloader : IAsyncDownloader
         return await yt.Videos.Streams.GetAsync(streamInfo);
     }
 
-    async Task<PlayableMediaStream> GetPlayableMediaFromInfoAsync(MediaInfo info)
+    async Task<PlayableMedia> GetPlayableMediaFromInfoAsync(MediaInfo info)
     {
         if (await cache.TryGetAsync(info.Id) is var cachedMedia && cachedMedia is not null)
         {
             return cachedMedia;
         }
-
-        Stream stream;
-        try
-        {
-            stream = await GetMediaHttpStreamAsync(info);
-        }
-        catch (Exception ex) when (IsUnavailable(ex))
-        {
-            throw new MediaUnavailableException("Video was unavailable.", ex);
-        }
-        return new PlayableMediaStream(stream, info, null, cache);
+        
+        return new CachingPlayableMedia((Func<MediaInfo, Task<Stream>>)GetMediaHttpStreamAsync, info, null, cache);
     }
 
-    static async Task<PlayableMediaStream> DownloadPlaylist(MediaInfo info)
+    static async Task<PlayableMedia> DownloadPlaylist(MediaInfo info)
     {
         var videos = yt.Playlists.GetVideosAsync(info.Id);
-        PlayableMediaStream? first = null;
-        PlayableMediaStream? current = null;
+        PlayableMedia? first = null;
+        PlayableMedia? current = null;
         await foreach (var video in videos)
         {
             if (video is null)
@@ -181,20 +179,13 @@ public sealed partial class AsyncYoutubeDownloader : IAsyncDownloader
 
             static async Task<Stream> DataGetter(MediaInfo info)
             {
-                try
-                {
-                    var manifest = await yt.Videos.Streams.GetManifestAsync(info.Id);
-                    var streamInfo = manifest.GetAudioOnlyStreams().GetWithHighestBitrate() ?? throw new NullReferenceException("Could not get stream from YouTube.");
-                    return await yt.Videos.Streams.GetAsync(streamInfo);
-                }
-                catch (Exception ex) when (IsUnavailable(ex))
-                {
-                    throw new MediaUnavailableException("Video was unavailable.", ex);
-                }
+                var manifest = await yt.Videos.Streams.GetManifestAsync(info.Id);
+                var streamInfo = manifest.GetAudioOnlyStreams().GetWithHighestBitrate() ?? throw new NullReferenceException("Could not get stream from YouTube.");
+                return await yt.Videos.Streams.GetAsync(streamInfo);
             }
 
-            var media = new PlayableMediaStream(
-                (Func<MediaInfo,Task<Stream>>)DataGetter,
+            var media = new CachingPlayableMedia(
+                (Func<MediaInfo, Task<Stream>>)DataGetter,
                 (Func<Task<MediaInfo>>)(() => VideoToMetadata(video).WrapTask()),
                 null,
                 cache
@@ -212,7 +203,7 @@ public sealed partial class AsyncYoutubeDownloader : IAsyncDownloader
         return first!;
     }
 
-    public async Task<PlayableMediaStream> DownloadAsync(MediaInfo info)
+    public async Task<PlayableMedia> DownloadAsync(MediaInfo info)
     {
         if (info.MediaType == MediaType.Playlist)
             return await DownloadPlaylist(info);

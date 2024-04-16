@@ -5,7 +5,7 @@ public interface IMediaCache
 {
     public ValueTask<MediaInfo?> TryGetInfoAsync(string id);
     
-    public ValueTask<PlayableMediaStream?> TryGetAsync(string id);
+    public ValueTask<PlayableMedia?> TryGetAsync(string id);
 
     public ValueTask TryEditCacheInfo(string id, Func<CachedMediaInfo, CachedMediaInfo> modifier);
 

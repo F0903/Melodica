@@ -6,6 +6,7 @@ using Melodica.Services.Downloaders;
 using Melodica.Services.Playback.Exceptions;
 using Melodica.Services.Playback.Requests;
 using Melodica.Utility;
+using Melodica.Utility.Extensions;
 
 namespace Melodica.Services.Playback;
 

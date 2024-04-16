@@ -7,6 +7,7 @@ using Melodica.Services.Caching;
 using Melodica.Services.Downloaders.Exceptions;
 using Melodica.Services.Media;
 using Melodica.Utility;
+using Melodica.Utility.Extensions;
 using Soundclouder;
 using Soundclouder.Entities;
 
@@ -47,19 +48,24 @@ internal sealed partial class AsyncSoundcloudDownloader : IAsyncDownloader
         };
     }
 
-    static async Task<PlayableMediaStream> CreatePlayableMediaAsync(MediaInfo info, MediaInfo? collectionInfo = null)
+    static Task<PlayableMedia> CreatePlayableMediaAsync(MediaInfo info, MediaInfo? collectionInfo = null)
     {
-        //TODO: Consider reimplementing collectionInfo / playlist info again.
-        var tracks = await search.GetTracksAsync(info.Id);
-        var streamUrl = await tracks[0].GetStreamURLAsync();
-        using var http = new HttpClient();
-        var stream = await http.GetStreamAsync(streamUrl);
-        info.ExplicitDataFormat = "hls";
-        var media = new PlayableMediaStream(stream, info, null, cache);
-        return media;
+        static async Task<Stream> DataGetter(MediaInfo info)
+        {
+            //TODO: Consider reimplementing collectionInfo / playlist info again.
+            var tracks = await search.GetTracksAsync(info.Id);
+            var streamUrl = await tracks[0].GetStreamURLAsync();
+            using var http = new HttpClient();
+            var stream = await http.GetStreamAsync(streamUrl);
+            info.ExplicitDataFormat = "hls";
+            return stream;
+        }
+        
+        var media = new CachingPlayableMedia((Func<MediaInfo, Task<Stream>>)DataGetter, info, null, cache);
+        return media.WrapTask<PlayableMedia>();
     }
 
-    static async Task<PlayableMediaStream> DownloadTrackAsync(MediaInfo info)
+    static async Task<PlayableMedia> DownloadTrackAsync(MediaInfo info)
     {
         if (await cache.TryGetAsync(info.Id) is var cachedMedia && cachedMedia is not null)
         {
@@ -68,7 +74,7 @@ internal sealed partial class AsyncSoundcloudDownloader : IAsyncDownloader
         return await CreatePlayableMediaAsync(info);
     }
 
-    static async Task<PlayableMediaStream> DownloadPlaylistAsync(MediaInfo info)
+    static async Task<PlayableMedia> DownloadPlaylistAsync(MediaInfo info)
     {
         var result = await search.ResolveAsync(info.Url ?? throw new NullReferenceException("Playlist url was null!"));
         var playlist = result switch
@@ -77,8 +83,8 @@ internal sealed partial class AsyncSoundcloudDownloader : IAsyncDownloader
             _ => throw new UnreachableException(),
         };
 
-        PlayableMediaStream? first = null;
-        PlayableMediaStream? current = null;
+        PlayableMedia? first = null;
+        PlayableMedia? current = null;
         foreach (var track in playlist.Tracks)
         {
             //TODO: Convert to lazy getter?
@@ -96,7 +102,7 @@ internal sealed partial class AsyncSoundcloudDownloader : IAsyncDownloader
         return first!;
     }
 
-    public Task<PlayableMediaStream> DownloadAsync(MediaInfo info)
+    public Task<PlayableMedia> DownloadAsync(MediaInfo info)
     {
         return info.MediaType switch
         {

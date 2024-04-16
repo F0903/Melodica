@@ -2,6 +2,7 @@
 using Melodica.Config;
 using Melodica.Services.Media;
 using Melodica.Utility;
+using Melodica.Utility.Extensions;
 
 namespace Melodica.Services.Caching;
 
@@ -185,7 +186,7 @@ public sealed class MediaFileCache : IMediaCache
         return ValueTask.FromResult<MediaInfo?>(null);
     }
 
-    public ValueTask<PlayableMediaStream?> TryGetAsync(string id)
+    public ValueTask<PlayableMedia?> TryGetAsync(string id)
     {
         if (cache.TryGetValue(id, out var cacheInfo))
         {
@@ -206,8 +207,8 @@ public sealed class MediaFileCache : IMediaCache
             {
                 cache[id] = cacheInfo with { AccessCount = cacheInfo.AccessCount + 1 };
                 var fs = new ReopeningFileStream(mediaInfo.MediaPath, FileMode.Open, FileAccess.Read, FileShare.Read);
-                var media = new PlayableMediaStream(fs, mediaInfo, null, null);
-                return media.WrapValueTask<PlayableMediaStream?>();
+                var media = new PlayableMedia(fs, mediaInfo, null);
+                return media.WrapValueTask<PlayableMedia?>();
             }
             catch { }
         }
@@ -218,7 +219,7 @@ public sealed class MediaFileCache : IMediaCache
     {
         if (cache.TryGetValue(id, out var info))
         {
-            var modified = modifier(info.CachedMediaInfo);
+            var modified = modifier(info.CachedMediaInfo); //TODO: should be able to use an Action here instead since it is passing a reference type.
             cache[id] = info with { CachedMediaInfo = modified };
             await modified.WriteToDisk();
         }

@@ -1,10 +1,9 @@
-﻿using System.Runtime.CompilerServices;
-using System.Text;
+﻿using System.Text;
 using System.Text.RegularExpressions;
+using System.Runtime.CompilerServices;
 
-namespace Melodica.Utility;
-
-public static partial class Extensions
+namespace Melodica.Utility.Extensions;
+public static partial class StringExtensions
 {
     private static readonly char[] customIllegalChars =
     [
@@ -12,18 +11,6 @@ public static partial class Extensions
     ];
 
     private static char[]? cachedIllegalChars;
-
-    public static bool IsOverSize<T>(this IEnumerable<T> list, int exclusiveLimit)
-    {
-        var i = 0;
-        foreach (var item in list)
-        {
-            ++i;
-            if (i > exclusiveLimit)
-                return true;
-        }
-        return false;
-    }
 
     public static string SeperateStrings(this string[] strings, string seperator = ", ")
     {
@@ -103,28 +90,6 @@ public static partial class Extensions
         return sb.ToString();
     }
 
-    public static TimeSpan Sum<T>(this IEnumerable<T> input, Func<T, TimeSpan> selector)
-    {
-        TimeSpan sum = new();
-        foreach (var item in input)
-            sum += selector(item);
-        return sum;
-    }
-
-    public static async Task<TimeSpan> SumAsync<T>(this IEnumerable<T> input, Func<T, Task<TimeSpan>> selector)
-    {
-        TimeSpan sum = new();
-        foreach (var item in input)
-            sum += await selector(item);
-        return sum;
-    }
-
-    public static IEnumerable<To> Convert<From, To>(this IEnumerable<From> col, Func<From, To> body)
-    {
-        foreach (var elem in col)
-            yield return body(elem);
-    }
-
     public static string ReplaceIllegalCharacters(this string str, char replacer = '_')
     {
         cachedIllegalChars ??= Path.GetInvalidFileNameChars().Union(customIllegalChars).ToArray();
@@ -138,19 +103,8 @@ public static partial class Extensions
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool IsUrl(this ReadOnlySpan<char> str) => UrlRegex().IsMatch(str);
-    
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool IsUrl(this ReadOnlyMemory<char> str) => UrlRegex().IsMatch(str.Span);
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Task<T> WrapTask<T>(this T value) => Task.FromResult(value);
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static ValueTask<T> WrapValueTask<T>(this T value) => ValueTask.FromResult(value);
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static async Task<Y> Chain<T, Y>(this Task<T> me, Func<T, Task<Y>> chain)
-    {
-        return await chain(await me);
-    }
 }
+

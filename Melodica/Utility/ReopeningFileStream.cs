@@ -102,11 +102,13 @@ internal class ReopeningFileStream(string path, FileMode mode, FileAccess access
     {
         if (baseStream is null) return;
         await baseStream.DisposeAsync();
+        baseStream = null;
     }
 
     public override void Close()
     {
         if (baseStream is null) return;
         baseStream.Close();
+        baseStream = null;
     }
 }

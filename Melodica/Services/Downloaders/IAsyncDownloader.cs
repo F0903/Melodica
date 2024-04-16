@@ -9,5 +9,5 @@ public interface IAsyncDownloader
 
     public Task<MediaInfo> GetInfoAsync(ReadOnlyMemory<char> query);
 
-    public Task<PlayableMediaStream> DownloadAsync(MediaInfo info);
+    public Task<PlayableMedia> DownloadAsync(MediaInfo info);
 }
