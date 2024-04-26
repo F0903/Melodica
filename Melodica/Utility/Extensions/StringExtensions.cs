@@ -25,18 +25,40 @@ public static partial class StringExtensions
         return sb.ToString();
     }
 
-    public static (string artist, string newTitle) SeperateArtistName(this ReadOnlySpan<char> songTitle, string backupArtistName = "Unknown Artist")
+    public static (string? artist, string songTitle) SeperateArtistName(this ReadOnlySpan<char> fullTitle)
     {
-        var seperatorIndex = songTitle.IndexOf(" - ");
-        int spaceIndx;
-        var containsSeperator = seperatorIndex != -1;
-        var endIndx = containsSeperator ? seperatorIndex : (spaceIndx = songTitle.IndexOf(' ')) != -1 ? spaceIndx : songTitle.Length;
+        int artistEndIndex = 0;
+        int songStartIndex = 0;
+        for (var i = 0; i < fullTitle.Length; i++)
+        {
+            char currentChar = fullTitle[i];
+            switch (currentChar)
+            {
+                case (char)0x01C0: // latin letter dental click
+                case (char)0xFF5C: // fullwidth vertical line
+                case (char)0x275A: // heavy vertical bar
+                case (char)0x2759: // medium vertical bar
+                case (char)0x2758: // light vertical bar
+                case '|':
+                case '-' :
+                    if (i > 0 && fullTitle[i - 1] == ' ' && fullTitle.Length > i + 1 && fullTitle[i + 1] == ' ')
+                    {
+                        artistEndIndex = i - 1;
+                        songStartIndex = i + 2;
+                    }
+                    break;
+            }
+            if (artistEndIndex != 0)
+                break;
+        }
 
-        var useBackup = endIndx == songTitle.Length;
-        var artist = useBackup ? backupArtistName : songTitle[0..endIndx].ToString();
-        var titleOffset = endIndx + (containsSeperator ? 3 : 1);
-        var title = useBackup ? songTitle.ToString() : songTitle[titleOffset..songTitle.Length].ToString();
-        return (artist, title);
+        if (artistEndIndex == 0)
+            return (null, fullTitle.ToString());
+
+        var artistName = fullTitle[..artistEndIndex];
+        var songName = fullTitle[songStartIndex..];
+
+        return (artistName.ToString(), songName.ToString());
     }
 
     public static string UrlFriendlyfy(this string input)

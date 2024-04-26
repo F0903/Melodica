@@ -49,7 +49,7 @@ public sealed partial class AsyncYoutubeDownloader : IAsyncDownloader
         return new MediaInfo(video.Id)
         {
             Title = title,
-            Artist = artist,
+            Artist = artist ?? video.Author.ChannelTitle,
             Duration = video.Duration ?? TimeSpan.Zero,
             Url = video.Url,
             ImageUrl = video.Thumbnails[0].Url,
@@ -63,7 +63,7 @@ public sealed partial class AsyncYoutubeDownloader : IAsyncDownloader
         return new MediaInfo(video.Id)
         {
             Title = title,
-            Artist = artist,
+            Artist = artist ?? video.Author.ChannelTitle,
             Duration = video.Duration ?? TimeSpan.Zero,
             Url = video.Url,
             ImageUrl = video.Thumbnails[0].Url,
@@ -74,14 +74,14 @@ public sealed partial class AsyncYoutubeDownloader : IAsyncDownloader
     static async Task<MediaInfo> PlaylistToMetadataAsync(Playlist pl)
     {
         var author = pl.Author?.ChannelTitle ?? "Unknown Artist";
-        (var artist, var newTitle) = pl.Title.AsSpan().SeperateArtistName(author);
+        (var artist, var newTitle) = pl.Title.AsSpan().SeperateArtistName();
         return new MediaInfo(pl.Id)
         {
             MediaType = MediaType.Playlist,
             Duration = await GetTotalDurationAsync(pl),
             ImageUrl = await GetPlaylistThumbnail(pl),
             Title = newTitle,
-            Artist = artist,
+            Artist = artist ?? author,
             Url = pl.Url
         };
     }
