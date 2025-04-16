@@ -209,6 +209,12 @@ public sealed class Jukebox
 
         await currentPlayerInterface!.SetSongEmbedAsync(CurrentSong, null); //TODO: Consider reimplementing collectionInfo / playlist info again.
 
+        if (Queue.Length > 1)
+        {
+            // If we have multiple songs queued, make sure the skip button is enabled.
+            await currentPlayerInterface!.SetButtonEnabledAsync(JukeboxInterfaceButton.Skip, true);
+        }
+
         try
         {
             stopper = new();
@@ -253,6 +259,7 @@ public sealed class Jukebox
 
         if (Playing)
         {
+            // If we are already playing, make sure the skip button is enabled and return a Queued result.
             await currentPlayerInterface!.SetButtonEnabledAsync(JukeboxInterfaceButton.Skip, true);
             return PlayResult.Queued;
         }
