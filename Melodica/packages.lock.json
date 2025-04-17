@@ -2,20 +2,6 @@
   "version": 1,
   "dependencies": {
     "net9.0": {
-      "Discord.Net": {
-        "type": "Direct",
-        "requested": "[3.17.2, )",
-        "resolved": "3.17.2",
-        "contentHash": "jDyclg2hLkzB+bjVQlNo55wQUisTDG5vDwAjTMyn69djR0xG72Glln0xgjWMLHvdjVER4zSgwl6uq2r5jljmGA==",
-        "dependencies": {
-          "Discord.Net.Commands": "3.17.2",
-          "Discord.Net.Core": "3.17.2",
-          "Discord.Net.Interactions": "3.17.2",
-          "Discord.Net.Rest": "3.17.2",
-          "Discord.Net.WebSocket": "3.17.2",
-          "Discord.Net.Webhook": "3.17.2"
-        }
-      },
       "Microsoft.Extensions.Configuration.UserSecrets": {
         "type": "Direct",
         "requested": "[9.0.4, )",
@@ -74,64 +60,6 @@
         "type": "Transitive",
         "resolved": "1.2.0",
         "contentHash": "uF/PzSCVcb+b2nqVvHZbOqexoJ9R6QLjonugPf0PQl+0h7YKaFZeXyspctbHe5HGlx7/Iuk5BErtk+t63ac/ZA=="
-      },
-      "Discord.Net.Commands": {
-        "type": "Transitive",
-        "resolved": "3.17.2",
-        "contentHash": "carBI4BDwWwGogRnM1w4k6AZBqZ42jeMdY9O9/KqIRwX2e7B+Yt8bh99c/Ilrnonea17glQ3chsX3pwT4AzecA==",
-        "dependencies": {
-          "Discord.Net.Core": "3.17.2",
-          "Microsoft.Extensions.DependencyInjection.Abstractions": "8.0.0"
-        }
-      },
-      "Discord.Net.Core": {
-        "type": "Transitive",
-        "resolved": "3.17.2",
-        "contentHash": "mTjcgYqk0Qzd7Vq7m8fRmjjgAoravmxuIsxzbWGqYZYK30s6rDC//RFJYNTcBA3ZY9PSuX34S8gMo7nI4tqMVw==",
-        "dependencies": {
-          "Newtonsoft.Json": "13.0.3",
-          "System.Collections.Immutable": "8.0.0",
-          "System.Interactive.Async": "6.0.1",
-          "System.ValueTuple": "4.5.0"
-        }
-      },
-      "Discord.Net.Interactions": {
-        "type": "Transitive",
-        "resolved": "3.17.2",
-        "contentHash": "Cn8uKXSDZ5cmzaYmQUN3KaA9YKvfqb3H26HwDzZMU8WoKkLlbLa3Vmgf3BmMBCDoQGWuLHq9+r9OdR6rashluw==",
-        "dependencies": {
-          "Discord.Net.Core": "3.17.2",
-          "Discord.Net.Rest": "3.17.2",
-          "Microsoft.Extensions.DependencyInjection.Abstractions": "8.0.0",
-          "System.Collections.Immutable": "8.0.0",
-          "System.Reactive": "6.0.1"
-        }
-      },
-      "Discord.Net.Rest": {
-        "type": "Transitive",
-        "resolved": "3.17.2",
-        "contentHash": "8aq2lja/OLPKoesQnethQ1UltsIvaHBKfwPFxWd/tojcAP9Fju0OOTK6I9U7Wkq7szGASjNKuAjE+YO+lyx5Yg==",
-        "dependencies": {
-          "Discord.Net.Core": "3.17.2"
-        }
-      },
-      "Discord.Net.Webhook": {
-        "type": "Transitive",
-        "resolved": "3.17.2",
-        "contentHash": "XcJ8wgvQ2gfMsWq9WuLfIpBIZN2Yji6G2QUqAD7D9FrxHBwcOxof9eVCukw+vU3wLT5r5cmjDax6FJMg2WhRBw==",
-        "dependencies": {
-          "Discord.Net.Core": "3.17.2",
-          "Discord.Net.Rest": "3.17.2"
-        }
-      },
-      "Discord.Net.WebSocket": {
-        "type": "Transitive",
-        "resolved": "3.17.2",
-        "contentHash": "yq/IfGJ3TfFa15dDzyoAOHEbXSDPRDf/HdNFxQj+P1h7Q95V5lIWSJqYHtgg01E8eRW6IFvWfBDhfcFatffe+Q==",
-        "dependencies": {
-          "Discord.Net.Core": "3.17.2",
-          "Discord.Net.Rest": "3.17.2"
-        }
       },
       "Microsoft.Bcl.AsyncInterfaces": {
         "type": "Transitive",
@@ -246,6 +174,52 @@
         "type": "Transitive",
         "resolved": "4.5.0",
         "contentHash": "okurQJO6NRE/apDIP23ajJ0hpiNmJ+f0BwOlB/cSqTLQlw5upkf+5+96+iG2Jw40G1fCVCyPz/FhIABUjMR+RQ=="
+      },
+      "discord.net.commands": {
+        "type": "Project",
+        "dependencies": {
+          "Discord.Net.Core": "[3.17.2-dev, )",
+          "Microsoft.Extensions.DependencyInjection.Abstractions": "[8.0.0, )"
+        }
+      },
+      "discord.net.core": {
+        "type": "Project",
+        "dependencies": {
+          "Newtonsoft.Json": "[13.0.3, )",
+          "System.Collections.Immutable": "[8.0.0, )",
+          "System.Interactive.Async": "[6.0.1, )",
+          "System.ValueTuple": "[4.5.0, )"
+        }
+      },
+      "discord.net.interactions": {
+        "type": "Project",
+        "dependencies": {
+          "Discord.Net.Core": "[3.17.2-dev, )",
+          "Discord.Net.Rest": "[3.17.2-dev, )",
+          "Microsoft.Extensions.DependencyInjection.Abstractions": "[8.0.0, )",
+          "System.Collections.Immutable": "[8.0.0, )",
+          "System.Reactive": "[6.0.1, )"
+        }
+      },
+      "discord.net.rest": {
+        "type": "Project",
+        "dependencies": {
+          "Discord.Net.Core": "[3.17.2-dev, )"
+        }
+      },
+      "discord.net.webhook": {
+        "type": "Project",
+        "dependencies": {
+          "Discord.Net.Core": "[3.17.2-dev, )",
+          "Discord.Net.Rest": "[3.17.2-dev, )"
+        }
+      },
+      "discord.net.websocket": {
+        "type": "Project",
+        "dependencies": {
+          "Discord.Net.Core": "[3.17.2-dev, )",
+          "Discord.Net.Rest": "[3.17.2-dev, )"
+        }
       },
       "soundclouder": {
         "type": "Project"

@@ -4,19 +4,20 @@ using Melodica.Utility;
 
 namespace Melodica.Services.Playback;
 
-public sealed class JukeboxInterfaceButton(string id, IEmote emote, ButtonStyle style, bool enabled = true)
+public sealed class JukeboxInterfaceButton(string id, string label, IEmote emote, ButtonStyle style, bool enabled = true)
 {
     internal string Id { get; set; } = id;
+    internal string Label { get; set; } = label;
     internal IEmote Emote { get; set; } = emote;
     internal ButtonStyle Style { get; set; } = style;
     internal bool Enabled { get; set; } = enabled;
 
-    public static readonly JukeboxInterfaceButton PlayPause = new("player_togglepause", Emoji.Parse(":play_pause:"), ButtonStyle.Primary);
-    public static readonly JukeboxInterfaceButton Stop = new("player_stop", Emoji.Parse(":stop_button:"), ButtonStyle.Secondary);
-    public static readonly JukeboxInterfaceButton Skip = new("player_skip", Emoji.Parse(":track_next:"), ButtonStyle.Secondary, enabled: false);
-    public static readonly JukeboxInterfaceButton Shuffle = new("player_shuffle", Emoji.Parse(":twisted_rightwards_arrows:"), ButtonStyle.Secondary);
-    public static readonly JukeboxInterfaceButton Repeat = new("player_repeat", Emoji.Parse(":repeat:"), ButtonStyle.Secondary);
-    public static readonly JukeboxInterfaceButton Loop = new("player_loop", Emoji.Parse(":repeat_one:"), ButtonStyle.Secondary);
+    public static readonly JukeboxInterfaceButton PlayPause = new("player_togglepause", "Play/Pause", Emoji.Parse(":play_pause:"), ButtonStyle.Primary);
+    public static readonly JukeboxInterfaceButton Stop = new("player_stop", "Stop", Emoji.Parse(":stop_button:"), ButtonStyle.Secondary);
+    public static readonly JukeboxInterfaceButton Skip = new("player_skip", "Skip", Emoji.Parse(":track_next:"), ButtonStyle.Secondary, enabled: false);
+    public static readonly JukeboxInterfaceButton Shuffle = new("player_shuffle", "Shuffle", Emoji.Parse(":twisted_rightwards_arrows:"), ButtonStyle.Secondary);
+    public static readonly JukeboxInterfaceButton Repeat = new("player_repeat", "Repeat", Emoji.Parse(":repeat:"), ButtonStyle.Secondary);
+    public static readonly JukeboxInterfaceButton Loop = new("player_loop", "Loop", Emoji.Parse(":repeat_one:"), ButtonStyle.Secondary);
 
     public ButtonComponent ToComponent(ButtonBuilder builder)
     {
@@ -27,6 +28,7 @@ public sealed class JukeboxInterfaceButton(string id, IEmote emote, ButtonStyle 
     {
         return builder
             .WithCustomId(Id)
+            .WithLabel(Label)
             .WithEmote(Emote)
             .WithStyle(Style)
             .WithDisabled(!Enabled);
@@ -39,6 +41,7 @@ public sealed class JukeboxInterfaceButton(string id, IEmote emote, ButtonStyle 
         return
             obj is JukeboxInterfaceButton btn &&
             btn.Id == Id &&
+            btn.Label == Label &&
             btn.Emote == Emote &&
             btn.Style == Style &&
             btn.Enabled == Enabled;

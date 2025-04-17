@@ -85,9 +85,8 @@ public class FFmpegProcessor : IAsyncMediaProcessor
 
         var tokenCallback = cancellationToken.Register(() => SetPause(false)); // Make sure we are not blocking by waiting when requesting cancel.
 
-        void HandlePause()
+        void WaitForUnpause()
         {
-            if (!paused) return;
             onHalt?.Invoke();
             pauseWaiter.WaitOne();
             onResume?.Invoke();
@@ -104,7 +103,7 @@ public class FFmpegProcessor : IAsyncMediaProcessor
                 {
                     while ((read = await media.ReadAsync(buf, cancellationToken)) != 0)
                     {
-                        HandlePause();
+                        if (paused) WaitForUnpause();
                         await processInput!.WriteAsync(buf[..read], cancellationToken);
                     }
                 }
@@ -121,10 +120,14 @@ public class FFmpegProcessor : IAsyncMediaProcessor
                 int read = 0;
                 using var mem = memory.Rent(bufferSize);
                 var buf = mem.Memory;
-                while ((read = await processOutput!.ReadAsync(buf, cancellationToken)) != 0)
+                while ((read = await processOutput!.ReadAsync(buf)) != 0)
                 {
-                    HandlePause();
-                    await output.WriteAsync(buf[..read], cancellationToken);
+                    if (paused) WaitForUnpause();
+                    await output.WriteAsync(buf[..read]);
+
+                    // Manually check and don't pass the token to the surrounding functions. Otherwise a "gap" will be heard on the other end.
+                    if (cancellationToken.IsCancellationRequested)
+                        break;
                 }
             }, cancellationToken);
 
@@ -136,6 +139,7 @@ public class FFmpegProcessor : IAsyncMediaProcessor
         }
         finally
         {
+            onHalt?.Invoke();
             tokenCallback.Unregister();
             proc!.Close();
             proc = null;

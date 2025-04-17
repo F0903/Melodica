@@ -161,6 +161,17 @@ public sealed class Jukebox
 
         // Setup auto-disconnect when empty.
         audioClient.ClientDisconnected += OnClientDisconnect;
+        //TODO: update stream when connecting event fires. This should fix the disconnection problem
+        audioClient.Connected += () =>
+        {
+            Console.WriteLine("DEBUG CONNECTED");
+            return Task.CompletedTask;
+        };
+        audioClient.Disconnected += (ex) =>
+        {
+            Console.WriteLine($"DEBUG CONNECTED, EX: {ex}");
+            return Task.CompletedTask;
+        };
     }
 
     async Task SendDataAsync(PlayableMedia media, OpusEncodeStream output, CancellationToken cancellationToken)
@@ -186,13 +197,14 @@ public sealed class Jukebox
                 cancellationToken
             );
         }
-        catch (OperationCanceledException) { }
+        catch (OperationCanceledException) 
+        {
+            Log.Debug("Sending data operation cancelled...");
+        }
         finally
         {
-            Log.Debug("Finished sending data... Flushing...");
+            Log.Debug("Finished sending data...");
             durationTimer.Reset();
-            await output.WriteSilentFramesAsync();
-            await output.FlushAsync(cancellationToken);
         }
     }
 
