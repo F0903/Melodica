@@ -1,4 +1,4 @@
-![.NET](https://github.com/F0903/Melodica/workflows/.NET/badge.svg)
+[![.NET](https://github.com/F0903/Melodica/actions/workflows/dotnet.yml/badge.svg)](https://github.com/F0903/Melodica/actions/workflows/dotnet.yml)
 
 # Melodica
 ![](./github-media/logo.png)
