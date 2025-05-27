@@ -3,7 +3,7 @@ name: .NET
 on: [push, pull_request]
 
 env:
-  DOTNET_VER: 7.x.x
+  DOTNET_VER: 9.x.x
 
 jobs:
   build:    
@@ -19,7 +19,7 @@ jobs:
       
       - name: Check .NET Cache
         id: dotnet-cache
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ~/.dotnet/
           key: ${{ runner.os }}-dotnet-${{ env.DOTNET_VER }}
@@ -30,13 +30,13 @@ jobs:
           dotnet-version: ${{ env.DOTNET_VER }}
       
       - name: Setup .NET Workloads
-        run: dotnet workload install macos
+        run: dotnet workload install macos # Can't remember why this is needed. Just got an error about it once...
       
       - name: Setup Custom NuGet Sources
         run: dotnet nuget add source https://www.myget.org/F/discord-net/api/v3/index.json
 
       - name: Check NuGet Cache
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ~/.nuget/packages
           key: ${{ runner.os }}-nuget-${{ hashFiles('**/packages.lock.json') }}
