@@ -17,6 +17,7 @@ public sealed class BotSettings
     void ReadAndSetValues()
     {
         string? result;
+
         if ((result = config["cacheSizeMB"]) is null)
             throw new NullReferenceException("cacheSizeMB is not defined in user secrets!");
         CacheSizeMB = int.Parse(result.AsSpan());
@@ -28,6 +29,10 @@ public sealed class BotSettings
         if ((result = config["logLevel"]) is null)
             throw new NullReferenceException("logLevel is not defined in user secrets!");
         LogLevel = Enum.Parse<LogEventLevel>(result);
+
+
+        LogPath = config["logFile"];
+        LogFileSizeBytes = !string.IsNullOrEmpty(result = config["logFileSizeBytes"]) ? int.Parse(result!) : null;
 
         if ((result = config["slashCommandDebugGuild"]) is null)
             throw new NullReferenceException("slashCommandDebugGuild is not defined in user secrets!");
@@ -41,6 +46,9 @@ public sealed class BotSettings
     public ProcessPriorityClass ProcessPriority { get; private set; }
 
     public LogEventLevel LogLevel { get; private set; }
+
+    public string? LogPath { get; private set; }
+    public int? LogFileSizeBytes { get; private set; }
 
     public ulong SlashCommandDebugGuild { get; private set; }
 }

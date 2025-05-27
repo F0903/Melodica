@@ -3,16 +3,21 @@ using Melodica.Utility.Extensions;
 
 namespace Melodica.Services.Playback;
 
+// This is not exactly optimal in many ways.
 public sealed class MediaQueue
 {
     static readonly Random rng = new();
 
-    private readonly object locker = new();
+    private readonly Lock locker = new();
 
     private PlayableMedia? start;
 
+    private PlayableMedia? lastDequeued;
+
     // Returns next media, putting the last at the end of the queue.
     public bool Repeat { get; set; }
+
+    public bool Loop { get; set; }
 
     public bool Shuffle { get; set; }
 
@@ -36,8 +41,10 @@ public sealed class MediaQueue
         return time;
     }
 
-    static (PlayableMedia, int) GetLastNodeOf(PlayableMedia node)
+    (PlayableMedia, int) GetLastNodeOf(PlayableMedia node)
     {
+        using var _ = locker.EnterScope();
+
         int count = 0;
         var lastNode = node;
         while (true)
@@ -52,6 +59,8 @@ public sealed class MediaQueue
 
     public PlayableMedia GetAt(int index)
     {
+        using var _ = locker.EnterScope();
+
         var current = start ?? throw new NullReferenceException("Start node was null.");
         for (var i = 0; i < index; i++)
         {
@@ -62,6 +71,8 @@ public sealed class MediaQueue
 
     void InsertAt(PlayableMedia media, int index)
     {
+        using var _ = locker.EnterScope();
+
         if (index == 0)
         {
             var original = start;
@@ -83,6 +94,8 @@ public sealed class MediaQueue
 
     PlayableMedia RemoveAt(int index)
     {
+        using var _ = locker.EnterScope();
+
         if (index == 0)
         {
             var original = start ?? throw new NullReferenceException("Start node was null.");
@@ -108,56 +121,60 @@ public sealed class MediaQueue
 
     public ValueTask EnqueueAsync(PlayableMedia media)
     {
-        lock (locker)
-        {
-            InsertAt(media, Length);
-        }
+        using var _ = locker.EnterScope();
+        InsertAt(media, Length);
+
         return ValueTask.CompletedTask;
     }
 
     public ValueTask PutFirstAsync(PlayableMedia media)
     {
-        lock (locker)
-        {
-            InsertAt(media, 0);
-        }
+        using var _ = locker.EnterScope();
+        InsertAt(media, 0);
         return ValueTask.CompletedTask;
     }
 
     public ValueTask<PlayableMedia> DequeueAsync()
     {
-        lock (locker)
+        using var _ = locker.EnterScope();
+        
+        if (Loop && lastDequeued is not null)
         {
-            var index = Shuffle ? rng.Next(0, Length) : 0;
-            var dequeued = Repeat ? GetAt(index) : RemoveAt(index);
-            return dequeued.WrapValueTask();
+            return lastDequeued.WrapValueTask();
         }
+
+        var index = Shuffle ? rng.Next(0, Length) : 0;
+        var dequeued = Repeat ? GetAt(index) : RemoveAt(index);
+
+        lastDequeued = dequeued;
+
+        return dequeued.WrapValueTask();
     }
 
     /// <returns>The starting node.</returns>
     public ValueTask<PlayableMedia?> ClearAsync()
     {
+        using var _ = locker.EnterScope();
+
         if (start is null) return default;
         var original = start;
-        lock (locker)
-        {
-            //Note: unsure if this is enough to garbage collect the nodes.
-            start = null;
-            Length = 0;
-        }
+
+        // Unsure if this is enough to GC all the nodes
+        start = null;
+        lastDequeued = null;
+        Length = 0;
         return original.WrapValueTask<PlayableMedia?>();
     }
 
     public ValueTask<PlayableMedia> RemoveAtAsync(int index)
     {
+        using var _ = locker.EnterScope();
         return RemoveAt(index).WrapValueTask();
     }
 
     public ValueTask<PlayableMedia> RemoveAtAsync(Index index)
     {
-        lock (locker)
-        {
-            return RemoveAtAsync(index.GetOffset(Length));
-        }
+        using var _ = locker.EnterScope();
+        return RemoveAtAsync(index.GetOffset(Length));
     }
 }

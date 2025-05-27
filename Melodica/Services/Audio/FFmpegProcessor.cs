@@ -110,7 +110,9 @@ public class FFmpegProcessor : IAsyncMediaProcessor
                 finally
                 {
                     await processInput!.FlushAsync(cancellationToken);
-                    processInput!.Close();
+                    await processInput!.DisposeAsync();
+                    await processOutput!.FlushAsync();
+                    await processOutput!.DisposeAsync();
                 }
 
             }, cancellationToken);

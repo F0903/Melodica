@@ -26,7 +26,7 @@ public sealed class Jukebox
 
     public bool Playing => !playLock.IsSet;
 
-    public bool Loop { get; private set; }
+    public bool Loop => Queue.Loop;
 
     public bool Shuffle => Queue.Shuffle;
 
@@ -62,7 +62,7 @@ public sealed class Jukebox
 
     public async Task SetLoopAsync(bool value)
     {
-        Loop = value;
+        Queue.Loop = value;
         if (currentPlayerInterface is not null)
         {
             await currentPlayerInterface.SetButtonPressedAsync(JukeboxInterfaceButton.Loop, value);
@@ -86,6 +86,7 @@ public sealed class Jukebox
             await currentPlayerInterface.SetButtonPressedAsync(JukeboxInterfaceButton.Repeat, value);
         }
     }
+ 
 
     Task ResetState()
     {
@@ -210,7 +211,7 @@ public sealed class Jukebox
 
     async Task PlayNextAsync(IAudioChannel channel, OpusEncodeStream output)
     {
-        if (Queue.IsEmpty)
+        if (Queue.IsEmpty && !Loop)
         {
             await DisconnectAsync();
             return;
@@ -231,11 +232,8 @@ public sealed class Jukebox
         {
             stopper = new();
             var stopToken = stopper.Token;
-            Log.Debug("Starting sending data..");
-            do
-            {
-                await SendDataAsync(media, output, stopToken);
-            } while (Loop);
+            Log.Debug("Starting sending data.."); 
+            await SendDataAsync(media, output, stopToken);
         }
         catch (OperationCanceledException)
         {

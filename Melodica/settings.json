@@ -2,5 +2,7 @@
   "cacheSizeMB": 1000,
   "processPriority": "High",
   "logLevel": "Debug",
+  "logFile": "log.txt",
+  "logFileSizeBytes": null,
   "slashCommandDebugGuild": 153896159834800129
 }

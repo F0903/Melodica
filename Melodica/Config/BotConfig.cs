@@ -30,6 +30,7 @@ public static class BotConfig
 
     public static event Action? OnConfigChanged;
 
+
     static void OnChange()
     {
         Secrets.Reload();
