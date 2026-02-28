@@ -75,7 +75,7 @@ public sealed class JukeboxInterface(IDiscordInteraction interaction)
         return builder.Build();
     }
 
-    MessageComponent? BuildComponent(Func<IMessageComponent, (IMessageComponent, bool)> forEach)
+    MessageComponent? BuildComponent(Func<IMessageComponent, (IMessageComponentBuilder, bool)> forEach)
     {
         var msgComps = interfaceMessage!.Components;
         var compBuilder = new ComponentBuilder();
@@ -99,18 +99,18 @@ public sealed class JukeboxInterface(IDiscordInteraction interaction)
 
         var component = BuildComponent(x =>
         {
-            if (buttonId == x.CustomId)
+            if (x is ButtonComponent bc && bc.CustomId == buttonId)
             {
-                var button = buttonStates[x.CustomId];
+                var button = buttonStates[bc.CustomId];
                 var oldButton = button.ShallowClone();
                 modifier(button);
                 if (button.Equals(oldButton))
                 {
-                    return (x, true);
+                    return (bc.ToBuilder(), true);
                 }
-                return (button.ToComponent(((ButtonComponent)x).ToBuilder()), false);
+                return (button.AppendBuilder(bc.ToBuilder()), false);
             }
-            return (x, false);
+            return (x.ToBuilder(), false);
         });
 
         if (component is null) return;
@@ -127,9 +127,13 @@ public sealed class JukeboxInterface(IDiscordInteraction interaction)
 
         var component = BuildComponent(x =>
         {
-            var button = buttonStates[x.CustomId];
-            button.Enabled = false;
-            return (button.ToComponent(((ButtonComponent)x).ToBuilder()), false);
+            if (x is ButtonComponent bc)
+            {
+                var button = buttonStates[bc.CustomId];
+                button.Enabled = false;
+                return (button.AppendBuilder(bc.ToBuilder()), false);
+            }
+            return (x.ToBuilder(), false);
         });
 
         await interfaceMessage.ModifyAsync(x =>

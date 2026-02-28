@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 17
-VisualStudioVersion = 17.0.31919.166
+# Visual Studio Version 18
+VisualStudioVersion = 18.3.11520.95 d18.3
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Melodica", "Melodica\Melodica.csproj", "{67D894FD-EB46-487D-880B-B6F019E7D5C3}"
 EndProject
@@ -29,6 +29,8 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Discord.Net.Webhook", "Discord.Net\src\Discord.Net.Webhook\Discord.Net.Webhook.csproj", "{755C8A15-953F-43D2-37ED-4B5CE6028C69}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Discord.Net.WebSocket", "Discord.Net\src\Discord.Net.WebSocket\Discord.Net.WebSocket.csproj", "{C4254F9A-8F19-0456-BA95-9676BA26E8CA}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Discord.Net.Dave", "Discord.Net\tools\Discord.Net.Dave\Discord.Net.Dave.csproj", "{27F405EA-6DCD-0F74-F22F-7DF53F1906C7}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -102,6 +104,14 @@ Global
 		{C4254F9A-8F19-0456-BA95-9676BA26E8CA}.Release|Any CPU.Build.0 = Release|Any CPU
 		{C4254F9A-8F19-0456-BA95-9676BA26E8CA}.Release|x64.ActiveCfg = Release|Any CPU
 		{C4254F9A-8F19-0456-BA95-9676BA26E8CA}.Release|x64.Build.0 = Release|Any CPU
+		{27F405EA-6DCD-0F74-F22F-7DF53F1906C7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{27F405EA-6DCD-0F74-F22F-7DF53F1906C7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{27F405EA-6DCD-0F74-F22F-7DF53F1906C7}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{27F405EA-6DCD-0F74-F22F-7DF53F1906C7}.Debug|x64.Build.0 = Debug|Any CPU
+		{27F405EA-6DCD-0F74-F22F-7DF53F1906C7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{27F405EA-6DCD-0F74-F22F-7DF53F1906C7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{27F405EA-6DCD-0F74-F22F-7DF53F1906C7}.Release|x64.ActiveCfg = Release|Any CPU
+		{27F405EA-6DCD-0F74-F22F-7DF53F1906C7}.Release|x64.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
