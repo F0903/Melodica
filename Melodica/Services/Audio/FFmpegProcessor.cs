@@ -30,8 +30,7 @@ public class FFmpegProcessor : IAsyncMediaProcessor
 
     Task StartProcessAsync(string? explicitDataFormat)
     {
-        //TODO: remove debug logging
-        var args = $"-nostdin -y -hide_banner -loglevel debug -strict experimental -vn -protocol_whitelist pipe,file,http,https,tcp,tls,crypto {(explicitDataFormat is not null ? $"-f {explicitDataFormat}" : "")} -i pipe: -f s16le -ac 2 -ar 48000 pipe:";
+        var args = $"-nostdin -y -hide_banner -loglevel error -strict experimental -vn -protocol_whitelist pipe,file,http,https,tcp,tls,crypto {(explicitDataFormat is not null ? $"-f {explicitDataFormat}" : "")} -i pipe: -f s16le -ac 2 -ar 48000 pipe:";
 
         proc = new()
         {
