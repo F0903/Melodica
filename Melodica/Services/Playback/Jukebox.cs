@@ -86,7 +86,7 @@ public sealed class Jukebox
             await currentPlayerInterface.SetButtonPressedAsync(JukeboxInterfaceButton.Repeat, value);
         }
     }
- 
+
 
     Task ResetState()
     {
@@ -187,7 +187,14 @@ public sealed class Jukebox
                 async () =>
                 {
                     durationTimer.Stop();
-                    await output.WriteSilentFramesAsync();
+                    try
+                    {
+                        await output.WriteSilentFramesAsync();
+                    }
+                    catch (TaskCanceledException)
+                    {
+                        Log.Debug("WriteSilentFramesAsync was cancelled.");
+                    }
                     await output.FlushAsync();
                 },
                 () =>
@@ -198,7 +205,7 @@ public sealed class Jukebox
                 cancellationToken
             );
         }
-        catch (OperationCanceledException) 
+        catch (OperationCanceledException)
         {
             Log.Debug("Sending data operation cancelled...");
         }
@@ -232,7 +239,7 @@ public sealed class Jukebox
         {
             stopper = new();
             var stopToken = stopper.Token;
-            Log.Debug("Starting sending data.."); 
+            Log.Debug("Starting sending data..");
             await SendDataAsync(media, output, stopToken);
         }
         catch (OperationCanceledException)
