@@ -51,19 +51,6 @@ public class FFmpegProcessor : IAsyncMediaProcessor
         processInput = proc.StandardInput.BaseStream;
         processOutput = proc.StandardOutput.BaseStream;
 
-        //TODO: remove debug logging
-        //DEBUGGING
-        Task.Run(() =>
-        {
-            var err = proc.StandardError;
-            while (true)
-            {
-                var line = err.ReadLine();
-                if (line is null) break;
-                Console.WriteLine(line);
-            }
-        });
-
         return Task.CompletedTask;
     }
 
