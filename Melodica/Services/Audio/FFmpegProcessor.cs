@@ -95,7 +95,7 @@ public class FFmpegProcessor : IAsyncMediaProcessor
                 }
                 finally
                 {
-                    await processInput!.FlushAsync(cancellationToken);
+                    await processInput!.FlushAsync();
                     await processInput!.DisposeAsync();
                     await processOutput!.FlushAsync();
                     await processOutput!.DisposeAsync();
@@ -108,14 +108,10 @@ public class FFmpegProcessor : IAsyncMediaProcessor
                 int read = 0;
                 using var mem = memory.Rent(bufferSize);
                 var buf = mem.Memory;
-                while ((read = await processOutput!.ReadAsync(buf)) != 0)
+                while ((read = await processOutput!.ReadAsync(buf, cancellationToken)) != 0)
                 {
                     if (paused) WaitForUnpause();
-                    await output.WriteAsync(buf[..read]);
-
-                    // Manually check and don't pass the token to the surrounding functions. Otherwise a "gap" will be heard on the other end.
-                    if (cancellationToken.IsCancellationRequested)
-                        break;
+                    await output.WriteAsync(buf[..read], cancellationToken);
                 }
             }, cancellationToken);
 
@@ -123,7 +119,10 @@ public class FFmpegProcessor : IAsyncMediaProcessor
         }
         catch (Exception ex)
         {
-            Debug.WriteLine($"Caught error in FFmpegProcessor!\n{ex}");
+            if (ex is not OperationCanceledException && ex is not TaskCanceledException)
+            {
+                Debug.WriteLine($"Caught error in FFmpegProcessor!\n{ex}");
+            }
         }
         finally
         {

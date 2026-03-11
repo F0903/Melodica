@@ -181,9 +181,11 @@ public sealed class Jukebox
         {
             durationTimer.Start();
             const int frameBytes = 3840;
+            // Wrap the output stream to handle Dave encryption errors during initialization
+            var wrappedOutput = new DaveErrorHandlingStream(output);
             await mediaProcessor.ProcessMediaAsync(
                 media,
-                output,
+                wrappedOutput,
                 async () =>
                 {
                     durationTimer.Stop();
@@ -191,7 +193,7 @@ public sealed class Jukebox
                     {
                         await output.WriteSilentFramesAsync();
                     }
-                    catch (TaskCanceledException)
+                    catch (Exception ex) when (ex is TaskCanceledException || ex is OperationCanceledException)
                     {
                         Log.Debug("WriteSilentFramesAsync was cancelled.");
                     }
