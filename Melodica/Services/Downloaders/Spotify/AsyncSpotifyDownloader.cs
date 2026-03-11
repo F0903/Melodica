@@ -60,7 +60,7 @@ public sealed partial class AsyncSpotifyDownloader : IAsyncDownloader
 
     static ValueTask<FullTrack[]> PlaylistToTrackListAsync(FullPlaylist playlist)
     {
-        var tracks = playlist.Tracks?.Items ?? throw new NullReferenceException("No tracks were found in playlist.");
+        var tracks = playlist.Items?.Items ?? throw new NullReferenceException("No tracks were found in playlist.");
         var trackCount = tracks.Count;
         var tracklist = new FullTrack[trackCount];
         for (var i = 0; i < trackCount; i++)
