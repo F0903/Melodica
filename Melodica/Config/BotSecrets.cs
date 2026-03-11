@@ -15,30 +15,20 @@ public sealed class BotSecrets
     {
         string? token;
 
-        token = config["discordToken"];
-        if (token is null)
-            throw new NullReferenceException("discordToken is not defined in user secrets!");
+        token = config["discordToken"] ?? throw new NullReferenceException("discordToken is not defined in user secrets!");
         DiscordToken = token;
 
-        token = config["spotifySecret"];
-        if (token is null)
-            throw new NullReferenceException("spotifySecret is not defined in user secrets!");
+        token = config["spotifySecret"] ?? throw new NullReferenceException("spotifySecret is not defined in user secrets!");
         SpotifyClientSecret = token;
 
 
-        token = config["spotifyID"];
-        if (token is null)
-            throw new NullReferenceException("spotifyID is not defined in user secrets!");
+        token = config["spotifyID"] ?? throw new NullReferenceException("spotifyID is not defined in user secrets!");
         SpotifyClientID = token;
 
-        token = config["geniusToken"];
-        if (token is null)
-            throw new NullReferenceException("geniusToken is not defined in user secrets!");
+        token = config["geniusToken"] ?? throw new NullReferenceException("geniusToken is not defined in user secrets!");
         GeniusToken = token;
 
-        token = config["soundcloudClientID"];
-        if (token is null)
-            throw new NullReferenceException("soundcloudClientID is not defined in user secrets!");
+        token = config["soundcloudClientID"] ?? throw new NullReferenceException("soundcloudClientID is not defined in user secrets!");
         SoundcloudClientID = token;
     }
 

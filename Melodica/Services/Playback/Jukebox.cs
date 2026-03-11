@@ -302,11 +302,8 @@ public sealed class Jukebox
             playLock.Set();
             await currentPlayerInterface!.DisableAllButtonsAsync();
             await ResetState();
-            if (audioClient is not null)
-            {
-                audioClient.ClientDisconnected -= OnClientDisconnect;
-                audioClient = null;
-            }
+            audioClient?.ClientDisconnected -= OnClientDisconnect;
+            audioClient = null;
         }
         return PlayResult.Done;
     }

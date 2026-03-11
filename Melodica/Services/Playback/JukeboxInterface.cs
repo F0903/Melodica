@@ -158,7 +158,7 @@ public sealed class JukeboxInterface(IDiscordInteraction interaction)
         });
     }
 
-    public async Task SpawnAsync(MediaInfo mediaInfo, MediaInfo? colInfo, IReadOnlyList<JukeboxInterfaceButton>? enabledButtons = null)
+    public async Task SpawnAsync(MediaInfo mediaInfo, MediaInfo? colInfo)
     {
         interfaceMessage = await interaction.ModifyOriginalResponseAsync(x =>
         {

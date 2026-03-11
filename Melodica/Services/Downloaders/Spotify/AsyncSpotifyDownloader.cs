@@ -176,10 +176,8 @@ public sealed partial class AsyncSpotifyDownloader : IAsyncDownloader
     }
 
     static async ValueTask<PlayableMedia> DownloadSpotifyAlbumAsync(FullAlbum album)
-    {
-        var albumInfo = AlbumToMediaInfo(album);
-        var tracks = await AlbumToTrackListAsync(album);
-        var trackLength = tracks.Count;
+    { 
+        var tracks = await AlbumToTrackListAsync(album); 
 
         PlayableMedia? first = null;
         PlayableMedia? current = null;
@@ -201,10 +199,8 @@ public sealed partial class AsyncSpotifyDownloader : IAsyncDownloader
 
     static async ValueTask<PlayableMedia> DownloadSpotifyPlaylistAsync(FullPlaylist playlist)
     {
-        //TODO: Consider reimplementing collectionInfo / playlist info again.
-        var playlistInfo = await PlaylistToMediaInfoAsync(playlist);
-        var tracks = await PlaylistToTrackListAsync(playlist);
-        var trackLength = tracks.Length;
+        //TODO: Consider reimplementing collectionInfo / playlist info again. 
+        var tracks = await PlaylistToTrackListAsync(playlist); 
 
         PlayableMedia? first = null;
         PlayableMedia? current = null;

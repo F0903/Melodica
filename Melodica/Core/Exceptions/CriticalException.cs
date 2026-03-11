@@ -1,8 +1,5 @@
 ﻿namespace Melodica.Core.Exceptions;
 
-public sealed class CriticalException : Exception
+public sealed class CriticalException(string? msg = null, Exception? innerEx = null) : Exception(msg, innerEx)
 {
-    public CriticalException(string? msg = null, Exception? innerEx = null) : base(msg, innerEx)
-    {
-    }
 }
