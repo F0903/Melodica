@@ -4,18 +4,17 @@ using Melodica.Utility.Extensions;
 
 namespace Melodica.Services.Playback.Requests;
 
-public sealed class URLMediaRequest : IMediaRequest
+public sealed class URLMediaRequest(string mediaUrl) : IMediaRequest
 {
-    public URLMediaRequest(string mediaUrl)
-    {
-        info = new("") { Artist = "External", Title = mediaUrl, Url = mediaUrl };
-        remote = mediaUrl;
-    }
-
     static readonly HttpClient http = new();
 
-    private readonly MediaInfo info;
-    private readonly string remote;
+    private readonly MediaInfo info = new("") 
+    { 
+        Artist = "External", 
+        Title = mediaUrl, 
+        Url = mediaUrl 
+    };
+    private readonly string remote = mediaUrl;
 
     public async Task<PlayableMedia> GetMediaAsync()
     {
