@@ -14,7 +14,8 @@ public sealed class CoreModule : DependencyModule
         .AddSingleton<DiscordSocketClient>(x => new(new()
         {
             MessageCacheSize = 1,
-            LogLevel = BotConfig.Settings.LogLevel.ToLogSeverity()
+            LogLevel = BotConfig.Settings.LogLevel.ToLogSeverity(),
+            EnableVoiceDaveEncryption = true
         }))
         .AddSingleton<InteractionService>(x => new(x.GetRequiredService<DiscordSocketClient>(), new()
         {

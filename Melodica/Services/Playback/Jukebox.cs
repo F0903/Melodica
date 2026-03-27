@@ -162,17 +162,6 @@ public sealed class Jukebox
 
         // Setup auto-disconnect when empty.
         audioClient.ClientDisconnected += OnClientDisconnect;
-        //TODO: update stream when connecting event fires. This should fix the disconnection problem
-        audioClient.Connected += () =>
-        {
-            Console.WriteLine("DEBUG CONNECTED");
-            return Task.CompletedTask;
-        };
-        audioClient.Disconnected += (ex) =>
-        {
-            Console.WriteLine($"DEBUG CONNECTED, EX: {ex}");
-            return Task.CompletedTask;
-        };
     }
 
     async Task SendDataAsync(PlayableMedia media, OpusEncodeStream output, CancellationToken cancellationToken)
@@ -181,11 +170,9 @@ public sealed class Jukebox
         {
             durationTimer.Start();
             const int frameBytes = 3840;
-            // Wrap the output stream to handle Dave encryption errors during initialization
-            var wrappedOutput = new DaveErrorHandlingStream(output);
             await mediaProcessor.ProcessMediaAsync(
                 media,
-                wrappedOutput,
+                output,
                 async () =>
                 {
                     durationTimer.Stop();
